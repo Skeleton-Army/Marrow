@@ -6,3 +6,8 @@ build/
 *.aar
 *.war
 !gradle-wrapper.jar
+
+*.iml
+.idea/
+
+local.properties
