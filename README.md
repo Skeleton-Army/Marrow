@@ -25,7 +25,9 @@ To install the library add:
    }
 
    dependencies {
-         implementation 'com.github.Skeleton-Army:Marrow:VERSION'
+         implementation 'com.github.Skeleton-Army:Marrow:VERSION' // Specific version
+         // OR
+         implementation 'com.github.Skeleton-Army:Marrow:main-SNAPSHOT' // Latest version
    }
    ```  
 
