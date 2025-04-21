@@ -23,6 +23,7 @@ To install the library add:
         mavenCentral()
         maven { url "https://jitpack.io" }
    }
+
    dependencies {
          implementation 'com.github.Skeleton-Army:Marrow:VERSION'
    }
