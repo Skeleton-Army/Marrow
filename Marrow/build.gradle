@@ -25,8 +25,8 @@ android {
 }
 
 dependencies {
-    implementation 'org.firstinspires.ftc:Hardware:10.2.0'
-    implementation 'com.acmerobotics.roadrunner:actions:1.0.1'
+    compileOnly 'com.acmerobotics.roadrunner:ftc:0.1.21'
+    compileOnly 'com.acmerobotics.roadrunner:actions:1.0.1'
 }
 
 publishing {
