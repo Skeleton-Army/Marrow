@@ -1,8 +1,8 @@
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 
-group = 'com.github.jitpack'
-version = '2.0'
+group = 'com.github.Skeleton-Army'
+version = '1.0'
 
 sourceCompatibility = 1.8 // java 8
 targetCompatibility = 1.8
@@ -29,6 +29,6 @@ publishing {
 }
 
 wrapper {
-    gradleVersion = "7.3.3"
+    gradleVersion = "8.9"
     distributionType = Wrapper.DistributionType.ALL
 }
