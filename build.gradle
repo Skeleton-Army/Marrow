@@ -1,34 +1,20 @@
-apply plugin: 'java'
-apply plugin: 'maven-publish'
-
-group = 'com.github.Skeleton-Army'
-version = '1.0'
-
-sourceCompatibility = 1.8 // java 8
-targetCompatibility = 1.8
-
-repositories {
-  mavenCentral()
-}
-
-dependencies {
-  implementation 'com.google.guava:guava:29.0-jre'
-}
-
-java {
-	withSourcesJar()
-	withJavadocJar()
-}
-
-publishing {
-    publications {
-        maven(MavenPublication) {
-		from components.java
-        }
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        maven { url = 'https://maven.brott.dev/' }
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.2.2'
     }
 }
 
-wrapper {
-    gradleVersion = "8.9"
-    distributionType = Wrapper.DistributionType.ALL
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        maven { url = 'https://maven.brott.dev/' }
+    }
 }
