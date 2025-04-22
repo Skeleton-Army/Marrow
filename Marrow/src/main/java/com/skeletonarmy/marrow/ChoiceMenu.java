@@ -3,7 +3,8 @@ package com.skeletonarmy.marrow;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.utils.general.prompts.Prompt;
+import com.skeletonarmy.marrow.prompts.Prompt;
+import com.skeletonarmy.marrow.MarrowGamepad.Button;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,8 +13,8 @@ import java.util.Map;
 
 public class ChoiceMenu {
     private final Telemetry telemetry;
-    private final Gamepad gamepad1;
-    private final Gamepad gamepad2;
+    private final MarrowGamepad gamepad1;
+    private final MarrowGamepad gamepad2;
 
     private final List<Prompt> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
@@ -21,6 +22,12 @@ public class ChoiceMenu {
     private int currentIndex = 0;
 
     public ChoiceMenu(Telemetry telemetry, Gamepad gamepad1, Gamepad gamepad2) {
+        this.telemetry = telemetry;
+        this.gamepad1 = new MarrowGamepad(gamepad1);
+        this.gamepad2 = new MarrowGamepad(gamepad2);
+    }
+
+    public ChoiceMenu(Telemetry telemetry, MarrowGamepad gamepad1, MarrowGamepad gamepad2) {
         this.telemetry = telemetry;
         this.gamepad1 = gamepad1;
         this.gamepad2 = gamepad2;
@@ -61,7 +68,7 @@ public class ChoiceMenu {
      */
     public boolean processPrompts() {
         // Handle back navigation
-        if (Utilities.isPressed(gamepad1.b || gamepad2.b) && currentIndex > 0) {
+        if ((gamepad1.justPressed(Button.B) || gamepad2.justPressed(Button.B)) && currentIndex > 0) {
             currentIndex--;
         }
 
@@ -85,5 +92,21 @@ public class ChoiceMenu {
         }
 
         return false;
+    }
+
+    /**
+     * Prompts the user and waits for a result. This will block until the result is chosen.
+     */
+    public Object prompt(Prompt prompt) {
+        enqueuePrompt(prompt);
+
+        // Process the prompts until a result is selected for the current prompt
+        while (!processPrompts()) {
+            // This will keep processing until the current prompt has been answered
+            // Optionally, you can add a timeout condition here if you need
+        }
+
+        // Return the result of the prompt
+        return results.get(prompt.getKey());
     }
 }

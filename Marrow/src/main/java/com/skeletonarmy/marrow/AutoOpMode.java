@@ -93,9 +93,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalInitLoop(){
-    boolean isSelectedPrompts = choiceMenu.processPrompts();
-
-    if (Utilities.isPressed(isSelectedPrompts)) onPromptsSelected(); // The isPressed ensures that the function is called once
+    choiceMenu.processPrompts();
 
     telemetry.update();
   }
@@ -124,9 +122,7 @@ public abstract class AutoOpMode extends LinearOpMode {
     telemetry.update();
   }
 
-  private void internalStop() {
-    currentPose = drive.pose;
-  }
+  private void internalStop() {}
 
   /**
    * Run all queued actions.
@@ -245,11 +241,11 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   /**
    * Checks if the remaining time is enough to complete the state.
-   * @param state The state to check
+   * @param requiredTime The amount of time it takes to complete the state
    * @return True if the remaining time is enough to complete the state, false otherwise
    */
-  protected boolean isEnoughTime(AutoApplication.State state) {
-    return getRemainingTime() >= state.getRequiredTime();
+  protected boolean isEnoughTime(double requiredTime) {
+    return getRemainingTime() >= requiredTime;
   }
 
   /**

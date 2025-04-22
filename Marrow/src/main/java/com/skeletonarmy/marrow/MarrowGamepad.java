@@ -11,6 +11,16 @@ public class MarrowGamepad extends Gamepad {
     private final Gamepad previous = new Gamepad();
 
     /**
+     * Creates a new MarrowGamepad with the given Gamepad.
+     *
+     * @param gamepad The Gamepad instance to initialize this MarrowGamepad with.
+     */
+    public MarrowGamepad(Gamepad gamepad) {
+        super();
+        this.copy(gamepad);
+    }
+
+    /**
      * Copies the state of the specified Gamepad into the current Gamepad instance.
      * The current state is saved into the 'previous' Gamepad before copying the new state.
      *
