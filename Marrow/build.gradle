@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace 'com.skeletonarmy.marrow'
+    namespace 'com.github.skeletonarmy.marrow'
     compileSdk 34
 
     defaultConfig {
