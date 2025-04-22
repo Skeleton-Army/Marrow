@@ -13,8 +13,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
+        sourceCompatibility JavaVersion.VERSION_14
+        targetCompatibility JavaVersion.VERSION_14
     }
 
     buildTypes {
@@ -27,6 +27,7 @@ android {
 dependencies {
     compileOnly 'com.acmerobotics.roadrunner:ftc:0.1.21'
     compileOnly 'com.acmerobotics.roadrunner:actions:1.0.1'
+    implementation "dev.frozenmilk.dairy:CachingHardware:1.0.0"
 }
 
 publishing {
