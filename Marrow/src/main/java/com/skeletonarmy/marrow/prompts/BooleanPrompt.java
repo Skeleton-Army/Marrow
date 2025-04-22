@@ -1,9 +1,9 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.qualcomm.robotcore.hardware.Gamepad;
+import com.skeletonarmy.marrow.MarrowGamepad;
+import com.skeletonarmy.marrow.MarrowGamepad.Button;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.utils.general.Utilities;
 
 public class BooleanPrompt extends Prompt {
     private boolean selectedValue;
@@ -14,15 +14,15 @@ public class BooleanPrompt extends Prompt {
     }
 
     @Override
-    public Object process(Gamepad gamepad1, Gamepad gamepad2, Telemetry telemetry) {
+    public Object process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
         telemetry.addLine(header);
         telemetry.addLine("Current Value: " + (selectedValue ? "Yes" : "No"));
 
-        if (Utilities.isPressed(gamepad1.dpad_right || gamepad2.dpad_right) || Utilities.isPressed(gamepad1.dpad_up || gamepad2.dpad_up) || Utilities.isPressed(gamepad1.dpad_left || gamepad2.dpad_left) || Utilities.isPressed(gamepad1.dpad_down || gamepad2.dpad_down)) {
+        if (gamepad1.justPressed(Button.DPAD_RIGHT) || gamepad2.justPressed(Button.DPAD_RIGHT) || gamepad1.justPressed(Button.DPAD_UP) || gamepad2.justPressed(Button.DPAD_UP) || gamepad1.justPressed(Button.DPAD_LEFT) || gamepad2.justPressed(Button.DPAD_LEFT) || gamepad1.justPressed(Button.DPAD_DOWN) || gamepad2.justPressed(Button.DPAD_DOWN)) {
             selectedValue = !selectedValue;
         }
 
-        if (Utilities.isPressed(gamepad1.a || gamepad2.a)) {
+        if (gamepad1.justPressed(Button.A) || gamepad2.justPressed(Button.A)) {
             return selectedValue;
         }
 
