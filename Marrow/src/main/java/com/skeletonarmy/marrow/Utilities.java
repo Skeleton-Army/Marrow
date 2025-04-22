@@ -7,8 +7,14 @@ import java.util.HashMap;
 import java.util.List;
 
 public class Utilities {
-    private static final HashMap<String, Boolean> lastButtonStates = new HashMap<>();
-
+    /**
+     * Sets the bulk caching mode for all Lynx modules in the hardware map.
+     * This method iterates through all available Lynx modules and applies the specified
+     * bulk caching mode to each one.
+     *
+     * @param hardwareMap The hardware map containing all the Lynx modules to be updated.
+     * @param mode The desired bulk caching mode to be set on all Lynx modules.
+     */
     public static void setBulkReadsMode(HardwareMap hardwareMap, LynxModule.BulkCachingMode mode) {
         List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
 
@@ -45,61 +51,5 @@ public class Utilities {
         }
 
         return idBuilder.toString();
-    }
-
-    /**
-     * Checks if an input was pressed (i.e., transitioned from false to true).
-     *
-     * @param input The current state of the input (true if pressed, false otherwise).
-     * @return True if the input transitioned from false to true (was just pressed), false otherwise.
-     */
-    public static boolean isPressed(boolean input) {
-        String uniqueKey = generateCallSiteID();
-
-        // Get the previous state (default to false if not tracked yet)
-        boolean lastState = Boolean.TRUE.equals(lastButtonStates.getOrDefault(uniqueKey, false));
-
-        // Update the stored state
-        lastButtonStates.put(uniqueKey, input);
-
-        // Return true if the last state was false and the current state is true (just pressed)
-        return !lastState && input;
-    }
-
-    /**
-     * Checks if an input was released (i.e., transitioned from true to false).
-     *
-     * @param input The current state of the input (true if pressed, false otherwise).
-     * @return True if the input transitioned from true to false (was just released), false otherwise.
-     */
-    public static boolean isReleased(boolean input) {
-        String uniqueKey = generateCallSiteID();
-
-        // Get the previous state (default to false if not tracked yet)
-        boolean lastState = Boolean.TRUE.equals(lastButtonStates.getOrDefault(uniqueKey, false));
-
-        // Update the stored state
-        lastButtonStates.put(uniqueKey, input);
-
-        // Return true if the last state was true and the current state is false (just released)
-        return lastState && !input;
-    }
-
-    /**
-     * Remaps a value from one range to another using linear interpolation.
-     *
-     * @param value  The input value to remap.
-     * @param inMin  The lower bound of the input range.
-     * @param inMax  The upper bound of the input range.
-     * @param outMin The lower bound of the output range.
-     * @param outMax The upper bound of the output range.
-     * @return The remapped value in the output range.
-     */
-    public static double remap(double value, double inMin, double inMid, double inMax, double outMin, double outMid, double outMax) {
-        if (value <= inMid) {
-            return outMin + (value - inMin) * (outMid - outMin) / (inMid - inMin);
-        } else {
-            return outMid + (value - inMid) * (outMax - outMid) / (inMax - inMid);
-        }
     }
 }
