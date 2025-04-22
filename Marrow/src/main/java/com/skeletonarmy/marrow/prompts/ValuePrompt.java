@@ -1,9 +1,8 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.qualcomm.robotcore.hardware.Gamepad;
+import com.skeletonarmy.marrow.MarrowGamepad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.utils.general.Utilities;
 
 public class ValuePrompt extends Prompt {
     private final double minValue;
@@ -20,20 +19,20 @@ public class ValuePrompt extends Prompt {
     }
 
     @Override
-    public Object process(Gamepad gamepad1, Gamepad gamepad2, Telemetry telemetry) {
+    public Object process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
         telemetry.addLine(header);
         telemetry.addLine();
 
         telemetry.addData("Increment", increment);
         telemetry.addLine("[" + minValue + "] " + selectedValue + " [" + maxValue + "]");
 
-        if (Utilities.isPressed(gamepad1.dpad_right || gamepad2.dpad_right) || Utilities.isPressed(gamepad1.dpad_up || gamepad2.dpad_up)) {
+        if (gamepad1.justPressed(MarrowGamepad.Button.DPAD_RIGHT) || gamepad2.justPressed(MarrowGamepad.Button.DPAD_RIGHT) || gamepad1.justPressed(MarrowGamepad.Button.DPAD_UP) || gamepad2.justPressed(MarrowGamepad.Button.DPAD_UP)) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
-        } else if (Utilities.isPressed(gamepad1.dpad_left || gamepad2.dpad_left) || Utilities.isPressed(gamepad1.dpad_down || gamepad2.dpad_down)) {
+        } else if (gamepad1.justPressed(MarrowGamepad.Button.DPAD_LEFT) || gamepad2.justPressed(MarrowGamepad.Button.DPAD_LEFT) || gamepad1.justPressed(MarrowGamepad.Button.DPAD_DOWN) || gamepad2.justPressed(MarrowGamepad.Button.DPAD_DOWN)) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         }
 
-        if (Utilities.isPressed(gamepad1.a || gamepad2.a)) {
+        if (gamepad1.justPressed(MarrowGamepad.Button.A) || gamepad2.justPressed(MarrowGamepad.Button.A)) {
             return selectedValue;
         }
 

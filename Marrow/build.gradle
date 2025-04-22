@@ -30,10 +30,30 @@ dependencies {
     implementation "dev.frozenmilk.dairy:CachingHardware:1.0.0"
 }
 
-publishing {
-    publications {
-        release(MavenPublication) {
-            from components.findByName('release')
+def createSourcesJarTask() {
+    tasks.register("sourcesJar", Jar) {
+        from android.sourceSets.main.java.srcDirs
+        archiveClassifier.set("sources")
+    }
+}
+
+afterEvaluate {
+    createSourcesJarTask()
+
+    publishing {
+        publications {
+            create("release", MavenPublication) {
+                def releaseComponent = components.findByName("release")
+                if (releaseComponent != null) {
+                    from releaseComponent
+                }
+
+                groupId = 'com.github.Skeleton-Army'
+                artifactId = 'Marrow'
+                version = 'main-SNAPSHOT'
+
+                artifact tasks.named("sourcesJar")
+            }
         }
     }
 }
