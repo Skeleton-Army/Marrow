@@ -14,5 +14,5 @@ jobs:
         run: |
           BRANCH_NAME="${GITHUB_REF##*/}"
           echo "Triggering JitPack build for branch: $BRANCH_NAME"
-          echo "https://jitpack.io/com/github/Skeleton-Army/Marrow/${BRANCH_NAME}-SNAPSHOT/build.log"
+          curl -X GET "https://jitpack.io/api/builds/com.github.Skeleton-Army/Marrow/${BRANCH_NAME}"
           curl -X GET "https://jitpack.io/com/github/Skeleton-Army/Marrow/${BRANCH_NAME}-SNAPSHOT/build.log"
