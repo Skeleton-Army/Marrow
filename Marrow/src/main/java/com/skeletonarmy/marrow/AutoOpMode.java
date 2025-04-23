@@ -92,8 +92,6 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalInitLoop(){
-    choiceMenu.processPrompts();
-
     runAsyncActions();
     runAsyncFunctions();
 

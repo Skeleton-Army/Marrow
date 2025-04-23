@@ -41,7 +41,7 @@ public class ChoiceMenu {
      * Handles the prompts and inputs. Should be called in a loop.
      * @return True if there are no more prompts to process
      */
-    public boolean processPrompts() {
+    private boolean processPrompts() {
         // Handle back navigation
         if ((gamepad1.justPressed(Button.B) || gamepad2.justPressed(Button.B)) && currentIndex > 0) {
             currentIndex--;
