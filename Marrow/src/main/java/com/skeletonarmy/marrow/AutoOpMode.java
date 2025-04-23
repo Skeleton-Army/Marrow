@@ -36,8 +36,8 @@ public abstract class AutoOpMode extends LinearOpMode {
   private Runnable fallbackFunction;
   private boolean didFallback = false;
 
-  // Abstract method to set the prompts
-  public abstract void setPrompts();
+  // Abstract method to set the prompts for the choice menu
+  public abstract void preAutonomousSetup();
 
   // Abstract method for subclasses to register their states
   protected abstract void registerStates();
@@ -57,8 +57,9 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   @Override
   public void runOpMode() {
-    internalInit();
+    internalEarlyInit();
     onInit();
+    internalLateInit();
 
     while (!isStarted() && !isStopRequested()) {
       onInitLoop();
@@ -79,18 +80,24 @@ public abstract class AutoOpMode extends LinearOpMode {
     onStop();
   }
 
-  private void internalInit() {
+  private void internalEarlyInit() {
     // Enable auto bulk reads
     MarrowUtils.setBulkReadsMode(hardwareMap, LynxModule.BulkCachingMode.AUTO);
 
     choiceMenu = new ChoiceMenu(telemetry, gamepad1, gamepad2);
-    setPrompts();
 
     registerStates();
   }
 
+  private void internalLateInit() {
+    preAutonomousSetup();
+  }
+
   private void internalInitLoop(){
     choiceMenu.processPrompts();
+
+    runAsyncActions();
+    runAsyncFunctions();
 
     telemetry.update();
   }

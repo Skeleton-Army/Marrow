@@ -38,7 +38,7 @@ public class ChoiceMenu {
     /**
      * Add a prompt to the queue.
      */
-    public void enqueuePrompt(Prompt prompt) {
+    private void enqueuePrompt(Prompt prompt) {
         prompts.add(prompt);
     }
 
@@ -49,7 +49,7 @@ public class ChoiceMenu {
      * @param defaultValue A default value if the value is null
      * @return The Object value of the prompt result
      */
-    public Object getValueOf(String key, Object defaultValue) {
+    private Object getValueOf(String key, Object defaultValue) {
         if (results.get(key) == null) return defaultValue;
         return results.get(key);
     }
@@ -60,7 +60,7 @@ public class ChoiceMenu {
      * @param key The prompt's key
      * @return The Object value of the prompt result
      */
-    public Object getValueOf(String key) {
+    private Object getValueOf(String key) {
         return results.get(key);
     }
 
@@ -68,7 +68,7 @@ public class ChoiceMenu {
      * Handles the prompts and inputs. Call this in the init_loop function.
      * @return True if there are no more prompts to process
      */
-    public boolean processPrompts() {
+    boolean processPrompts() {
         // Handle back navigation
         if ((gamepad1.justPressed(Button.B) || gamepad2.justPressed(Button.B)) && currentIndex > 0) {
             currentIndex--;
