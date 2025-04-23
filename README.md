@@ -49,7 +49,7 @@ To install **Marrow** in your project:
 
 ## 🛠️ Developing & Contributing
 
-If you're contributing to Marrow or developing a new feature, you can use the `dev-SNAPSHOT` version:
+If you're contributing to Marrow or developing a new feature, you can use the `dev-SNAPSHOT` version for testing:
 
 #### In `dependencies`:
 
@@ -69,6 +69,8 @@ configurations.configureEach {
 ```
 
 This setup ensures you're always using the most recent snapshot version while contributing or testing.
+
+> 🔄 Important: After each commit push, make sure to sync your Gradle in your IDE to fetch the latest version.
 
 ### ⏱ JitPack Build Time
 
