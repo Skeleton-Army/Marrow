@@ -15,7 +15,7 @@ public class ChoiceMenu {
     private final MarrowGamepad gamepad1;
     private final MarrowGamepad gamepad2;
 
-    private final List<PromptResult> promptResults = new ArrayList<>();
+    private final List<PromptResult<?>> promptResults = new ArrayList<>();
     private int currentIndex = 0;
 
     public ChoiceMenu(Telemetry telemetry, Gamepad gamepad1, Gamepad gamepad2) {
@@ -66,7 +66,8 @@ public class ChoiceMenu {
     /**
      * Prompts the user and waits for a result. This will block until the result is chosen.
      */
-    public <T> Object prompt(Prompt<T> prompt) {
+    @SuppressWarnings("unchecked")
+    public <T> T prompt(Prompt<T> prompt) {
         enqueuePrompt(prompt);
 
         // Process the prompts until a result is selected for the current prompt
@@ -76,7 +77,7 @@ public class ChoiceMenu {
         }
 
         // Return the result of the prompt
-        return promptResults.get(promptResults.size() - 1).result;
+        return (T) promptResults.get(promptResults.size() - 1).result;
     }
 
     /**
