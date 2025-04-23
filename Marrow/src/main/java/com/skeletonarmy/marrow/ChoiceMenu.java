@@ -3,8 +3,10 @@ package com.skeletonarmy.marrow;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+
+import com.skeletonarmy.marrow.gamepads.MarrowGamepad;
 import com.skeletonarmy.marrow.prompts.Prompt;
-import com.skeletonarmy.marrow.MarrowGamepad.Button;
+import com.skeletonarmy.marrow.gamepads.Button;
 
 import java.util.ArrayList;
 import java.util.HashMap;

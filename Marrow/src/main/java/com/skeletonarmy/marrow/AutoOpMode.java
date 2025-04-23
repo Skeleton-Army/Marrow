@@ -84,7 +84,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private void internalInit() {
     // Enable auto bulk reads
-    Utilities.setBulkReadsMode(hardwareMap, LynxModule.BulkCachingMode.AUTO);
+    MarrowUtils.setBulkReadsMode(hardwareMap, LynxModule.BulkCachingMode.AUTO);
 
     choiceMenu = new ChoiceMenu(telemetry, gamepad1, gamepad2);
     setPrompts();
