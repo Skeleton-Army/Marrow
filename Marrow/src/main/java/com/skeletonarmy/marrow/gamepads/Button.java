@@ -115,6 +115,18 @@ public enum Button {
         public boolean get(Gamepad gamepad) {
             return gamepad.left_stick_button;
         }
+    },
+    RIGHT_TRIGGER {
+        @Override
+        public boolean get(Gamepad gamepad) {
+            return gamepad.right_trigger > 0.1;
+        }
+    },
+    LEFT_TRIGGER {
+        @Override
+        public boolean get(Gamepad gamepad) {
+            return gamepad.left_trigger > 0.1;
+        }
     };
 
     /**
