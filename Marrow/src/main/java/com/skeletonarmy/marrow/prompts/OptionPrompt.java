@@ -9,8 +9,8 @@ public class OptionPrompt extends Prompt {
     private final String[] options;
     private int selectedOptionIndex = 0;
 
-    public OptionPrompt(String key, String header, String... options) {
-        super(key, header);
+    public OptionPrompt(String header, String... options) {
+        super(header);
         this.options = options;
     }
 

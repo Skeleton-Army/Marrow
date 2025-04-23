@@ -8,8 +8,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class BooleanPrompt extends Prompt {
     private boolean selectedValue;
 
-    public BooleanPrompt(String key, String header, boolean defaultValue) {
-        super(key, header);
+    public BooleanPrompt(String header, boolean defaultValue) {
+        super(header);
         this.selectedValue = defaultValue;
     }
 

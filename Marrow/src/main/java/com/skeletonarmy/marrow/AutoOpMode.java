@@ -19,8 +19,6 @@ import java.util.function.Supplier;
     The base enhanced OpMode for autonomous programs.
  */
 public abstract class AutoOpMode extends LinearOpMode {
-  public static Pose2d currentPose = new Pose2d(0, 0, 0);
-
   private final FtcDashboard dash = FtcDashboard.getInstance();
   private final Map<Enum<?>, Runnable> stateHandlers = new HashMap<>();
   private List<Action> runningActions = new ArrayList<>();

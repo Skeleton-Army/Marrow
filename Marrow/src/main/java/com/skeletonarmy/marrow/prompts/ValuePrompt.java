@@ -11,8 +11,8 @@ public class ValuePrompt extends Prompt {
     private final double increment;
     private double selectedValue;
 
-    public ValuePrompt(String key, String header, double minValue, double maxValue, double defaultValue, double increment) {
-        super(key, header);
+    public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
+        super(header);
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.increment = increment;
