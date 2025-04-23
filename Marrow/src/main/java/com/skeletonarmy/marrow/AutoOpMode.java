@@ -90,7 +90,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalLateInit() {
-    preAutonomousSetup();
+    preAutonomousSetup(); // Blocking
   }
 
   private void internalInitLoop(){
