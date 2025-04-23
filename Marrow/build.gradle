@@ -31,19 +31,20 @@ android {
 }
 
 dependencies {
-    implementation 'com.acmerobotics.roadrunner:ftc:0.1.21'
-    implementation 'com.acmerobotics.roadrunner:actions:1.0.1'
+    compileOnly 'com.acmerobotics.roadrunner:ftc:0.1.21'
+    compileOnly 'com.acmerobotics.roadrunner:actions:1.0.1'
     implementation "dev.frozenmilk.dairy:CachingHardware:1.0.0"
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            create("release", MavenPublication) {
-                from components.release
-                groupId = 'com.github.Skeleton-Army'
-                artifactId = 'Marrow'
-                version = 'dev-SNAPSHOT'
+publishing {
+    publications {
+        create("release", MavenPublication) {
+            groupId = 'com.github.Skeleton-Army'
+            artifactId = 'Marrow'
+            version = 'dev-SNAPSHOT'
+
+            afterEvaluate {
+                from(components["release"])
             }
         }
     }
