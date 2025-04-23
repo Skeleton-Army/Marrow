@@ -22,6 +22,12 @@ android {
             minifyEnabled false
         }
     }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 }
 
 dependencies {
@@ -30,29 +36,14 @@ dependencies {
     implementation "dev.frozenmilk.dairy:CachingHardware:1.0.0"
 }
 
-def createSourcesJarTask() {
-    tasks.register("sourcesJar", Jar) {
-        from android.sourceSets.main.java.srcDirs
-        archiveClassifier.set("sources")
-    }
-}
-
 afterEvaluate {
-    createSourcesJarTask()
-
     publishing {
         publications {
             create("release", MavenPublication) {
-                def releaseComponent = components.findByName("release")
-                if (releaseComponent != null) {
-                    from releaseComponent
-                }
-
+                from components.release
                 groupId = 'com.github.Skeleton-Army'
                 artifactId = 'Marrow'
-                version = 'main-SNAPSHOT'
-
-                artifact tasks.named("sourcesJar")
+                version = 'dev-SNAPSHOT'
             }
         }
     }
