@@ -47,25 +47,5 @@ To install **Marrow** in your project:
    
    In Android Studio, click **"Sync Now"** when prompted, or go to `File > Sync Project with Gradle Files` to apply the changes.
 
-## 🔄 Updating the Library
-
-*Note: You should probably not be worried about this*
-
-Marrow is published through [JitPack](https://jitpack.io), which means version updates depend on JitPack successfully building the latest commits.
-
-> ⚠️ **Heads up:** Sometimes JitPack may not automatically build the latest version of the library (especially if no one has triggered a build yet).
-
-### ✅ How to Force an Update
-
-If you're not seeing the latest changes, you can manually trigger a build on JitPack:
-
-1. Go to the [Marrow JitPack page](https://jitpack.io/#Skeleton-Army/Marrow)
-
-2. Click **"Look Up"** for the `main` branch or your desired tag version
-
-3. If it's not built yet, JitPack will queue a build for you
-
-4. Once complete, your project will be able to resolve the latest version
-
 ## 💡 Ideas?
 If you have suggestions or want to discuss improvements, feel free to open an [issue](https://github.com/Skeleton-Army/Marrow/issues) or start a discussion.
