@@ -37,9 +37,9 @@ To install **Marrow** in your project:
 
    ```gradle
    dependencies {
-      implementation 'com.github.Skeleton-Army:Marrow:VERSION' // Use a specific release
+      implementation 'com.github.Skeleton-Army:Marrow:(VERSION)' // Recommended
       // OR
-      implementation 'com.github.Skeleton-Army:Marrow:main-SNAPSHOT' // Always use the latest version
+      implementation 'com.github.Skeleton-Army:Marrow:main-SNAPSHOT' // Snapshot version – not recommended for production
    }
    ```
 
