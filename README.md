@@ -31,7 +31,7 @@ To install **Marrow** in your project:
    }
    ```
 
-3. **Add Marrow as a dependency**
+2. **Add Marrow as a dependency**
    
    Still in the same `build.gradle` file, add one of the following lines inside the `dependencies` block:
 
@@ -43,7 +43,7 @@ To install **Marrow** in your project:
    }
    ```
 
-5. **Sync your project with Gradle**
+3. **Sync your project with Gradle**
    
    In Android Studio, click **"Sync Now"** when prompted, or go to `File > Sync Project with Gradle Files` to apply the changes.
 
