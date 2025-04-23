@@ -5,7 +5,7 @@ import com.skeletonarmy.marrow.gamepads.Button;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-public class BooleanPrompt extends Prompt {
+public class BooleanPrompt extends Prompt<Boolean> {
     private boolean selectedValue;
 
     public BooleanPrompt(String header, boolean defaultValue) {
@@ -14,7 +14,7 @@ public class BooleanPrompt extends Prompt {
     }
 
     @Override
-    public Object process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
+    public Boolean process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
         telemetry.addLine(header);
         telemetry.addLine("Current Value: " + (selectedValue ? "Yes" : "No"));
 
@@ -26,6 +26,6 @@ public class BooleanPrompt extends Prompt {
             return selectedValue;
         }
 
-        return null;
+        return false;
     }
 }

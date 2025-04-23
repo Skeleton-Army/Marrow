@@ -33,8 +33,8 @@ public class ChoiceMenu {
     /**
      * Add a prompt to the queue.
      */
-    private void enqueuePrompt(Prompt prompt) {
-        promptResults.add(new PromptResult(prompt));
+    private <T> void enqueuePrompt(Prompt<T> prompt) {
+        promptResults.add(new PromptResult<>(prompt));
     }
 
     /**
@@ -66,7 +66,7 @@ public class ChoiceMenu {
     /**
      * Prompts the user and waits for a result. This will block until the result is chosen.
      */
-    public Object prompt(Prompt prompt) {
+    public <T> Object prompt(Prompt<T> prompt) {
         enqueuePrompt(prompt);
 
         // Process the prompts until a result is selected for the current prompt
@@ -82,11 +82,11 @@ public class ChoiceMenu {
     /**
      * A helper class to keep prompt and its result together.
      */
-    private static class PromptResult {
-        public final Prompt prompt;
-        public Object result;
+    private static class PromptResult<T> {
+        public final Prompt<T> prompt;
+        public T result;
 
-        public PromptResult(Prompt prompt) {
+        public PromptResult(Prompt<T> prompt) {
             this.prompt = prompt;
         }
     }

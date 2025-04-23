@@ -5,7 +5,7 @@ import com.skeletonarmy.marrow.gamepads.Button;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-public class ValuePrompt extends Prompt {
+public class ValuePrompt extends Prompt<Double> {
     private final double minValue;
     private final double maxValue;
     private final double increment;
@@ -20,7 +20,7 @@ public class ValuePrompt extends Prompt {
     }
 
     @Override
-    public Object process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
+    public Double process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
         telemetry.addLine(header);
         telemetry.addLine();
 
@@ -37,6 +37,6 @@ public class ValuePrompt extends Prompt {
             return selectedValue;
         }
 
-        return null;
+        return (double) 0;
     }
 }

@@ -5,25 +5,26 @@ import com.skeletonarmy.marrow.gamepads.Button;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-public class OptionPrompt extends Prompt {
-    private final String[] options;
+public class OptionPrompt<T> extends Prompt<T> {
+    private final T[] options;
     private int selectedOptionIndex = 0;
 
-    public OptionPrompt(String header, String... options) {
+    @SafeVarargs
+    public OptionPrompt(String header, T... options) {
         super(header);
         this.options = options;
     }
 
     @Override
-    public Object process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
+    public T process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
         telemetry.addLine(header);
         telemetry.addLine();
 
         for (int i = 0; i < options.length; i++) {
             if (i == selectedOptionIndex) {
-                telemetry.addLine((i + 1) + ") " + options[i] + " <");
+                telemetry.addLine((i + 1) + ") " + options[i].toString() + " <");
             } else {
-                telemetry.addLine((i + 1) + ") " + options[i]);
+                telemetry.addLine((i + 1) + ") " + options[i].toString());
             }
         }
 
