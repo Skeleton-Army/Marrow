@@ -49,6 +49,8 @@ To install **Marrow** in your project:
 
 ## 🔄 Updating the Library
 
+*Note: You should probably not be worried about this*
+
 Marrow is published through [JitPack](https://jitpack.io), which means version updates depend on JitPack successfully building the latest commits.
 
 > ⚠️ **Heads up:** Sometimes JitPack may not automatically build the latest version of the library (especially if no one has triggered a build yet).
