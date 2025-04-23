@@ -3,7 +3,6 @@ package com.skeletonarmy.marrow;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
-import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
 import java.util.HashMap;
@@ -46,7 +45,7 @@ public abstract class TeleopOpMode extends OpMode {
      * Run an action without blocking the main loop.
      */
     protected void runAction(Action action) {
-        runAction(Utilities.generateCallSiteID(), action);
+        runAction(MarrowUtils.generateCallSiteID(), action);
     }
 
     /**
@@ -83,7 +82,7 @@ public abstract class TeleopOpMode extends OpMode {
      * Runs multiple actions sequentially, toggling between them in order.
      */
     protected void runSequentialActions(Action... actions) {
-       runSequentialActions(Utilities.generateCallSiteID(), actions);
+       runSequentialActions(MarrowUtils.generateCallSiteID(), actions);
     }
 
     /**

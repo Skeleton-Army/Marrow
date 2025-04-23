@@ -3,10 +3,9 @@ package com.skeletonarmy.marrow;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import java.util.HashMap;
 import java.util.List;
 
-public class Utilities {
+public class MarrowUtils {
     /**
      * Sets the bulk caching mode for all Lynx modules in the hardware map.
      * This method iterates through all available Lynx modules and applies the specified

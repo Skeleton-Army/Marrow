@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.skeletonarmy.marrow.MarrowGamepad;
+import com.skeletonarmy.marrow.gamepads.MarrowGamepad;
+import com.skeletonarmy.marrow.gamepads.Button;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -26,13 +27,13 @@ public class OptionPrompt extends Prompt {
             }
         }
 
-        if (gamepad1.justPressed(MarrowGamepad.Button.DPAD_UP) || gamepad2.justPressed(MarrowGamepad.Button.DPAD_UP)) {
+        if (gamepad1.justPressed(Button.DPAD_UP) || gamepad2.justPressed(Button.DPAD_UP)) {
             selectedOptionIndex = (selectedOptionIndex - 1 + options.length) % options.length;
-        } else if (gamepad1.justPressed(MarrowGamepad.Button.DPAD_DOWN) || gamepad2.justPressed(MarrowGamepad.Button.DPAD_DOWN)) {
+        } else if (gamepad1.justPressed(Button.DPAD_DOWN) || gamepad2.justPressed(Button.DPAD_DOWN)) {
             selectedOptionIndex = (selectedOptionIndex + 1) % options.length;
         }
 
-        if (gamepad1.justPressed(MarrowGamepad.Button.A) || gamepad2.justPressed(MarrowGamepad.Button.A)) {
+        if (gamepad1.justPressed(Button.A) || gamepad2.justPressed(Button.A)) {
             return options[selectedOptionIndex];
         }
 
