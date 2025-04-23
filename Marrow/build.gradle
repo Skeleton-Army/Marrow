@@ -41,7 +41,6 @@ publishing {
         create("release", MavenPublication) {
             groupId = 'com.github.Skeleton-Army'
             artifactId = 'Marrow'
-            version = 'dev-SNAPSHOT'
 
             afterEvaluate {
                 from(components["release"])
