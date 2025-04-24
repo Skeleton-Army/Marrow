@@ -72,8 +72,9 @@ public class ChoiceMenu {
 
         // Process the prompts until a result is selected for the current prompt
         while (!processPrompts()) {
-            // This will keep processing until the current prompt has been answered
-            // Optionally, you can add a timeout condition here if you need
+            gamepad1.update();
+            gamepad2.update();
+            telemetry.update();
         }
 
         // Return the result of the prompt
