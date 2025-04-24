@@ -55,20 +55,34 @@ If you're contributing to Marrow or developing a new feature, you can use the `d
 
 ```gradle
 implementation("com.github.Skeleton-Army:Marrow:dev-SNAPSHOT") {
-    changing = true // This tells Gradle the dependency may change often
+    changing = online  // Only mark it as changing (i.e., check for updates) when online
 }
 ```
 
-#### And **below** your `dependencies` block:
+#### And **above** your `dependencies` block:
 
 ```gradle
-// Tells Gradle not to cache changing modules (e.g., SNAPSHOTs) for any period of time (0 seconds)
+// Check if we can reach jitpack.io (i.e., if we're online)
+def isOnline = {
+    try {
+        new URL("https://jitpack.io").openConnection().connect()
+        return true 
+    } catch (Exception e) {
+        return false
+    }
+}
+
+def online = isOnline()
+
+// Don't cache changing modules like SNAPSHOTs when online
 configurations.configureEach {
-    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    if (online) {
+        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    }
 }
 ```
 
-This setup ensures you're always using the most recent snapshot version while contributing or testing.
+This quirky workaround ensures you always use the most recent snapshot version while contributing or testing.
 
 > 🔄 Important: After each commit push, make sure to sync your Gradle in your IDE to fetch the latest version.
 
