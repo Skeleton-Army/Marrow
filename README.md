@@ -63,16 +63,14 @@ implementation("com.github.Skeleton-Army:Marrow:dev-SNAPSHOT") {
 
 ```gradle
 // Check if we can reach jitpack.io (i.e., if we're online)
-def isOnline = {
+def online = new URL("https://jitpack.io").openConnection().with {
     try {
-        new URL("https://jitpack.io").openConnection().connect()
-        return true 
-    } catch (Exception e) {
-        return false
+        connect()
+        true
+    } catch (Exception ignored) {
+        false
     }
 }
-
-def online = isOnline()
 
 // Don't cache changing modules like SNAPSHOTs when online
 configurations.configureEach {
