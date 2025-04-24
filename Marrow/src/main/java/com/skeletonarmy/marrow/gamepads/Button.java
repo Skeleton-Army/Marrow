@@ -1,139 +1,40 @@
 package com.skeletonarmy.marrow.gamepads;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
+import java.util.function.Predicate;
 
 /**
- * Enum representing various gamepad buttons.
- * Each enum value corresponds to a specific button and provides a method to get
- * the state of that button on a given Gamepad instance.
+ * Enum representing various gamepad buttons, each mapped to a predicate for easy state checking.
  */
 public enum Button {
-    A {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.a;
-        }
-    },
-    B {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.b;
-        }
-    },
-    X {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.x;
-        }
-    },
-    Y {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.y;
-        }
-    },
-    DPAD_UP {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.dpad_up;
-        }
-    },
-    DPAD_DOWN {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.dpad_down;
-        }
-    },
-    DPAD_LEFT {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.dpad_left;
-        }
-    },
-    DPAD_RIGHT {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.dpad_right;
-        }
-    },
-    LEFT_BUMPER {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.left_bumper;
-        }
-    },
-    RIGHT_BUMPER {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.right_bumper;
-        }
-    },
-    START {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.start;
-        }
-    },
-    BACK {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.back;
-        }
-    },
-    GUIDE {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.guide;
-        }
-    },
-    TOUCHPAD {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.touchpad;
-        }
-    },
-    TOUCHPAD_FINGER_1 {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.touchpad_finger_1;
-        }
-    },
-    TOUCHPAD_FINGER_2 {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.touchpad_finger_2;
-        }
-    },
-    RIGHT_STICK_BUTTON {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.right_stick_button;
-        }
-    },
-    LEFT_STICK_BUTTON {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.left_stick_button;
-        }
-    },
-    RIGHT_TRIGGER {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.right_trigger > 0.1;
-        }
-    },
-    LEFT_TRIGGER {
-        @Override
-        public boolean get(Gamepad gamepad) {
-            return gamepad.left_trigger > 0.1;
-        }
-    };
+    A(g -> g.a),
+    B(g -> g.b),
+    X(g -> g.x),
+    Y(g -> g.y),
+    DPAD_UP(g -> g.dpad_up),
+    DPAD_DOWN(g -> g.dpad_down),
+    DPAD_LEFT(g -> g.dpad_left),
+    DPAD_RIGHT(g -> g.dpad_right),
+    LEFT_BUMPER(g -> g.left_bumper),
+    RIGHT_BUMPER(g -> g.right_bumper),
+    START(g -> g.start),
+    BACK(g -> g.back),
+    GUIDE(g -> g.guide),
+    TOUCHPAD(g -> g.touchpad),
+    TOUCHPAD_FINGER_1(g -> g.touchpad_finger_1),
+    TOUCHPAD_FINGER_2(g -> g.touchpad_finger_2),
+    RIGHT_STICK_BUTTON(g -> g.right_stick_button),
+    LEFT_STICK_BUTTON(g -> g.left_stick_button),
+    RIGHT_TRIGGER(g -> g.right_trigger > 0.1),
+    LEFT_TRIGGER(g -> g.left_trigger > 0.1);
 
-    /**
-     * Abstract method for retrieving the state of a specific button on the given Gamepad.
-     *
-     * @param gamepad The Gamepad instance to check the button state on
-     * @return The state of the button (true if pressed, false if not)
-     */
-    public abstract boolean get(Gamepad gamepad);
+    private final Predicate<Gamepad> condition;
+
+    Button(Predicate<Gamepad> condition) {
+        this.condition = condition;
+    }
+
+    public boolean get(Gamepad gamepad) {
+        return condition.test(gamepad);
+    }
 }
