@@ -62,21 +62,15 @@ implementation("com.github.Skeleton-Army:Marrow:dev-SNAPSHOT") {
 #### And **above** your `dependencies` block:
 
 ```gradle
-// Check if we can reach jitpack.io (i.e., if we're online)
-def online = new URL("https://jitpack.io").openConnection().with {
-    try {
-        connect()
-        true
-    } catch (Exception ignored) {
-        false
-    }
-}
+// Try connecting to jitpack.io to detect internet
+def online = {
+    try { new URL("https://jitpack.io").openConnection().connect(); true }
+    catch (ignored) { false }
+}.call()
 
 // Don't cache changing modules like SNAPSHOTs when online
 configurations.configureEach {
-    if (online) {
-        resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-    }
+    if (online) resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 ```
 
