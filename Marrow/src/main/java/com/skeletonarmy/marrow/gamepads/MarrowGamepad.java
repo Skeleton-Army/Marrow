@@ -7,7 +7,7 @@ import com.qualcomm.robotcore.hardware.Gamepad;
  * for detecting button transitions, specifically when a button is just pressed or just released.
  */
 public class MarrowGamepad extends Gamepad {
-    // The previous state of the Gamepad, used to detect transitions
+    private final Gamepad current;
     private final Gamepad previous = new Gamepad();
 
     /**
@@ -17,7 +17,23 @@ public class MarrowGamepad extends Gamepad {
      */
     public MarrowGamepad(Gamepad gamepad) {
         super();
-        this.copy(gamepad);
+        this.current = gamepad;
+    }
+
+    /**
+     * Updates the internal state of the MarrowGamepad.
+     * <p>
+     * This method should be called once per loop to track button state transitions.
+     * It stores the current gamepad state into an internal "previous" snapshot,
+     * allowing methods like {@code justPressed()} and {@code justReleased()} to
+     * detect changes between loop iterations.
+     * </p>
+     * <p>
+     * Without calling this method, transition-based input detection will not work correctly.
+     * </p>
+     */
+    public void update() {
+        copy(current);
     }
 
     /**
