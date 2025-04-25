@@ -6,6 +6,9 @@ import java.util.function.Supplier;
 public class MarrowGamepad {
     private final Gamepad current;
     private final Gamepad previous = new Gamepad();
+    private final Gamepad snapshot = new Gamepad();
+
+    private long lastTimestamp = -1;
 
     // Gamepad Buttons
     public final ButtonState a;
@@ -99,20 +102,36 @@ public class MarrowGamepad {
         touchpad_finger_2_y = new SimpleAnalogState(() -> current.touchpad_finger_2_y);
     }
 
-    public void update() {
-        previous.copy(current);
+    /**
+     * Automatically updates the internal gamepad state if the current gamepad's timestamp has changed.
+     * This ensures it updates only once when the original gamepad's state gets updated.
+     */
+    private void checkAutoUpdate() {
+        if (current.timestamp != lastTimestamp) {
+            lastTimestamp = current.timestamp;
+
+            update();
+        }
     }
 
-    public Gamepad getCurrent() {
+    private void update() {
+        // Save snapshot (last frame) into previous
+        previous.copy(snapshot);
+
+        // Save current into snapshot
+        snapshot.copy(current);
+    }
+
+    public Gamepad getGamepad() {
         return current;
     }
 
-    public Gamepad getPrevious() {
+    public Gamepad getPrevGamepad() {
         return previous;
     }
 
     // --- Base class ---
-    public static abstract class ControlState<T> {
+    public abstract class ControlState<T> {
         protected Supplier<T> current;
         protected Supplier<T> previous;
         protected boolean toggled;
@@ -136,6 +155,7 @@ public class MarrowGamepad {
         }
 
         public T value() {
+            checkAutoUpdate();
             return current.get();
         }
 
@@ -165,8 +185,7 @@ public class MarrowGamepad {
         }
     }
 
-
-    public static class ButtonState extends ControlState<Boolean> {
+    public class ButtonState extends ControlState<Boolean> {
         public ButtonState(Supplier<Boolean> current, Supplier<Boolean> previous) {
             super(current, previous);
         }
@@ -192,7 +211,7 @@ public class MarrowGamepad {
         }
     }
 
-    public static class AnalogState extends ControlState<Float> {
+    public class AnalogState extends ControlState<Float> {
         private final float threshold;
 
         public AnalogState(Supplier<Float> current, Supplier<Float> previous) {
@@ -225,7 +244,7 @@ public class MarrowGamepad {
         }
     }
 
-    public static class SimpleAnalogState {
+    public class SimpleAnalogState {
         protected Supplier<Float> current;
 
         public SimpleAnalogState(Supplier<Float> current) {
