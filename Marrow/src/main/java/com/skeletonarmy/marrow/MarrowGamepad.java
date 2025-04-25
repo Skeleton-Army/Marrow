@@ -122,12 +122,13 @@ public class MarrowGamepad {
         snapshot.copy(current);
     }
 
+    /**
+     * Returns the original (vanilla) gamepad.
+     *
+     * @return the current {@link Gamepad} instance
+     */
     public Gamepad gamepad() {
         return current;
-    }
-
-    public Gamepad prevGamepad() {
-        return previous;
     }
 
     // --- Base class ---
