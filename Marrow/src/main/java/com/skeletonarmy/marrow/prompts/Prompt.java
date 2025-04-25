@@ -1,6 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.skeletonarmy.marrow.gamepads.MarrowGamepad;
+import com.skeletonarmy.marrow.MarrowGamepad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 

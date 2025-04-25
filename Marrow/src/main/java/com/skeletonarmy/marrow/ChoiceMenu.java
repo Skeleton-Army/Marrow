@@ -3,9 +3,7 @@ package com.skeletonarmy.marrow;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-import com.skeletonarmy.marrow.gamepads.MarrowGamepad;
 import com.skeletonarmy.marrow.prompts.Prompt;
-import com.skeletonarmy.marrow.gamepads.Button;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +41,7 @@ public class ChoiceMenu {
      */
     private boolean processPrompts() {
         // Handle back navigation
-        if ((gamepad1.justPressed(Button.B) || gamepad2.justPressed(Button.B)) && currentIndex > 0) {
+        if ((gamepad1.b.isJustPressed() || gamepad2.b.isJustPressed()) && currentIndex > 0) {
             currentIndex--;
         }
 
