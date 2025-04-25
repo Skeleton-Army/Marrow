@@ -122,11 +122,11 @@ public class MarrowGamepad {
         snapshot.copy(current);
     }
 
-    public Gamepad getGamepad() {
+    public Gamepad gamepad() {
         return current;
     }
 
-    public Gamepad getPrevGamepad() {
+    public Gamepad prevGamepad() {
         return previous;
     }
 
