@@ -1,12 +1,12 @@
-package com.skeletonarmy.marrow;
+package com.skeletonarmy.marrow.autonomous;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
-import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.skeletonarmy.marrow.MarrowUtils;
 import com.skeletonarmy.marrow.prompts.Prompt;
 
 import java.util.ArrayList;
@@ -21,37 +21,29 @@ import java.util.function.Supplier;
  */
 public abstract class AutoOpMode extends LinearOpMode {
   private final FtcDashboard dash = FtcDashboard.getInstance();
-  private final Map<Enum<?>, Runnable> stateHandlers = new HashMap<>();
+
+  private final Map<Runnable, Double> states = new HashMap<>();
+
   private List<Action> runningActions = new ArrayList<>();
   private final List<Runnable> runningFunctions = new ArrayList<>();
 
-  private Enum<?> currentState = null;
+  private Runnable currentState = null;
 
   private ChoiceMenu choiceMenu;
 
-  private Supplier<Boolean> fallbackCondition;
-  private Runnable fallbackFunction;
+  private Supplier<Boolean> fallbackCondition = () -> false;
+  private Runnable fallbackFunction  = () -> {};
   private boolean didFallback = false;
 
   protected ElapsedTime runtime = new ElapsedTime();
 
-  // Abstract method to set the prompts for the choice menu
   public abstract void preAutonomousSetup();
-
-  // Abstract method for subclasses to register their states
-  public abstract void registerStates();
-
-  // Abstract method to set the initial state
   public abstract void setInitialState();
 
   public abstract void onInit();
-
   public void onInitLoop() {};
-
   public void onStart() {};
-
   public void onLoop() {};
-
   public void onStop() {};
 
   @Override
@@ -94,10 +86,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalInitLoop(){
-    runAsyncActions();
-    runAsyncFunctions();
-
-    telemetry.update();
+    runAsyncTasks();
   }
 
   private void internalStart() {
@@ -108,23 +97,50 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private void internalLoop() {
     if (currentState != null) {
-      Runnable handler = stateHandlers.get(currentState);
+      // Retrieve the time and execute the state
+      Double requiredTime = states.get(currentState);
 
-      if (handler != null) {
+      if (requiredTime != null) {
         telemetry.addData("State", currentState.toString());
-        handler.run();
+        currentState.run();
       } else {
-        telemetry.addData("Error", "No handler for state: " + currentState.toString());
+        telemetry.addData("Error", "No handler for current state: " + currentState.toString());
       }
     }
 
+    runAsyncTasks();
+  }
+
+  private void internalStop() {
+    runningActions.clear();
+    runningFunctions.clear();
+  }
+
+  private void runAsyncTasks() {
     runAsyncActions();
     runAsyncFunctions();
-
     telemetry.update();
   }
 
-  private void internalStop() {}
+  private void registerStates() {
+    for (var method : getClass().getDeclaredMethods()) {
+      State ann = method.getAnnotation(State.class);
+
+      if (ann != null) {
+        method.setAccessible(true);
+
+        Runnable runnable = () -> {
+          try {
+            method.invoke(this);
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        };
+
+        addState(runnable, ann.requiredTime());
+      }
+    }
+  }
 
   /**
    * Run all queued actions.
@@ -171,9 +187,16 @@ public abstract class AutoOpMode extends LinearOpMode {
         break;
       }
 
-      runAsyncActions();
-      runAsyncFunctions();
+      runAsyncTasks();
     }
+  }
+
+  private void addState(Runnable stateMethod, double requiredTime) {
+    states.put(stateMethod, requiredTime);
+  }
+
+  private void setCurrentState(Runnable newState) {
+    currentState = newState;
   }
 
   /**
@@ -184,43 +207,29 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Run a function in a non-blocking loop. <br>
-   * <b>Example:</b> runAsync(() -> { function(); });
+   * Run a function in a non-blocking loop.
    * @param func The function to run asynchronously
    */
   protected void runAsync(Runnable func) {
     runningFunctions.add(func);
   }
 
-  private void setState(Enum<?> newState) {
-    currentState = newState;
-  }
-
-  /**
-   * Adds a state handler to the FSM.
-   * @param state The state to add the handler for
-   * @param handler The function to add
-   */
-  protected void addState(Enum<?> state, Runnable handler) {
-    stateHandlers.put(state, handler);
-  }
-
   /**
    * Adds a transition to the FSM.
-   * @param newState The state to transition to
+   * @param stateMethod The state to transition to
    */
-  protected void addTransition(Enum<?> newState) {
-    setState(newState);
+  protected void transition(Runnable stateMethod) {
+    setCurrentState(stateMethod);
   }
 
   /**
    * Adds a conditional transition to the FSM.
-   * @param newState The state to transition to
    * @param condition The condition to check
+   * @param stateMethod The state to transition to if the condition is true
    */
-  protected void addConditionalTransition(boolean condition, Enum<?> newState) {
+  protected void conditionalTransition(boolean condition, Runnable stateMethod) {
     if (condition) {
-      setState(newState);
+      setCurrentState(stateMethod);
     }
   }
 
@@ -230,24 +239,49 @@ public abstract class AutoOpMode extends LinearOpMode {
    * @param falseState The state to transition to if the condition is false
    * @param condition The condition to check
    */
-  protected void addConditionalTransition(boolean condition, Enum<?> trueState, Enum<?> falseState) {
-    setState(condition ? trueState : falseState);
+  protected void conditionalTransition(boolean condition, Runnable trueState, Runnable falseState) {
+    setCurrentState(condition ? trueState : falseState);
   }
 
   /**
-   * Gets the remaining time for the autonomous in seconds.
+   * Gets the remaining time in the autonomous period in seconds.
    */
   protected double getRemainingTime() {
     return 30 - runtime.seconds();
   }
 
   /**
-   * Checks if the remaining time is enough to complete the state.
-   * @param requiredTime The amount of time it takes to complete the state
-   * @return True if the remaining time is enough to complete the state, false otherwise
+   * Checks if the remaining time in the autonomous period is sufficient to complete a given task.
+   *
+   * @param requiredTime The amount of time (in seconds) required to complete the task.
+   * @return {@code true} if the remaining time is sufficient to complete the task,
+   *         {@code false} if there is not enough time.
    */
   protected boolean isEnoughTime(double requiredTime) {
     return getRemainingTime() >= requiredTime;
+  }
+
+  /**
+   * Checks if the remaining time in the autonomous period is sufficient to complete the state.
+   *
+   * @param stateMethod The state to check.
+   * @return {@code true} if the remaining time is sufficient to complete the state,
+   *         {@code false} if there is not enough time.
+   */
+  protected boolean isEnoughTime(Runnable stateMethod) {
+    Double requiredTime = states.get(stateMethod);
+    return (requiredTime == null) || isEnoughTime(requiredTime);
+  }
+
+  /**
+   * Checks if the remaining time in the autonomous period is sufficient to complete the currently active state.
+   *
+   * @return {@code true} if the remaining time is sufficient to complete the current state,
+   *         {@code false} if there is not enough time.
+   */
+  protected boolean isEnoughTime() {
+    if (currentState == null) return true;
+    return isEnoughTime(currentState);
   }
 
   /**

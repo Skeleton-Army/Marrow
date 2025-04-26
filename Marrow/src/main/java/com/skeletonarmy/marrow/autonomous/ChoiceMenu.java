@@ -1,8 +1,9 @@
-package com.skeletonarmy.marrow;
+package com.skeletonarmy.marrow.autonomous;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import com.skeletonarmy.marrow.MarrowGamepad;
 import com.skeletonarmy.marrow.prompts.Prompt;
 
 import java.util.ArrayList;
