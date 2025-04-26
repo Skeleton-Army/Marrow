@@ -2,11 +2,11 @@
 
 [![](https://jitpack.io/v/Skeleton-Army/marrow.svg?label=Tag)](https://jitpack.io/#Skeleton-Army/Marrow)
 
-Welcome to the official utility package of FTC Team ☠ **Skeleton Army #23644** ☠.
+**Introducing the official utility library from FTC Team ☠ **Skeleton Army #23644** ☠ — built by competitors, for competitors.**
 
-This library contains reusable systems and helpful modules to speed up development, reduce clutter, and boost performance on and off the field.
+**Marrow** is a collection of modular, high-performance tools designed to streamline development, eliminate boilerplate, and help your team move faster—on and off the field.
 
-We also **highly** recommend using [Sloth](https://github.com/Dairy-Foundation/Sloth) for *really* fast upload times.
+We also ***highly*** recommend using [Sloth](https://github.com/Dairy-Foundation/Sloth) for *really* fast upload times and quick iterations.
 
 ## 🧠 Why Use This?
 
@@ -33,7 +33,7 @@ To install **Marrow** in your project:
 
 2. **Add Marrow as a dependency**
    
-   Still in the same `build.gradle` file, add one of the following lines inside the `dependencies` block:
+   In the same `build.gradle` file, add one of the following lines inside the `dependencies` block:
 
    ```gradle
    dependencies {
@@ -47,23 +47,43 @@ To install **Marrow** in your project:
    
    In Android Studio, click **"Sync Now"** when prompted, or go to `File > Sync Project with Gradle Files` to apply the changes.
 
-## 🔄 Updating the Library
+## 🛠️ Developing & Contributing
 
-Marrow is published through [JitPack](https://jitpack.io), which means version updates depend on JitPack successfully building the latest commits.
+If you're contributing to Marrow or developing a new feature, you can use the `dev-SNAPSHOT` version for testing:
 
-> ⚠️ **Heads up:** Sometimes JitPack may not automatically build the latest version of the library (especially if no one has triggered a build yet).
+#### In `dependencies`:
 
-### ✅ How to Force an Update
+```gradle
+implementation("com.github.Skeleton-Army:Marrow:dev-SNAPSHOT") {
+    changing = online  // Only mark it as changing (i.e., check for updates) when online
+}
+```
 
-If you're not seeing the latest changes, you can manually trigger a build on JitPack:
+#### And **above** your `dependencies` block:
 
-1. Go to the [Marrow JitPack page](https://jitpack.io/#Skeleton-Army/Marrow)
+```gradle
+// Try connecting to jitpack.io to detect internet
+def online = {
+    try { new URL("https://jitpack.io").openConnection().connect(); true }
+    catch (ignored) { false }
+}.call()
 
-2. Click **"Look Up"** for the `main` branch or your desired tag version
+// Don't cache changing modules like SNAPSHOTs when online
+configurations.configureEach {
+    if (online) resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+```
 
-3. If it's not built yet, JitPack will queue a build for you
+This quirky workaround ensures you always use the most recent snapshot version while contributing or testing.
 
-4. Once complete, your project will be able to resolve the latest version
+> 🔄 Important: After each commit push, make sure to sync your Gradle in your IDE to fetch the latest version.
+
+### ⏱ JitPack Build Time
+
+> ⚠️ Heads up: Every time you push a commit to the `main` or `dev` branch, JitPack can take **~2–3 minutes** to build the new version.
+
+You can **check build status** or manually trigger a build at:  
+👉 https://jitpack.io/#Skeleton-Army/Marrow
 
 ## 💡 Ideas?
 If you have suggestions or want to discuss improvements, feel free to open an [issue](https://github.com/Skeleton-Army/Marrow/issues) or start a discussion.
