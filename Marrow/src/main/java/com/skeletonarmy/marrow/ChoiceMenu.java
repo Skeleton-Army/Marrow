@@ -69,9 +69,7 @@ public class ChoiceMenu {
         enqueuePrompt(prompt);
 
         // Process the prompts until a result is selected for the current prompt
-        while (!processPrompts()) {
-            telemetry.update();
-        }
+        while (!processPrompts()) {}
 
         // Return the result of the prompt
         return (T) promptResults.get(promptResults.size() - 1).result;

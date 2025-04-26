@@ -7,6 +7,7 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.skeletonarmy.marrow.prompts.Prompt;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,19 +27,19 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private Enum<?> currentState = null;
 
-  protected ChoiceMenu choiceMenu;
-
-  protected ElapsedTime runtime = new ElapsedTime();
+  private ChoiceMenu choiceMenu;
 
   private Supplier<Boolean> fallbackCondition;
   private Runnable fallbackFunction;
   private boolean didFallback = false;
 
+  protected ElapsedTime runtime = new ElapsedTime();
+
   // Abstract method to set the prompts for the choice menu
   public abstract void preAutonomousSetup();
 
   // Abstract method for subclasses to register their states
-  protected abstract void registerStates();
+  public abstract void registerStates();
 
   // Abstract method to set the initial state
   public abstract void setInitialState();
@@ -88,7 +89,8 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalLateInit() {
-    preAutonomousSetup(); // Blocking
+    // Run in a separate thread to avoid blocking the main thread
+    new Thread(this::preAutonomousSetup).start();
   }
 
   private void internalInitLoop(){
@@ -256,5 +258,15 @@ public abstract class AutoOpMode extends LinearOpMode {
   protected void setFallbackState(Supplier<Boolean> condition, Runnable handler) {
     fallbackCondition = condition;
     fallbackFunction = handler;
+  }
+
+  /**
+   * Prompts the user with a specified {@link Prompt} and waits for a selection.
+   *
+   * @param prompt the {@link Prompt} to present to the user
+   * @return the selected result of type {@code T}
+   */
+  protected <T> T prompt(Prompt<T> prompt) {
+    return choiceMenu.prompt(prompt);
   }
 }
