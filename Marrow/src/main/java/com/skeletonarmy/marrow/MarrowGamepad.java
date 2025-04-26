@@ -104,7 +104,7 @@ public class MarrowGamepad {
 
     /**
      * Automatically updates the internal gamepad state if the current gamepad's timestamp has changed.
-     * This ensures it updates only once when the original gamepad's state gets updated.
+     * This ensures it updates only once when the original gamepad's state gets updated. (On the first gamepad call of a loop)
      */
     private void checkAutoUpdate() {
         if (current.timestamp != lastTimestamp) {
