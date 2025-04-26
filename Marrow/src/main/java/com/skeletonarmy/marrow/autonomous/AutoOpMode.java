@@ -51,7 +51,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   protected ElapsedTime runtime = new ElapsedTime();
 
-  public abstract SerializableConsumer0 initialState();
+  public abstract void stateMachineStart();
 
   public abstract void preAutonomousSetup();
 
@@ -107,7 +107,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   private void internalStart() {
     runtime.reset();
 
-    setCurrentState(getMethodName(initialState()));
+    stateMachineStart();
   }
 
   private void internalLoop() {
