@@ -33,8 +33,14 @@ android {
 dependencies {
     implementation 'com.github.meanbeanlib:meanmirror:1.0.0'
 
-    compileOnly 'com.acmerobotics.roadrunner:ftc:0.1.21'
-    compileOnly 'com.acmerobotics.roadrunner:actions:1.0.1'
+    implementation ("com.acmerobotics.roadrunner:ftc:0.1.21"){
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    api ("com.acmerobotics.roadrunner:actions:1.0.1"){
+        exclude group: "com.acmerobotics.dashboard"
+    }
+    compileOnly "com.acmerobotics.dashboard:dashboard:0.4.16" // compileOnly so it would work with Sloth
+
     implementation "dev.frozenmilk.dairy:CachingHardware:1.0.0"
 }
 
