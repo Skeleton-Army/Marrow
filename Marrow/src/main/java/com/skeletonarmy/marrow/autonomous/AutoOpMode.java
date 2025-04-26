@@ -7,6 +7,7 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.skeletonarmy.marrow.MarrowUtils;
+import com.skeletonarmy.marrow.fsm.State;
 import com.skeletonarmy.marrow.prompts.Prompt;
 
 import java.util.ArrayList;
@@ -20,25 +21,36 @@ import java.util.function.Supplier;
     The base enhanced OpMode for autonomous programs.
  */
 public abstract class AutoOpMode extends LinearOpMode {
+  private static class StateEntry {
+    Runnable runnable;
+    double requiredTime;
+
+    StateEntry(Runnable runnable, double requiredTime) {
+      this.runnable = runnable;
+      this.requiredTime = requiredTime;
+    }
+  }
+
   private final FtcDashboard dash = FtcDashboard.getInstance();
 
-  private final Map<Runnable, Double> states = new HashMap<>();
+  private final Map<String, StateEntry> states = new HashMap<>();
 
   private List<Action> runningActions = new ArrayList<>();
   private final List<Runnable> runningFunctions = new ArrayList<>();
 
-  private Runnable currentState = null;
+  private String currentState = null;
 
   private ChoiceMenu choiceMenu;
 
   private Supplier<Boolean> fallbackCondition = () -> false;
-  private Runnable fallbackFunction  = () -> {};
+  private Runnable fallbackFunction = () -> {};
   private boolean didFallback = false;
 
   protected ElapsedTime runtime = new ElapsedTime();
 
+  public abstract String initialState();
+
   public abstract void preAutonomousSetup();
-  public abstract void setInitialState();
 
   public abstract void onInit();
   public void onInitLoop() {};
@@ -92,19 +104,18 @@ public abstract class AutoOpMode extends LinearOpMode {
   private void internalStart() {
     runtime.reset();
 
-    setInitialState();
+    setCurrentState(initialState());
   }
 
   private void internalLoop() {
     if (currentState != null) {
-      // Retrieve the time and execute the state
-      Double requiredTime = states.get(currentState);
+      StateEntry stateEntry = states.get(currentState);
 
-      if (requiredTime != null) {
-        telemetry.addData("State", currentState.toString());
-        currentState.run();
+      if (stateEntry != null) {
+        telemetry.addData("State", currentState);
+        stateEntry.runnable.run();
       } else {
-        telemetry.addData("Error", "No handler for current state: " + currentState.toString());
+        telemetry.addData("Error", "No handler for current state: " + currentState);
       }
     }
 
@@ -137,7 +148,7 @@ public abstract class AutoOpMode extends LinearOpMode {
           }
         };
 
-        addState(runnable, ann.requiredTime());
+        addState(method.getName(), new StateEntry(runnable, ann.requiredTime()));
       }
     }
   }
@@ -191,12 +202,12 @@ public abstract class AutoOpMode extends LinearOpMode {
     }
   }
 
-  private void addState(Runnable stateMethod, double requiredTime) {
-    states.put(stateMethod, requiredTime);
+  private void addState(String stateName, StateEntry state) {
+    states.put(stateName, state);
   }
 
-  private void setCurrentState(Runnable newState) {
-    currentState = newState;
+  private void setCurrentState(String stateName) {
+    currentState = stateName;
   }
 
   /**
@@ -216,20 +227,20 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   /**
    * Adds a transition to the FSM.
-   * @param stateMethod The state to transition to
+   * @param stateName The state to transition to
    */
-  protected void transition(Runnable stateMethod) {
-    setCurrentState(stateMethod);
+  protected void transition(String stateName) {
+    setCurrentState(stateName);
   }
 
   /**
    * Adds a conditional transition to the FSM.
    * @param condition The condition to check
-   * @param stateMethod The state to transition to if the condition is true
+   * @param stateName The state to transition to if the condition is true
    */
-  protected void conditionalTransition(boolean condition, Runnable stateMethod) {
+  protected void conditionalTransition(boolean condition, String stateName) {
     if (condition) {
-      setCurrentState(stateMethod);
+      setCurrentState(stateName);
     }
   }
 
@@ -239,7 +250,7 @@ public abstract class AutoOpMode extends LinearOpMode {
    * @param falseState The state to transition to if the condition is false
    * @param condition The condition to check
    */
-  protected void conditionalTransition(boolean condition, Runnable trueState, Runnable falseState) {
+  protected void conditionalTransition(boolean condition, String trueState, String falseState) {
     setCurrentState(condition ? trueState : falseState);
   }
 
@@ -264,14 +275,25 @@ public abstract class AutoOpMode extends LinearOpMode {
   /**
    * Checks if the remaining time in the autonomous period is sufficient to complete the state.
    *
-   * @param stateMethod The state to check.
+   * @param stateName The state to check.
    * @return {@code true} if the remaining time is sufficient to complete the state,
    *         {@code false} if there is not enough time.
    */
-  protected boolean isEnoughTime(Runnable stateMethod) {
-    Double requiredTime = states.get(stateMethod);
-    return (requiredTime == null) || isEnoughTime(requiredTime);
+  protected boolean isEnoughTime(String stateName) {
+    StateEntry info = states.get(stateName);
+    return (info == null) || isEnoughTime(info.requiredTime);
   }
+
+//  /**
+//   * Checks if the remaining time in the autonomous period is sufficient to complete the state.
+//   *
+//   * @param stateMethod The state to check.
+//   * @return {@code true} if the remaining time is sufficient to complete the state,
+//   *         {@code false} if there is not enough time.
+//   */
+//  protected boolean isEnoughTime(Runnable stateMethod) {
+//    return isEnoughTime(getMethodName(stateMethod));
+//  }
 
   /**
    * Checks if the remaining time in the autonomous period is sufficient to complete the currently active state.
