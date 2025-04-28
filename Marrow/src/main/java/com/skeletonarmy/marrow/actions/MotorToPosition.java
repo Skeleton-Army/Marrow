@@ -6,15 +6,14 @@ import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
-import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
 
 @Config
 public class MotorToPosition implements Action {
     private boolean initialized = false;
 
-    private final CachingDcMotorEx motor;
+    private final DcMotorEx motor;
     private final int targetPos;
     private final double power;
     private final boolean holdPosition;
@@ -24,7 +23,7 @@ public class MotorToPosition implements Action {
 
     private final ElapsedTime timer = new ElapsedTime();
 
-    public MotorToPosition(CachingDcMotorEx motor, int targetPos, double power, int velocityThreshold, boolean holdPosition) {
+    public MotorToPosition(DcMotorEx motor, int targetPos, double power, int velocityThreshold, boolean holdPosition) {
         this.motor = motor;
         this.targetPos = targetPos;
         this.power = power;
