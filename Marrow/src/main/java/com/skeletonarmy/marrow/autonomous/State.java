@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.fsm;
+package com.skeletonarmy.marrow.autonomous;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -9,7 +9,6 @@ import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.skeletonarmy.marrow.MarrowUtils;
-import com.skeletonarmy.marrow.fsm.State;
 import com.skeletonarmy.marrow.prompts.Prompt;
 
 import java.lang.reflect.Method;
@@ -239,6 +238,15 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
+   * Adds a transition to another state.
+   *
+   * @param stateName The name of the state to transition to
+   */
+  protected void transition(String stateName) {
+    setCurrentState(stateName);
+  }
+
+  /**
    * Adds a conditional transition to the FSM - transitions only if the condition is true
    *
    * @param condition The condition to check
@@ -251,6 +259,18 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
+   * Adds a conditional transition to the FSM - transitions only if the condition is true
+   *
+   * @param condition The condition to check
+   * @param stateName The name of the state to transition to, if the condition is true
+   */
+  protected void conditionalTransition(boolean condition, String stateName) {
+    if (condition) {
+      transition(stateName);
+    }
+  }
+
+  /**
    * Adds a conditional transition to the FSM.
    *
    * @param trueState A method reference representing the state to transition to, if the condition is true
@@ -258,6 +278,17 @@ public abstract class AutoOpMode extends LinearOpMode {
    * @param condition The condition to check
    */
   protected void conditionalTransition(boolean condition, SerializableConsumer0 trueState, SerializableConsumer0 falseState) {
+    transition(condition ? trueState : falseState);
+  }
+
+  /**
+   * Adds a conditional transition to the FSM.
+   *
+   * @param trueState The name of the state to transition to, if the condition is true
+   * @param falseState The name of the state to transition to, if the condition is false
+   * @param condition The condition to check
+   */
+  protected void conditionalTransition(boolean condition, String trueState, String falseState) {
     transition(condition ? trueState : falseState);
   }
 
@@ -327,8 +358,8 @@ public abstract class AutoOpMode extends LinearOpMode {
   /**
    * Prompts the user with a specified {@link Prompt} and waits for a selection.
    *
-   * @param prompt the {@link Prompt} to present to the user
-   * @return the selected result of type {@code T}
+   * @param prompt The {@link Prompt} to present to the user
+   * @return The selected result of type {@code T}
    */
   protected <T> T prompt(Prompt<T> prompt) {
     return choiceMenu.prompt(prompt);
