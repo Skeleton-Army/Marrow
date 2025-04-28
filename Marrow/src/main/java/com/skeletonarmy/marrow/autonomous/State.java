@@ -10,5 +10,7 @@ import java.lang.annotation.Target;
 public @interface State {
   /** The amount of time it takes to complete the state (seconds) */
   double requiredTime() default 0;
+
+  /** Fallback state if there is not enough time to complete the state */
   String timeoutState() default "";
 }

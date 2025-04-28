@@ -152,7 +152,10 @@ public abstract class AutoOpMode extends LinearOpMode {
           }
         };
 
-        addState(method.getName(), new StateEntry(runnable, ann.requiredTime(), ann.timeoutState()));
+        addState(
+                method.getName(),
+                new StateEntry(runnable, ann.requiredTime(), ann.timeoutState())
+        );
       }
     }
   }
