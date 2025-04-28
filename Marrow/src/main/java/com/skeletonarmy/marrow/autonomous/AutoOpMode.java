@@ -26,10 +26,12 @@ public abstract class AutoOpMode extends LinearOpMode {
   private static class StateEntry {
     Runnable runnable;
     double requiredTime;
+    String timeoutState;
 
-    StateEntry(Runnable runnable, double requiredTime) {
+    StateEntry(Runnable runnable, double requiredTime, String timeoutState) {
       this.runnable = runnable;
       this.requiredTime = requiredTime;
+      this.timeoutState = timeoutState;
     }
   }
 
@@ -150,7 +152,7 @@ public abstract class AutoOpMode extends LinearOpMode {
           }
         };
 
-        addState(method.getName(), new StateEntry(runnable, ann.requiredTime()));
+        addState(method.getName(), new StateEntry(runnable, ann.requiredTime(), ann.timeoutState()));
       }
     }
   }
@@ -229,27 +231,48 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Adds a transition to another state.
+   * Transitions to the specified state.
    *
    * @param stateReference A method reference representing the state to transition to. (Example: this::state)
    */
   protected void transition(SerializableConsumer0 stateReference) {
-    setCurrentState(getMethodName(stateReference));
+    transition(getMethodName(stateReference));
   }
 
   /**
-   * Adds a transition to another state.
+   * Transitions to the specified state.
+   * <p>
+   * If there is insufficient time to complete the target state,
+   * transitions to its configured timeout fallback state instead, if defined.
+   * </p>
    *
    * @param stateName The name of the state to transition to
    */
   protected void transition(String stateName) {
+    StateEntry stateEntry = states.get(stateName);
+
+    if (stateEntry == null) {
+      throw new RuntimeException("State not found: " + stateName);
+    }
+
+    // If not enough time, transition to timeoutState instead
+    if (stateEntry.timeoutState != null && !stateEntry.timeoutState.isEmpty()) {
+      if (states.get(stateEntry.timeoutState) == null) {
+        throw new RuntimeException("State not found (timeoutState): " + stateEntry.timeoutState);
+      }
+
+      if (!isEnoughTime(stateName)) {
+        stateName = stateEntry.timeoutState;
+      }
+    }
+
     setCurrentState(stateName);
   }
 
   /**
-   * Adds a conditional transition to the FSM - transitions only if the condition is true
+   * Transitions to the specified state if the given condition is true.
    *
-   * @param condition The condition to check
+   * @param condition The condition to evaluate
    * @param stateReference A method reference representing the state to transition to, if the condition is true
    */
   protected void conditionalTransition(boolean condition, SerializableConsumer0 stateReference) {
@@ -259,9 +282,9 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Adds a conditional transition to the FSM - transitions only if the condition is true
+   * Transitions to the specified state if the given condition is true.
    *
-   * @param condition The condition to check
+   * @param condition The condition to evaluate
    * @param stateName The name of the state to transition to, if the condition is true
    */
   protected void conditionalTransition(boolean condition, String stateName) {
@@ -271,22 +294,28 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Adds a conditional transition to the FSM.
+   * Conditionally transitions to one of two states based on the given condition.
+   * <p>
+   * If the condition is true, transitions to {@code trueState}; otherwise, transitions to {@code falseState}.
+   * </p>
    *
    * @param trueState A method reference representing the state to transition to, if the condition is true
    * @param falseState A method reference representing the state to transition to, if the condition is false
-   * @param condition The condition to check
+   * @param condition The condition to evaluate
    */
   protected void conditionalTransition(boolean condition, SerializableConsumer0 trueState, SerializableConsumer0 falseState) {
     transition(condition ? trueState : falseState);
   }
 
   /**
-   * Adds a conditional transition to the FSM.
+   * Conditionally transitions to one of two states based on the given condition.
+   * <p>
+   * If the condition is true, transitions to {@code trueState}; otherwise, transitions to {@code falseState}.
+   * </p>
    *
    * @param trueState The name of the state to transition to, if the condition is true
    * @param falseState The name of the state to transition to, if the condition is false
-   * @param condition The condition to check
+   * @param condition The condition to evaluate
    */
   protected void conditionalTransition(boolean condition, String trueState, String falseState) {
     transition(condition ? trueState : falseState);
@@ -300,22 +329,22 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Checks if the remaining time in the autonomous period is sufficient to complete a given task.
+   * Determines whether there is enough remaining time to complete a task.
    *
-   * @param requiredTime The amount of time (in seconds) required to complete the task.
+   * @param requiredTime The time required (in seconds) to complete the task
    * @return {@code true} if the remaining time is sufficient to complete the task,
-   *         {@code false} if there is not enough time.
+   *         {@code false} otherwise.
    */
   protected boolean isEnoughTime(double requiredTime) {
     return getRemainingTime() >= requiredTime;
   }
 
   /**
-   * Checks if the remaining time in the autonomous period is sufficient to complete the state.
+   * Determines whether there is enough remaining time to complete a state.
    *
-   * @param stateName The state to check.
+   * @param stateName The state to check
    * @return {@code true} if the remaining time is sufficient to complete the state,
-   *         {@code false} if there is not enough time.
+   *         {@code false} otherwise.
    */
   protected boolean isEnoughTime(String stateName) {
     StateEntry info = states.get(stateName);
@@ -323,21 +352,21 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Checks if the remaining time in the autonomous period is sufficient to complete the state.
+   * Determines whether there is enough remaining time to complete a state.
    *
    * @param stateReference A method reference representing the state to check.
    * @return {@code true} if the remaining time is sufficient to complete the state,
-   *         {@code false} if there is not enough time.
+   *         {@code false} otherwise.
    */
   protected boolean isEnoughTime(SerializableConsumer0 stateReference) {
     return isEnoughTime(getMethodName(stateReference));
   }
 
   /**
-   * Checks if the remaining time in the autonomous period is sufficient to complete the currently active state.
+   * Determines whether there is enough remaining time to complete the currently active state.
    *
-   * @return {@code true} if the remaining time is sufficient to complete the current state,
-   *         {@code false} if there is not enough time.
+   * @return {@code true} if the remaining time is sufficient to complete the state,
+   *         {@code false} otherwise.
    */
   protected boolean isEnoughTime() {
     if (currentState == null) return true;
