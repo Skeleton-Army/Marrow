@@ -94,7 +94,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
     telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
-    choiceMenu = new ChoiceMenu(telemetry, gamepad1, gamepad2);
+    choiceMenu = new ChoiceMenu(this, gamepad1, gamepad2);
 
     registerStates();
   }

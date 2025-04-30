@@ -1,5 +1,6 @@
 package com.skeletonarmy.marrow.autonomous;
 
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -17,10 +18,10 @@ public class ChoiceMenu {
     private final List<PromptResult<?>> promptResults = new ArrayList<>();
     private int currentIndex = 0;
 
-    public ChoiceMenu(Telemetry telemetry, Gamepad gamepad1, Gamepad gamepad2) {
-        this.telemetry = telemetry;
-        this.gamepad1 = new MarrowGamepad(gamepad1);
-        this.gamepad2 = new MarrowGamepad(gamepad2);
+    public ChoiceMenu(OpMode opMode, Gamepad gamepad1, Gamepad gamepad2) {
+        this.telemetry = opMode.telemetry;
+        this.gamepad1 = new MarrowGamepad(opMode, gamepad1);
+        this.gamepad2 = new MarrowGamepad(opMode, gamepad2);
     }
 
     public ChoiceMenu(Telemetry telemetry, MarrowGamepad gamepad1, MarrowGamepad gamepad2) {
