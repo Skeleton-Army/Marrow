@@ -1,14 +1,17 @@
 package com.skeletonarmy.marrow;
 
+import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import java.util.function.Supplier;
 
 public class MarrowGamepad {
+    private final OpMode opMode;
+
     private final Gamepad current;
     private final Gamepad previous = new Gamepad();
     private final Gamepad snapshot = new Gamepad();
 
-    private long lastTimestamp = -1;
+    private double lastOpModeTime = -1;
 
     // Gamepad Buttons
     public final ButtonState a;
@@ -54,7 +57,8 @@ public class MarrowGamepad {
     public final SimpleAnalogState touchpad_finger_2_x;
     public final SimpleAnalogState touchpad_finger_2_y;
 
-    public MarrowGamepad(Gamepad gamepad) {
+    public MarrowGamepad(OpMode opMode, Gamepad gamepad) {
+        this.opMode = opMode;
         this.current = gamepad;
 
         // Gamepad Buttons
@@ -103,13 +107,13 @@ public class MarrowGamepad {
     }
 
     /**
-     * Automatically updates the internal gamepad state if the current gamepad's timestamp has changed.
-     * This ensures it updates only once when the original gamepad's state gets updated. (On the first gamepad call of a loop)
+     * Automatically updates the internal gamepad state if the OpMode's time has changed.
+     * The OpMode's time is updated before every call to loop().
+     * This ensures it updates only once when the original gamepad's state gets updated. (Once every OpMode loop)
      */
     private void checkAutoUpdate() {
-        if (current.timestamp != lastTimestamp) {
-            lastTimestamp = current.timestamp;
-
+        if (opMode.time != lastOpModeTime) {
+            lastOpModeTime = opMode.time;
             update();
         }
     }
