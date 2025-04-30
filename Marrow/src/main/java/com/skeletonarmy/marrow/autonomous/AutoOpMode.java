@@ -9,6 +9,7 @@ import com.github.meanbeanlib.mirror.SerializableLambdas.SerializableConsumer0;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.skeletonarmy.marrow.MarrowGamepad;
 import com.skeletonarmy.marrow.MarrowUtils;
 import com.skeletonarmy.marrow.prompts.Prompt;
 
@@ -53,6 +54,9 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   protected ElapsedTime runtime = new ElapsedTime();
 
+  public MarrowGamepad gamepad1;
+  public MarrowGamepad gamepad2;
+
   public abstract void onStateMachineStart();
 
   public abstract void preAutonomousSetup();
@@ -93,6 +97,9 @@ public abstract class AutoOpMode extends LinearOpMode {
     MarrowUtils.setBulkReadsMode(hardwareMap, LynxModule.BulkCachingMode.AUTO);
 
     telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
+
+    gamepad1 = new MarrowGamepad(this, super.gamepad1);
+    gamepad2 = new MarrowGamepad(this, super.gamepad2);
 
     choiceMenu = new ChoiceMenu(this, gamepad1, gamepad2);
 
