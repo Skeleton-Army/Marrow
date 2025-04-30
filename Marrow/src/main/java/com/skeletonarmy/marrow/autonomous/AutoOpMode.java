@@ -417,6 +417,8 @@ public abstract class AutoOpMode extends LinearOpMode {
   private static String getMethodName(SerializableConsumer0 method) {
     try {
       Method foundMethod = Executables.findMethod(method);
+      foundMethod.setAccessible(true);
+
       return foundMethod.getName();
     } catch (Exception e) {
       throw new RuntimeException("Failed to get method name from SerializableConsumer0", e);
