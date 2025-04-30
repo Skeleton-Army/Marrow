@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.autonomous;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.github.meanbeanlib.mirror.Executables;
@@ -90,6 +91,8 @@ public abstract class AutoOpMode extends LinearOpMode {
   private void internalEarlyInit() {
     // Enable auto bulk reads
     MarrowUtils.setBulkReadsMode(hardwareMap, LynxModule.BulkCachingMode.AUTO);
+
+    telemetry = new MultipleTelemetry(telemetry, FtcDashboard.getInstance().getTelemetry());
 
     choiceMenu = new ChoiceMenu(telemetry, gamepad1, gamepad2);
 
