@@ -73,6 +73,7 @@ public class ChoiceMenu {
         // Process the prompts until a result is selected for the current prompt
         while (!processPrompts()) {
             telemetry.update();
+            telemetry.clearAll();
         }
 
         // Return the result of the prompt
