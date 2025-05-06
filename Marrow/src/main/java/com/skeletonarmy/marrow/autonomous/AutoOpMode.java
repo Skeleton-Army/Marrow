@@ -42,7 +42,6 @@ public abstract class AutoOpMode extends LinearOpMode {
   private final Map<String, StateEntry> states = new HashMap<>();
 
   private List<Action> runningActions = new ArrayList<>();
-  private final List<Runnable> runningFunctions = new ArrayList<>();
 
   private String currentState = null;
 
@@ -138,12 +137,10 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private void internalStop() {
     runningActions.clear();
-    runningFunctions.clear();
   }
 
   private void runAsyncTasks() {
     runAsyncActions();
-    runAsyncFunctions();
     telemetry.update();
   }
 
@@ -192,15 +189,6 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Runs all queued functions.
-   */
-  private void runAsyncFunctions() {
-    for (Runnable func : runningFunctions) {
-      func.run();
-    }
-  }
-
-  /**
    * Runs an action in a blocking loop.
    */
   protected void runBlocking(Action action) {
@@ -232,15 +220,6 @@ public abstract class AutoOpMode extends LinearOpMode {
    */
   protected void runAsync(Action action) {
     runningActions.add(action);
-  }
-
-  /**
-   * Runs a function in a non-blocking loop.
-   *
-   * @param func The function to run asynchronously
-   */
-  protected void runAsync(Runnable func) {
-    runningFunctions.add(func);
   }
 
   /**
