@@ -130,8 +130,16 @@ public class MarrowGamepad {
 
         if (opMode.time != lastOpModeTime) {
             lastOpModeTime = opMode.time;
-            update();
+            updateInternalState();
         }
+    }
+
+    private void updateInternalState() {
+        // Save snapshot (last frame) into previous
+        previous.copy(snapshot);
+
+        // Save current into snapshot
+        snapshot.copy(current);
     }
 
     /**
@@ -139,13 +147,9 @@ public class MarrowGamepad {
      * This method should be called at the beginning of the {@code loop()} method when using {@link UpdateMode#MANUAL}. It has no effect when using {@link UpdateMode#AUTOMATIC}.
      */
     public void update() {
-        if (updateMode.equals(UpdateMode.AUTOMATIC)) return;
-
-        // Save snapshot (last frame) into previous
-        previous.copy(snapshot);
-
-        // Save current into snapshot
-        snapshot.copy(current);
+        if (updateMode.equals(UpdateMode.MANUAL)) {
+            updateInternalState();
+        }
     }
 
     public void setUpdateMode(UpdateMode mode) {
