@@ -2,6 +2,9 @@ package com.skeletonarmy.marrow;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
+
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 import java.util.function.Supplier;
 
 public class MarrowGamepad {
@@ -129,9 +132,12 @@ public class MarrowGamepad {
         if (updateMode.equals(UpdateMode.MANUAL)) return;
 
         if (opMode.time != lastOpModeTime) {
+            this.opMode.telemetry.addData("before", lastOpModeTime);
             lastOpModeTime = opMode.time;
-//            updateInternalState();
+            this.opMode.telemetry.addData("after", lastOpModeTime);
         }
+
+        updateInternalState();
     }
 
     private void updateInternalState() {
