@@ -8,18 +8,6 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import java.util.function.Supplier;
 
 public class MarrowGamepad {
-    public enum UpdateMode {
-        /**
-         * This mode automatically updates the internal gamepad state after every {@code loop()} call.
-         */
-        AUTOMATIC,
-
-        /**
-         * This mode requires you to manually call {@link #update} at the beginning of every {@code loop()} call.
-         */
-        MANUAL
-    }
-
     private final OpMode opMode;
 
     private final Gamepad current;
@@ -27,7 +15,6 @@ public class MarrowGamepad {
     private final Gamepad snapshot = new Gamepad();
 
     private double lastOpModeTime = -1;
-    private UpdateMode updateMode = UpdateMode.AUTOMATIC;
 
     // Gamepad Buttons
     public final ButtonState a;
@@ -123,43 +110,14 @@ public class MarrowGamepad {
     }
 
     /**
-     * Automatically updates the internal gamepad state if the OpMode's time has changed.
-     * The OpMode's time is updated before every call to {@code loop()}.
-     * This ensures it updates only once when the original gamepad's state gets updated (Once every OpMode {@code loop()}).
-     * This method only runs when using {@link UpdateMode#AUTOMATIC}.
+     * Updates the internal gamepad state.
      */
-    private void checkAutoUpdate() {
-        if (updateMode.equals(UpdateMode.MANUAL)) return;
-
-        if (opMode.time != lastOpModeTime) {
-            this.opMode.telemetry.addData("before", lastOpModeTime);
-            lastOpModeTime = opMode.time;
-            this.opMode.telemetry.addData("after", lastOpModeTime);
-        }
-
-        updateInternalState();
-    }
-
-    private void updateInternalState() {
+    public void update() {
         // Save snapshot (last frame) into previous
         previous.copy(snapshot);
 
         // Save current into snapshot
         snapshot.copy(current);
-    }
-
-    /**
-     * Updates the internal gamepad state.
-     * This method should be called at the beginning of the {@code loop()} method when using {@link UpdateMode#MANUAL}. It has no effect when using {@link UpdateMode#AUTOMATIC}.
-     */
-    public void update() {
-        if (updateMode.equals(UpdateMode.MANUAL)) {
-            updateInternalState();
-        }
-    }
-
-    public void setUpdateMode(UpdateMode mode) {
-        updateMode = mode;
     }
 
     /**
@@ -196,7 +154,7 @@ public class MarrowGamepad {
         }
 
         public T value() {
-            checkAutoUpdate();
+            update();
             return current.get();
         }
 
