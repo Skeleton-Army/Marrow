@@ -130,7 +130,7 @@ public class MarrowGamepad {
 
         if (opMode.time != lastOpModeTime) {
             lastOpModeTime = opMode.time;
-            updateInternalState();
+//            updateInternalState();
         }
     }
 
