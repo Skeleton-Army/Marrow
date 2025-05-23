@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /*
-    An OpMode that integrates RR actions.
+    An OpMode base class that supports managing and toggling non-blocking RR actions.
     The base enhanced OpMode for teleop programs.
  */
 public abstract class TeleopOpMode extends OpMode {
@@ -19,9 +19,9 @@ public abstract class TeleopOpMode extends OpMode {
     private final Map<String, Integer> sequenceStates = new HashMap<>();
 
     /**
-     * Run all queued actions. Call this at the end of the loop function.
+     * Call this at the end of loop() to update all running actions.
      */
-    protected void runAllActions() {
+    protected void updateRunningActions() {
         TelemetryPacket packet = new TelemetryPacket();
 
         // Update running actions
