@@ -4,8 +4,6 @@ import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
-import com.github.meanbeanlib.mirror.Executables;
-import com.github.meanbeanlib.mirror.SerializableLambdas.SerializableConsumer0;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
@@ -223,15 +221,6 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   /**
    * Transitions to the specified state.
-   *
-   * @param stateReference A method reference representing the state to transition to. (Example: this::state)
-   */
-  protected void transition(SerializableConsumer0 stateReference) {
-    transition(getMethodName(stateReference));
-  }
-
-  /**
-   * Transitions to the specified state.
    * <p>
    * If there is insufficient time to complete the target state,
    * transitions to its configured timeout fallback state instead, if defined.
@@ -264,38 +253,12 @@ public abstract class AutoOpMode extends LinearOpMode {
    * Transitions to the specified state if the given condition is true.
    *
    * @param condition The condition to evaluate
-   * @param stateReference A method reference representing the state to transition to, if the condition is true
-   */
-  protected void conditionalTransition(boolean condition, SerializableConsumer0 stateReference) {
-    if (condition) {
-      transition(stateReference);
-    }
-  }
-
-  /**
-   * Transitions to the specified state if the given condition is true.
-   *
-   * @param condition The condition to evaluate
    * @param stateName The name of the state to transition to, if the condition is true
    */
   protected void conditionalTransition(boolean condition, String stateName) {
     if (condition) {
       transition(stateName);
     }
-  }
-
-  /**
-   * Conditionally transitions to one of two states based on the given condition.
-   * <p>
-   * If the condition is true, transitions to {@code trueState}; otherwise, transitions to {@code falseState}.
-   * </p>
-   *
-   * @param trueState A method reference representing the state to transition to, if the condition is true
-   * @param falseState A method reference representing the state to transition to, if the condition is false
-   * @param condition The condition to evaluate
-   */
-  protected void conditionalTransition(boolean condition, SerializableConsumer0 trueState, SerializableConsumer0 falseState) {
-    transition(condition ? trueState : falseState);
   }
 
   /**
@@ -343,17 +306,6 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   /**
-   * Determines whether there is enough remaining time to complete a state.
-   *
-   * @param stateReference A method reference representing the state to check.
-   * @return {@code true} if the remaining time is sufficient to complete the state,
-   *         {@code false} otherwise.
-   */
-  protected boolean isEnoughTime(SerializableConsumer0 stateReference) {
-    return isEnoughTime(getMethodName(stateReference));
-  }
-
-  /**
    * Determines whether there is enough remaining time to complete the currently active state.
    *
    * @return {@code true} if the remaining time is sufficient to complete the state,
@@ -383,19 +335,5 @@ public abstract class AutoOpMode extends LinearOpMode {
    */
   protected <T> T prompt(Prompt<T> prompt) {
     return choiceMenu.prompt(prompt);
-  }
-
-  /**
-   * Retrieves the method name from a given method reference. (Example: this::myFunction -> returns: "myFunction")
-   *
-   * @param method The {@link SerializableConsumer0} instance representing the method reference.
-   * @return The name of the method referenced by the {@code SerializableConsumer0}.
-   * @throws RuntimeException if the method cannot be found or invoked via reflection.
-   */
-  private static String getMethodName(SerializableConsumer0 method) {
-      Method foundMethod = Executables.findMethod(method);
-      foundMethod.setAccessible(true);
-
-      return foundMethod.getName();
   }
 }

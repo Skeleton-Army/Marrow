@@ -31,8 +31,6 @@ android {
 }
 
 dependencies {
-    api 'com.github.meanbeanlib:meanmirror:1.0.0'
-
     api ("com.acmerobotics.roadrunner:actions:1.0.1"){
         exclude group: "com.acmerobotics.dashboard"
     }
