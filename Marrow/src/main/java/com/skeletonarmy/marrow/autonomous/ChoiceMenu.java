@@ -20,8 +20,8 @@ public class ChoiceMenu {
 
     public ChoiceMenu(OpMode opMode, Gamepad gamepad1, Gamepad gamepad2) {
         this.telemetry = opMode.telemetry;
-        this.gamepad1 = new MarrowGamepad(opMode, gamepad1);
-        this.gamepad2 = new MarrowGamepad(opMode, gamepad2);
+        this.gamepad1 = new MarrowGamepad(gamepad1);
+        this.gamepad2 = new MarrowGamepad(gamepad2);
     }
 
     public ChoiceMenu(OpMode opMode, MarrowGamepad gamepad1, MarrowGamepad gamepad2) {
