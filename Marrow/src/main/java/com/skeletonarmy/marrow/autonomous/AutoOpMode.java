@@ -7,6 +7,7 @@ import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.skeletonarmy.marrow.AdvancedDcMotor;
 import com.skeletonarmy.marrow.MarrowGamepad;
 import com.skeletonarmy.marrow.MarrowUtils;
 import com.skeletonarmy.marrow.prompts.Prompt;
@@ -141,6 +142,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void runAsyncTasks() {
+    AdvancedDcMotor.updateAll();
     runAsyncActions();
     telemetry.update();
   }

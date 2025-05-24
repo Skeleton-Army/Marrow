@@ -19,12 +19,16 @@ import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
  * </ul>
  */
 public class AdvancedDcMotor extends CachingDcMotorEx {
+    private static final List<AdvancedDcMotor> registeredMotors = new ArrayList<>(); // Static registry of all AdvancedDcMotors
+
     private final List<DcMotorEx> linkedMotors = new ArrayList<>();
 
     private PIDFController controller;
     private boolean useCustomPIDF;
 
     private double unitsPerTick = 0.0;
+
+    private boolean autoUpdate = true; // Controls whether this motor auto-updates PID
 
     /**
      * Constructs an {@code AdvancedDcMotor} using the primary motor and optional linked motors.
@@ -37,6 +41,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
         super(primaryMotor);
         if (linkedMotors != null) this.linkedMotors.addAll(Arrays.asList(linkedMotors));
         initialize();
+        registeredMotors.add(this); // Register this instance
     }
 
     private void initialize() {
@@ -124,7 +129,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Requires custom PID to be enabled.
      * Throws {@link RuntimeException} if coefficients are not initialized.
      */
-    public void updatePIDFController() {
+    public void update() {
         if (useCustomPIDF) {
             if (controller == null) {
                 throw new RuntimeException("PID coefficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
@@ -191,5 +196,35 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      */
     public int unitsToTicks(double units) {
         return unitsPerTick == 0 ? 0 : (int) Math.round(units / unitsPerTick);
+    }
+
+    /**
+     * Controls whether this motor updates its PID controller automatically
+     * when {@link #updateAll()} is called.
+     *
+     * @param autoUpdate true to enable automatic update, false to disable
+     */
+    public void setAutoUpdate(boolean autoUpdate) {
+        this.autoUpdate = autoUpdate;
+    }
+
+    /**
+     * Stops auto updating and removes this motor from the global registry.
+     * Call this if you want to clean up.
+     */
+    public void unregister() {
+        registeredMotors.remove(this);
+    }
+
+    /**
+     * Updates the PID controller of all registered motors that have auto-update enabled.
+     * Call this once per loop to update all motors automatically.
+     */
+    public static void updateAll() {
+        for (AdvancedDcMotor motor : registeredMotors) {
+            if (motor.autoUpdate) {
+                motor.update();
+            }
+        }
     }
 }
