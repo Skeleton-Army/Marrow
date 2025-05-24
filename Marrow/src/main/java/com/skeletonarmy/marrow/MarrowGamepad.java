@@ -8,13 +8,9 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import java.util.function.Supplier;
 
 public class MarrowGamepad {
-    private final OpMode opMode;
-
     private final Gamepad current;
     private final Gamepad previous = new Gamepad();
     private final Gamepad snapshot = new Gamepad();
-
-    private double lastOpModeTime = -1;
 
     // Gamepad Buttons
     public final ButtonState a;
@@ -60,8 +56,7 @@ public class MarrowGamepad {
     public final SimpleAnalogState touchpad_finger_2_x;
     public final SimpleAnalogState touchpad_finger_2_y;
 
-    public MarrowGamepad(OpMode opMode, Gamepad gamepad) {
-        this.opMode = opMode;
+    public MarrowGamepad(Gamepad gamepad) {
         this.current = gamepad;
 
         // Gamepad Buttons
