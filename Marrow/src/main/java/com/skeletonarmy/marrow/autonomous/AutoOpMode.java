@@ -86,7 +86,6 @@ public abstract class AutoOpMode extends LinearOpMode {
     internalStart();
 
     while (opModeIsActive() && !isStopRequested()) {
-      onLoop();
       internalLoop();
     }
 
@@ -143,6 +142,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private void runAsyncTasks() {
     AdvancedDcMotor.updateAll();
+    onLoop();
     runAsyncActions();
     telemetry.update();
   }
