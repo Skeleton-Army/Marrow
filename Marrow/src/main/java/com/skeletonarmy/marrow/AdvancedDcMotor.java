@@ -24,6 +24,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
     private final List<DcMotorEx> linkedMotors = new ArrayList<>();
 
     private PIDFController controller;
+    private CustomPIDFController customPIDFController = null;
     private boolean useCustomPIDF;
 
     private double unitsPerTick = 0.0;
@@ -125,8 +126,17 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
     }
 
     /**
+     * Sets the custom feedforward callback.
+     *
+     * @param controller the custom feedforward implementation
+     */
+    public void setCustomPIDFController(CustomPIDFController controller) {
+        this.customPIDFController = controller;
+    }
+
+    /**
      * Updates the PIDF controller and sets motor power based on the target position.
-     * Requires custom PID to be enabled.
+     * Requires custom PIDF to be enabled.
      * Throws {@link RuntimeException} if coefficients are not initialized.
      */
     public void update() {
@@ -135,7 +145,19 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
                 throw new RuntimeException("PID coefficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
             }
 
-            double power = controller.calculate(getCurrentPosition(), getTargetPosition());
+            int pos = getCurrentPosition();
+            int target = getTargetPosition();
+
+            double power;
+
+            if (customPIDFController != null) {
+                // Custom specified PIDF calculation
+                power = customPIDFController.calculate(this, target);
+            } else {
+                // Default PIDF calculation
+                power = controller.calculate(pos, target);
+            }
+
             setPower(power);
         }
     }
@@ -226,5 +248,16 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
                 motor.update();
             }
         }
+    }
+
+    @FunctionalInterface
+    public interface CustomPIDFController {
+        /**
+         * Calculate motor power based on the motor and target position.
+         * @param motor the AdvancedDcMotor instance
+         * @param target the target position in ticks
+         * @return the power output (PID + feedforward)
+         */
+        double calculate(AdvancedDcMotor motor, int target);
     }
 }
