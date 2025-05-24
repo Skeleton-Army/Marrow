@@ -31,10 +31,10 @@ android {
 }
 
 dependencies {
-    api ("com.acmerobotics.roadrunner:actions:1.0.1"){
-        exclude group: "com.acmerobotics.dashboard"
-    }
+    api ("com.acmerobotics.roadrunner:actions:1.0.1") { exclude group: "com.acmerobotics.dashboard" }
     compileOnly "com.acmerobotics.dashboard:dashboard:0.4.16" // compileOnly so it would work with Sloth
+    implementation "dev.frozenmilk.dairy:CachingHardware:1.0.0"
+    implementation 'org.ftclib.ftclib:core:2.1.1'
 }
 
 publishing {
