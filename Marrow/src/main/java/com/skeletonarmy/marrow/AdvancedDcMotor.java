@@ -26,6 +26,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
     private PIDFController controller;
     private CustomPIDFController customPIDFController = null;
     private boolean useCustomPIDF;
+    private boolean runningCustomPIDF = false;
 
     private double unitsPerTick = 0.0;
 
@@ -52,14 +53,18 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
     @Override
     public void setMode(RunMode mode) {
         super.setMode(mode);
+
         for (DcMotorEx motor : linkedMotors) {
             motor.setMode(mode);
         }
+
+        runningCustomPIDF = false;
     }
 
     @Override
     public void setPower(double power) {
         super.setPower(power);
+
         for (DcMotorEx motor : linkedMotors) {
             motor.setPower(power);
         }
@@ -136,11 +141,13 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
 
     /**
      * Updates the PIDF controller and sets motor power based on the target position.
-     * Requires custom PIDF to be enabled.
+     * Requires RUN_TO_POSITION and custom PIDF to be enabled.
      * Throws {@link RuntimeException} if coefficients are not initialized.
      */
     public void update() {
-        if (useCustomPIDF) {
+        fakeRunToPosition();
+
+        if (runningCustomPIDF) {
             if (controller == null) {
                 throw new RuntimeException("PID coefficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
             }
@@ -159,6 +166,24 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
             }
 
             setPower(power);
+        }
+    }
+
+    /**
+     * When custom PIDF is enabled and the motor is set to RUN_TO_POSITION, this method silently switches the mode to RUN_WITHOUT_ENCODER
+     * so we can manually control the motor and fake as if we are using RUN_TO_POSITION.
+     * <p>
+     * Reverts back to RUN_TO_POSITION if custom PIDF is disabled.
+     */
+    private void fakeRunToPosition() {
+        if (runningCustomPIDF && !useCustomPIDF) {
+            setMode(RunMode.RUN_TO_POSITION);
+            runningCustomPIDF = false;
+        }
+
+        if (useCustomPIDF && getMode() == RunMode.RUN_TO_POSITION) {
+            runningCustomPIDF = true;
+            setMode(RunMode.RUN_WITHOUT_ENCODER);
         }
     }
 
