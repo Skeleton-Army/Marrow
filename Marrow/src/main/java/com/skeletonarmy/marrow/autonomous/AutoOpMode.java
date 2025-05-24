@@ -27,11 +27,13 @@ public abstract class AutoOpMode extends LinearOpMode {
     Runnable runnable;
     double requiredTime;
     String timeoutState;
+    double forceExitTime;
 
-    StateEntry(Runnable runnable, double requiredTime, String timeoutState) {
+    StateEntry(Runnable runnable, double requiredTime, String timeoutState, double forceExitTime) {
       this.runnable = runnable;
       this.requiredTime = requiredTime;
       this.timeoutState = timeoutState;
+      this.forceExitTime = forceExitTime;
     }
   }
 
@@ -48,6 +50,8 @@ public abstract class AutoOpMode extends LinearOpMode {
   private Supplier<Boolean> fallbackCondition = () -> false;
   private Runnable fallbackFunction = () -> {};
   private boolean didFallback = false;
+
+  private double autonomousDuration = 30;
 
   protected ElapsedTime runtime = new ElapsedTime();
 
@@ -158,7 +162,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
         addState(
                 method.getName(),
-                new StateEntry(runnable, ann.requiredTime(), ann.timeoutState())
+                new StateEntry(runnable, ann.requiredTime(), ann.timeoutState(), ann.forceExitTime())
         );
       }
     }
@@ -191,12 +195,24 @@ public abstract class AutoOpMode extends LinearOpMode {
   protected void runBlocking(Action action) {
     TelemetryPacket packet = new TelemetryPacket();
 
+    StateEntry stateEntry = states.get(currentState);
+
     while (action.run(packet) && opModeIsActive()) {
       if (fallbackCondition.get() && !didFallback) {
         didFallback = true;
         fallbackFunction.run();
 
         requestOpModeStop();
+        break;
+      }
+
+      if (stateEntry != null && !stateEntry.timeoutState.isEmpty() && !isEnoughTime(stateEntry.forceExitTime)) {
+        if (states.get(stateEntry.timeoutState) == null) {
+          throw new RuntimeException("State not found (timeoutState): " + stateEntry.timeoutState);
+        }
+
+        transition(stateEntry.timeoutState);
+
         break;
       }
 
@@ -236,7 +252,7 @@ public abstract class AutoOpMode extends LinearOpMode {
     }
 
     // If not enough time, transition to timeoutState instead
-    if (stateEntry.timeoutState != null && !stateEntry.timeoutState.isEmpty()) {
+    if (!stateEntry.timeoutState.isEmpty()) {
       if (states.get(stateEntry.timeoutState) == null) {
         throw new RuntimeException("State not found (timeoutState): " + stateEntry.timeoutState);
       }
@@ -279,7 +295,7 @@ public abstract class AutoOpMode extends LinearOpMode {
    * Gets the remaining time in the autonomous period in seconds.
    */
   protected double getRemainingTime() {
-    return 30 - runtime.seconds();
+    return autonomousDuration - runtime.seconds();
   }
 
   /**
@@ -335,5 +351,16 @@ public abstract class AutoOpMode extends LinearOpMode {
    */
   protected <T> T prompt(Prompt<T> prompt) {
     return choiceMenu.prompt(prompt);
+  }
+
+  /**
+   * Sets the duration of the autonomous period, typically used for debugging purposes.
+   * This value is used in {@link #isEnoughTime()}.
+   * The default duration is 30 seconds.
+   *
+   * @param time The autonomous time in seconds.
+   */
+  protected void setAutonomousTime(double time) {
+    autonomousDuration = time;
   }
 }

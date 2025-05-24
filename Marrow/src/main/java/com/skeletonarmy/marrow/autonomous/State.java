@@ -8,9 +8,12 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface State {
-  /** The amount of time it takes to complete the state (seconds) */
+  /** The amount of time in seconds that it takes to complete the state. */
   double requiredTime() default 0;
 
-  /** Fallback state if there is not enough time to complete the state */
+  /** Fallback to this state if there is not enough time to complete the state. */
   String timeoutState() default "";
+
+  /** Immediately force exit this state when this many seconds remain in autonomous. */
+  double forceExitTime() default 0;
 }
