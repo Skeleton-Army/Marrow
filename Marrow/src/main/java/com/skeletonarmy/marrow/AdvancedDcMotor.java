@@ -146,9 +146,9 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      */
     public void update() {
         fakeRunToPosition();
+        throw new RuntimeException("PID coefasdasdasdasdasdficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
 
-        if (runningCustomPIDF) {
-            throw new RuntimeException("PID coefasdasdasdasdasdficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
+//        if (runningCustomPIDF) {
 
 //            if (controller == null) {
 //                throw new RuntimeException("PID coefficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
@@ -168,7 +168,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
 //            }
 //
 //            setPower(power);
-        }
+//        }
     }
 
     /**
