@@ -3,6 +3,8 @@ package com.skeletonarmy.marrow;
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,12 +44,10 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
     public AdvancedDcMotor(DcMotorEx primaryMotor, DcMotorEx... linkedMotors) {
         super(primaryMotor);
         if (linkedMotors != null) this.linkedMotors.addAll(Arrays.asList(linkedMotors));
-        initialize();
         registeredMotors.add(this); // Register this instance
-    }
 
-    private void initialize() {
         setMode(RunMode.RUN_WITHOUT_ENCODER);
+        setTargetPositionTolerance(10);
     }
 
     @Override
@@ -63,11 +63,38 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
 
     @Override
     public void setPower(double power) {
+        if (isOverCurrent()) return;
+
         super.setPower(power);
 
         for (DcMotorEx motor : linkedMotors) {
             motor.setPower(power);
         }
+    }
+
+    @Override
+    public void setCurrentAlert(double current, CurrentUnit unit) {
+        super.setCurrentAlert(current, unit);
+
+        for (DcMotorEx motor : linkedMotors) {
+            motor.setCurrentAlert(current, unit);
+        }
+    }
+
+    @Override
+    public boolean isOverCurrent() {
+        boolean overCurrent = super.isOverCurrent();
+
+        for (DcMotorEx motor : linkedMotors) {
+            if (motor.isOverCurrent()) overCurrent = true;
+        }
+
+        if (overCurrent) {
+            setTargetPosition(getCurrentPosition());
+            setPower(0);
+        }
+
+        return overCurrent;
     }
 
     /**
@@ -145,6 +172,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Throws {@link RuntimeException} if coefficients are not initialized.
      */
     public void update() {
+        isOverCurrent();
         fakeRunToPosition();
 
         if (runningCustomPIDF) {

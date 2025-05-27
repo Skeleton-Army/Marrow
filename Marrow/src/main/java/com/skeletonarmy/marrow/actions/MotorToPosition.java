@@ -8,6 +8,7 @@ import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.skeletonarmy.marrow.AdvancedDcMotor;
 
 @Config
 public class MotorToPosition implements Action {
@@ -15,19 +16,15 @@ public class MotorToPosition implements Action {
 
     private final DcMotorEx motor;
     private final int targetPos;
-    private final double power;
     private final boolean holdPosition;
-    private final int velocityThreshold;
 
     private boolean reachedVelocity;
 
     private final ElapsedTime timer = new ElapsedTime();
 
-    public MotorToPosition(DcMotorEx motor, int targetPos, double power, int velocityThreshold, boolean holdPosition) {
+    public MotorToPosition(DcMotorEx motor, int targetPos, boolean holdPosition) {
         this.motor = motor;
         this.targetPos = targetPos;
-        this.power = power;
-        this.velocityThreshold = velocityThreshold;
         this.holdPosition = holdPosition;
     }
 
@@ -38,31 +35,24 @@ public class MotorToPosition implements Action {
 
             motor.setTargetPosition(targetPos);
             motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            motor.setPower(power);
+            motor.setPower(1);
 
             timer.reset();
         }
 
-        double currentVelocity = motor.getVelocity();
-        boolean lowVelocity = Math.abs(currentVelocity) < velocityThreshold;
+        AdvancedDcMotor.updateAll();
 
-        if (!lowVelocity) {
-            reachedVelocity = true;
-        }
+        boolean isAtPosition = Math.abs(targetPos - motor.getCurrentPosition()) <= motor.getTargetPositionTolerance();
 
-        boolean shouldStop = reachedVelocity && lowVelocity;
-
-        // Reached target position / physically stopped (End of action)
-        if (shouldStop) {
+        // Reached target position
+        if (isAtPosition) {
             if (holdPosition) {
                 motor.setTargetPosition(motor.getCurrentPosition());
-                motor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                motor.setPower(power / 2);
             } else {
                 motor.setPower(0);
             }
         }
 
-        return !shouldStop;
+        return !isAtPosition;
     }
 }
