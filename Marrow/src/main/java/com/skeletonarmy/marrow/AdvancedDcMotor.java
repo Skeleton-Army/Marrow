@@ -148,24 +148,26 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
         fakeRunToPosition();
 
         if (runningCustomPIDF) {
-            if (controller == null) {
-                throw new RuntimeException("PID coefficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
-            }
+            throw new RuntimeException("PID coefasdasdasdasdasdficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
 
-            int pos = getCurrentPosition();
-            int target = getTargetPosition();
-
-            double power;
-
-            if (customPIDFController != null) {
-                // Custom specified PIDF calculation
-                power = customPIDFController.calculate(this, target);
-            } else {
-                // Default PIDF calculation
-                power = controller.calculate(pos, target);
-            }
-
-            setPower(power);
+//            if (controller == null) {
+//                throw new RuntimeException("PID coefficients not set on AdvancedDcMotor. Please set them using setCustomPIDCoefficients() or setCustomPIDFCoefficients().");
+//            }
+//
+//            int pos = getCurrentPosition();
+//            int target = getTargetPosition();
+//
+//            double power;
+//
+//            if (customPIDFController != null) {
+//                // Custom specified PIDF calculation
+//                power = customPIDFController.calculate(this, target);
+//            } else {
+//                // Default PIDF calculation
+//                power = controller.calculate(pos, target);
+//            }
+//
+//            setPower(power);
         }
     }
 
