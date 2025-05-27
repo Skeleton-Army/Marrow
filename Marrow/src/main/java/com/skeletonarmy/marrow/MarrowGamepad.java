@@ -135,8 +135,10 @@ public class MarrowGamepad {
     public abstract class ControlState<T> {
         protected Supplier<T> current;
         protected Supplier<T> previous;
-        protected boolean toggled;
-        protected long holdStartTime;
+
+        private boolean toggled;
+        private long holdStartTime;
+        private boolean justHeldTriggered = false;
 
         public ControlState(Supplier<T> current, Supplier<T> previous) {
             this.current = current;
@@ -149,9 +151,11 @@ public class MarrowGamepad {
             if (isDown()) {
                 if (holdStartTime == -1) {
                     holdStartTime = System.nanoTime();
+                    justHeldTriggered = false;
                 }
             } else {
                 holdStartTime = -1;
+                justHeldTriggered = false;
             }
         }
 
@@ -182,6 +186,24 @@ public class MarrowGamepad {
             long elapsedTimeSeconds = elapsedTimeMillis / 1000;
 
             return elapsedTimeSeconds >= durationInSeconds;
+        }
+
+        public boolean isJustHeld(double durationInSeconds) {
+            updateHoldTime();
+
+            if (holdStartTime == -1 || justHeldTriggered) {
+                return false;
+            }
+
+            long elapsedTimeMillis = (System.nanoTime() - holdStartTime) / 1_000_000;
+            long elapsedTimeSeconds = elapsedTimeMillis / 1000;
+
+            if (elapsedTimeSeconds >= durationInSeconds) {
+                justHeldTriggered = true;
+                return true;
+            }
+
+            return false;
         }
     }
 
