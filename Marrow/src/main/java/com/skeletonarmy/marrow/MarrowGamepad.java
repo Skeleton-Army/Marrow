@@ -108,6 +108,8 @@ public class MarrowGamepad {
      * Updates the internal gamepad state.
      */
     public void update() {
+        if (current.equals(snapshot)) return;
+
         // Save snapshot (last frame) into previous
         previous.copy(snapshot);
 
