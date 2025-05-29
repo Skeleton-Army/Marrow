@@ -3,14 +3,16 @@ package com.skeletonarmy.marrow;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 import java.util.function.Supplier;
 
 public class MarrowGamepad {
+    private final OpMode opMode;
+
     private final Gamepad current;
     private final Gamepad previous = new Gamepad();
     private final Gamepad snapshot = new Gamepad();
+
+    private double lastOpModeTime = -1;
 
     // Gamepad Buttons
     public final ButtonState a;
@@ -56,7 +58,8 @@ public class MarrowGamepad {
     public final SimpleAnalogState touchpad_finger_2_x;
     public final SimpleAnalogState touchpad_finger_2_y;
 
-    public MarrowGamepad(Gamepad gamepad) {
+    public MarrowGamepad(OpMode opMode, Gamepad gamepad) {
+        this.opMode = opMode;
         this.current = gamepad;
 
         // Gamepad Buttons
@@ -108,11 +111,15 @@ public class MarrowGamepad {
      * Updates the internal gamepad state.
      */
     public void update() {
+        if (opMode.time == lastOpModeTime) return; // Skip update if it was already called this frame
+
         // Save snapshot (last frame) into previous
         previous.copy(snapshot);
 
         // Save current into snapshot
         snapshot.copy(current);
+
+        lastOpModeTime = opMode.time;
     }
 
     /**
@@ -128,8 +135,10 @@ public class MarrowGamepad {
     public abstract class ControlState<T> {
         protected Supplier<T> current;
         protected Supplier<T> previous;
-        protected boolean toggled;
-        protected long holdStartTime;
+
+        private boolean toggled;
+        private long holdStartTime;
+        private boolean justHeldTriggered = false;
 
         public ControlState(Supplier<T> current, Supplier<T> previous) {
             this.current = current;
@@ -142,14 +151,15 @@ public class MarrowGamepad {
             if (isDown()) {
                 if (holdStartTime == -1) {
                     holdStartTime = System.nanoTime();
+                    justHeldTriggered = false;
                 }
             } else {
                 holdStartTime = -1;
+                justHeldTriggered = false;
             }
         }
 
         public T value() {
-            update();
             return current.get();
         }
 
@@ -177,6 +187,24 @@ public class MarrowGamepad {
 
             return elapsedTimeSeconds >= durationInSeconds;
         }
+
+        public boolean isJustHeld(double durationInSeconds) {
+            updateHoldTime();
+
+            if (holdStartTime == -1 || justHeldTriggered) {
+                return false;
+            }
+
+            long elapsedTimeMillis = (System.nanoTime() - holdStartTime) / 1_000_000;
+            long elapsedTimeSeconds = elapsedTimeMillis / 1000;
+
+            if (elapsedTimeSeconds >= durationInSeconds) {
+                justHeldTriggered = true;
+                return true;
+            }
+
+            return false;
+        }
     }
 
     public class ButtonState extends ControlState<Boolean> {
@@ -196,11 +224,13 @@ public class MarrowGamepad {
 
         @Override
         public boolean isJustPressed() {
+            update();
             return !previous.get() && isDown();
         }
 
         @Override
         public boolean isJustReleased() {
+            update();
             return previous.get() && isUp();
         }
     }
@@ -229,11 +259,13 @@ public class MarrowGamepad {
 
         @Override
         public boolean isJustPressed() {
+            update();
             return previous.get() < threshold && isDown();
         }
 
         @Override
         public boolean isJustReleased() {
+            update();
             return previous.get() >= threshold && isUp();
         }
     }

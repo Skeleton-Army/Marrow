@@ -204,14 +204,16 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Reverts back to RUN_TO_POSITION if custom PIDF is disabled.
      */
     private void fakeRunToPosition() {
+        // Run custom PIDF if useCustomPIDF is enabled and mode is RUN_TO_POSITION
+        if (useCustomPIDF && getMode() == RunMode.RUN_TO_POSITION) {
+            setMode(RunMode.RUN_WITHOUT_ENCODER);
+            runningCustomPIDF = true;
+        }
+
+        // Switched useCustomPIDF off while running
         if (runningCustomPIDF && !useCustomPIDF) {
             setMode(RunMode.RUN_TO_POSITION);
             runningCustomPIDF = false;
-        }
-
-        if (useCustomPIDF && getMode() == RunMode.RUN_TO_POSITION) {
-            runningCustomPIDF = true;
-            setMode(RunMode.RUN_WITHOUT_ENCODER);
         }
     }
 
