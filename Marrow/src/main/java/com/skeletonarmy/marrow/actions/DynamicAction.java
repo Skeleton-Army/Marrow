@@ -7,15 +7,14 @@ import com.acmerobotics.roadrunner.Action;
 
 import java.util.function.Supplier;
 
+/**
+ * An {@link Action} that dynamically retrieves and runs an action supplied at runtime.
+ * This allows using the latest action instance each time it starts running.
+ */
 public class DynamicAction implements Action {
     private final Supplier<Action> actionSupplier;
     private Action currentAction;
 
-    /**
-     * DynamicAction is a wrapper that allows actions to be created dynamically at runtime.
-     * Instead of initializing the action with a fixed value, it retrieves the action
-     * when it starts running, ensuring it uses the latest data.
-     */
     public DynamicAction(Supplier<Action> actionSupplier) {
         this.actionSupplier = actionSupplier;
     }

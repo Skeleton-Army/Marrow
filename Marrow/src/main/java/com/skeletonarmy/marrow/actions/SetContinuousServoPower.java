@@ -6,6 +6,9 @@ import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import com.qualcomm.robotcore.hardware.CRServo;
 
+/**
+ * An {@link Action} that sets power to a continuous rotation servo immediately.
+ */
 public class SetContinuousServoPower implements Action  {
     private final CRServo crServo;
     private final double power;

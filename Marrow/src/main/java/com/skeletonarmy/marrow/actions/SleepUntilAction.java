@@ -7,6 +7,9 @@ import com.acmerobotics.roadrunner.Action;
 
 import java.util.function.Supplier;
 
+/**
+ * An {@link Action} that sleeps until a given condition becomes true.
+ */
 public class SleepUntilAction implements Action {
     private final Supplier<Boolean> condition;
 

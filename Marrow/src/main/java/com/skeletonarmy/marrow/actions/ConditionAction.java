@@ -7,15 +7,15 @@ import com.acmerobotics.roadrunner.Action;
 
 import java.util.function.Supplier;
 
+/**
+ * An {@link Action} that runs a given action only if the specified condition is true.
+ */
 public class ConditionAction implements Action {
     private final Action action;
     private final Supplier<Boolean> condition;
 
     private boolean shouldRun = false;
 
-    /**
-     * Calls an action if the condition is true.
-     */
     public ConditionAction(Action action, Supplier<Boolean> condition) {
         this.action = action;
         this.condition = condition;

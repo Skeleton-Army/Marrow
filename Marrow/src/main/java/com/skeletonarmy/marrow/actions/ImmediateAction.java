@@ -5,6 +5,9 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 
+/**
+ * An {@link Action} that runs a given action once immediately without waiting for its completion.
+ */
 public class ImmediateAction implements Action {
     private final Action action;
 

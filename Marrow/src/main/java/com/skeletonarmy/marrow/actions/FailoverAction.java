@@ -5,6 +5,10 @@ import androidx.annotation.NonNull;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 
+/**
+ * An {@link Action} that runs a primary action until a failover is triggered,
+ * after which it runs a secondary failover action instead.
+ */
 public class FailoverAction implements Action {
     private final Action mainAction;
     private final Action failoverAction;
