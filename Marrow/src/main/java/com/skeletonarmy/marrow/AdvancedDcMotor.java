@@ -15,6 +15,7 @@ import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
  * An advanced motor wrapper that enhances {@link DcMotorEx} by adding several useful features:
  * <ul>
  *     <li><b>Caching:</b> Improves performance by reducing repeated hardware calls through caching via {@link CachingDcMotorEx}.</li>
+ *     <li><b>Current Limiting:</b> Allows setting a current threshold, above which power will be automatically cut for protection of the motor.</li>
  *     <li><b>Custom PID Control:</b> Supports optional {@link PIDFController}-based custom control for precise positioning.</li>
  *     <li><b>Linked Motors:</b> Synchronizes one or more additional {@link DcMotorEx} instances with the primary motor.</li>
  *     <li><b>Ticks-to-Units Conversion:</b> Converts between encoder ticks and user-defined physical units like inches or degrees.</li>
@@ -33,6 +34,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
     private double unitsPerTick = 0.0;
 
     private boolean autoUpdate = true; // Controls whether this motor auto-updates PID
+    private boolean currentLimiting = true; // Controls whether this motor has current limiting
 
     /**
      * Constructs an {@code AdvancedDcMotor} using the primary motor and optional linked motors.
@@ -63,8 +65,6 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
 
     @Override
     public void setPower(double power) {
-        if (isOverCurrent()) return;
-
         super.setPower(power);
 
         for (DcMotorEx motor : linkedMotors) {
@@ -89,12 +89,23 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
             if (motor.isOverCurrent()) overCurrent = true;
         }
 
-        if (overCurrent) {
-            setTargetPosition(getCurrentPosition());
-            setPower(0);
-        }
-
         return overCurrent;
+    }
+
+    /**
+     * Sets a current limit for the motor and its linked motors. If any motor exceeds this threshold,
+     * it will be detected by {@link #isOverCurrent()}, and power will automatically cut to prevent damage to the motor.
+     * <p>
+     * This requires calling {@link AdvancedDcMotor#updateAll()} in each loop iteration.
+     * <p>
+     * This method is functionally identical to {@link #setCurrentAlert(double, CurrentUnit)},
+     * but the name is changed to more clearly express its purpose as a current limiting mechanism.
+     *
+     * @param current the maximum allowed current
+     * @param unit the unit of current (e.g., AMPS)
+     */
+    public void setCurrentLimit(double current, CurrentUnit unit) {
+        setCurrentAlert(current, unit);
     }
 
     /**
@@ -172,7 +183,11 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Throws {@link RuntimeException} if coefficients are not initialized.
      */
     public void update() {
-        isOverCurrent();
+        if (currentLimiting && isOverCurrent()) {
+            setPower(0);
+            return;
+        }
+
         fakeRunToPosition();
 
         if (runningCustomPIDF) {
@@ -276,13 +291,21 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
     }
 
     /**
-     * Controls whether this motor updates its PID controller automatically
-     * when {@link #updateAll()} is called.
+     * Enables or disables auto-update during {@link #updateAll()}.
      *
-     * @param autoUpdate true to enable automatic update, false to disable
+     * @param autoUpdate true to auto-call {@link #update()} in {@link #updateAll()}, false to disable
      */
     public void setAutoUpdate(boolean autoUpdate) {
         this.autoUpdate = autoUpdate;
+    }
+
+    /**
+     * Enables or disables current limiting during updates.
+     *
+     * @param currentLimiting true to cut power if over current limit, false to ignore
+     */
+    public void setCurrentLimiting(boolean currentLimiting) {
+        this.currentLimiting = currentLimiting;
     }
 
     /**

@@ -10,22 +10,24 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.skeletonarmy.marrow.AdvancedDcMotor;
 
+/**
+ * An {@link Action} that commands a motor to move to a specific encoder position.
+ * This action completes when the motor reaches the target position within the
+ * motor's {@link DcMotorEx#getTargetPositionTolerance() target position tolerance},
+ * or when an overcurrent condition is detected.
+ */
 @Config
 public class MotorToPosition implements Action {
     private boolean initialized = false;
 
     private final DcMotorEx motor;
     private final int targetPos;
-    private final boolean holdPosition;
-
-    private boolean reachedVelocity;
 
     private final ElapsedTime timer = new ElapsedTime();
 
-    public MotorToPosition(DcMotorEx motor, int targetPos, boolean holdPosition) {
+    public MotorToPosition(DcMotorEx motor, int targetPos) {
         this.motor = motor;
         this.targetPos = targetPos;
-        this.holdPosition = holdPosition;
     }
 
     @Override
@@ -44,15 +46,6 @@ public class MotorToPosition implements Action {
 
         boolean isAtPosition = Math.abs(targetPos - motor.getCurrentPosition()) <= motor.getTargetPositionTolerance();
 
-        // Reached target position
-        if (isAtPosition) {
-            if (holdPosition) {
-                motor.setTargetPosition(motor.getCurrentPosition());
-            } else {
-                motor.setPower(0);
-            }
-        }
-
-        return !isAtPosition;
+        return !isAtPosition && !motor.isOverCurrent();
     }
 }
