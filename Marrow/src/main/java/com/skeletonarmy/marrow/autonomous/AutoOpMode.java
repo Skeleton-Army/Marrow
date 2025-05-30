@@ -108,7 +108,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalLateInit() {
-    preAutonomousSetup();
+    new Thread(this::preAutonomousSetup).start();
   }
 
   private void internalInitLoop(){
