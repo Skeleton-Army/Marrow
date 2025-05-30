@@ -72,6 +72,8 @@ public class ChoiceMenu {
 
         // Process the prompts until a result is selected for the current prompt
         while (!processPrompts()) {
+            gamepad1.update();
+            gamepad2.update();
             telemetry.update();
             telemetry.clearAll();
         }
