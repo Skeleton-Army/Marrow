@@ -9,11 +9,11 @@ import com.qualcomm.robotcore.hardware.Servo;
 /**
  * An {@link Action} that sets a servo to a specified position immediately.
  */
-public class ServoToPosition implements Action {
+public class ServoToPositionAction implements Action {
     private final Servo servo;
     private final double targetPos;
 
-    public ServoToPosition(Servo servo, double targetPos) {
+    public ServoToPositionAction(Servo servo, double targetPos) {
         this.servo = servo;
         this.targetPos = targetPos;
     }

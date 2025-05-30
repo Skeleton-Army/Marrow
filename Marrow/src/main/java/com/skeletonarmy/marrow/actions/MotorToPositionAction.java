@@ -17,7 +17,7 @@ import com.skeletonarmy.marrow.AdvancedDcMotor;
  * or when an overcurrent condition is detected.
  */
 @Config
-public class MotorToPosition implements Action {
+public class MotorToPositionAction implements Action {
     private boolean initialized = false;
 
     private final DcMotorEx motor;
@@ -25,7 +25,7 @@ public class MotorToPosition implements Action {
 
     private final ElapsedTime timer = new ElapsedTime();
 
-    public MotorToPosition(DcMotorEx motor, int targetPos) {
+    public MotorToPositionAction(DcMotorEx motor, int targetPos) {
         this.motor = motor;
         this.targetPos = targetPos;
     }
