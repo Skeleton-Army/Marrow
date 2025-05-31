@@ -110,6 +110,9 @@ public class ChoiceMenu {
         return false;
     }
 
+    /**
+     * Runs all queued prompts in a blocking loop until all prompts are complete.
+     */
     public void run() {
         boolean finished = false;
 
