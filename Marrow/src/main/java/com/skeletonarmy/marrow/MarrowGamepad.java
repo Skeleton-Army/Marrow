@@ -159,7 +159,7 @@ public class MarrowGamepad {
             }
         }
 
-        public T value() {
+        protected T value() {
             return current.get();
         }
 
@@ -245,6 +245,11 @@ public class MarrowGamepad {
         public AnalogState(Supplier<Float> current, Supplier<Float> previous, float threshold) {
             super(current, previous);
             this.threshold = threshold;
+        }
+
+        @Override
+        public Float value() {
+            return current.get();
         }
 
         @Override
