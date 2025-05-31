@@ -111,7 +111,7 @@ public class MarrowGamepad {
      * Updates the internal gamepad state.
      */
     public void update() {
-        if (opMode.time == lastOpModeTime) return; // Skip update if it was already called this frame
+        if (opMode.time == lastOpModeTime) return; // Skip update if it was already called this frame. This is so it runs only once per loop.
 
         // Save snapshot (last frame) into previous
         previous.copy(snapshot);

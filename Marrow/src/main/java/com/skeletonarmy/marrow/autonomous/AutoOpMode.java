@@ -46,15 +46,15 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private String currentState = null;
 
-  private ChoiceMenu choiceMenu;
-
   private Supplier<Boolean> fallbackCondition = () -> false;
   private Runnable fallbackFunction = () -> {};
   private boolean didFallback = false;
 
   private double autonomousDuration = 30;
 
-  protected ElapsedTime runtime = new ElapsedTime();
+  public ElapsedTime runtime = new ElapsedTime();
+
+  public ChoiceMenu choiceMenu;
 
   public MarrowGamepad gamepad1;
   public MarrowGamepad gamepad2;
@@ -108,7 +108,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalLateInit() {
-    new Thread(this::preAutonomousSetup).start();
+    preAutonomousSetup();
   }
 
   private void internalInitLoop(){
@@ -343,16 +343,6 @@ public abstract class AutoOpMode extends LinearOpMode {
   protected void setFallbackState(Supplier<Boolean> condition, Runnable handler) {
     fallbackCondition = condition;
     fallbackFunction = handler;
-  }
-
-  /**
-   * Prompts the user with a specified {@link Prompt} and waits for a selection.
-   *
-   * @param prompt The {@link Prompt} to present to the user
-   * @return The selected result of type {@code T}
-   */
-  protected <T> T prompt(Prompt<T> prompt) {
-    return choiceMenu.prompt(prompt);
   }
 
   /**
