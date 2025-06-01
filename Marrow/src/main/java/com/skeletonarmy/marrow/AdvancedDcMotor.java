@@ -1,13 +1,18 @@
 package com.skeletonarmy.marrow;
 
+import android.annotation.SuppressLint;
+
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
 
@@ -35,6 +40,8 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
 
     private boolean autoUpdate = true; // Controls whether this motor auto-updates PID
     private boolean currentLimiting = true; // Controls whether this motor has current limiting
+
+    private boolean warningActive = false;
 
     /**
      * Constructs an {@code AdvancedDcMotor} using the primary motor and optional linked motors.
@@ -83,10 +90,24 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
 
     @Override
     public boolean isOverCurrent() {
-        boolean overCurrent = super.isOverCurrent();
+        boolean overCurrent = false;
+        double current = 0.0;
+
+        if (super.isOverCurrent()) {
+            overCurrent = true;
+            current = getCurrent(CurrentUnit.AMPS);
+        }
 
         for (DcMotorEx motor : linkedMotors) {
-            if (motor.isOverCurrent()) overCurrent = true;
+            if (motor.isOverCurrent()) {
+                overCurrent = true;
+                current = motor.getCurrent(CurrentUnit.AMPS);
+            }
+        }
+
+        if (overCurrent && !warningActive) {
+            RobotLog.addGlobalWarningMessage("Motor has reached a high current: " + String.format(Locale.ROOT, "%.2f", current) + "A");
+            warningActive = true;
         }
 
         return overCurrent;
