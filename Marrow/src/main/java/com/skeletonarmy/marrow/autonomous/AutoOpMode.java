@@ -10,9 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.skeletonarmy.marrow.AdvancedDcMotor;
 import com.skeletonarmy.marrow.MarrowGamepad;
 import com.skeletonarmy.marrow.MarrowUtils;
-import com.skeletonarmy.marrow.prompts.Prompt;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +45,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   private String currentState = null;
 
   private Supplier<Boolean> fallbackCondition = () -> false;
-  private Runnable fallbackFunction = () -> {};
+  private String fallbackState = "";
   private boolean didFallback = false;
 
   private double autonomousDuration = 30;
@@ -122,7 +120,7 @@ public abstract class AutoOpMode extends LinearOpMode {
         telemetry.addData("State", currentState);
         stateEntry.runnable.run();
       } else {
-        telemetry.addData("Error", "No handler for current state: " + currentState);
+        throw new RuntimeException("State not found: " + currentState);
       }
     }
 
@@ -195,7 +193,15 @@ public abstract class AutoOpMode extends LinearOpMode {
     while (action.run(packet) && opModeIsActive()) {
       if (fallbackCondition.get() && !didFallback) {
         didFallback = true;
-        fallbackFunction.run();
+
+        StateEntry fallbackStateEntry = states.get(fallbackState);
+
+        if (fallbackStateEntry != null) {
+          telemetry.addData("State", fallbackState);
+          fallbackStateEntry.runnable.run();
+        } else {
+          throw new RuntimeException("State not found: " + fallbackState);
+        }
 
         requestOpModeStop();
         break;
@@ -305,11 +311,11 @@ public abstract class AutoOpMode extends LinearOpMode {
    * Sets a fallback state for the FSM.
    *
    * @param condition The condition to check
-   * @param handler The function to run if the condition is true
+   * @param stateName The state to transition to if the condition is true
    */
-  protected void setFallbackState(Supplier<Boolean> condition, Runnable handler) {
+  protected void setFallbackState(Supplier<Boolean> condition, String stateName) {
     fallbackCondition = condition;
-    fallbackFunction = handler;
+    fallbackState = stateName;
   }
 
   /**
