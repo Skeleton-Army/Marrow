@@ -12,7 +12,7 @@ import com.skeletonarmy.marrow.MarrowGamepad;
 import com.skeletonarmy.marrow.MarrowUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -38,7 +38,7 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private final FtcDashboard dash = FtcDashboard.getInstance();
 
-  private final Map<String, StateEntry> states = new HashMap<>();
+  private final Map<String, StateEntry> states = new LinkedHashMap<>();
 
   private List<Action> runningActions = new ArrayList<>();
 
@@ -113,15 +113,18 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalLoop() {
-    if (currentState != null) {
-      StateEntry stateEntry = states.get(currentState);
+    if (currentState == null) {
+      String firstState = states.keySet().iterator().next();
+      setCurrentState(firstState);
+    }
 
-      if (stateEntry != null) {
-        telemetry.addData("State", currentState);
-        stateEntry.runnable.run();
-      } else {
-        throw new RuntimeException("State not found: " + currentState);
-      }
+    StateEntry stateEntry = states.get(currentState);
+
+    if (stateEntry != null) {
+      telemetry.addData("State", currentState);
+      stateEntry.runnable.run();
+    } else {
+      throw new RuntimeException("State not found: " + currentState);
     }
 
     runAsyncTasks();
