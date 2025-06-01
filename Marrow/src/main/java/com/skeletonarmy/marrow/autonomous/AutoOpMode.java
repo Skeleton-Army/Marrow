@@ -59,10 +59,6 @@ public abstract class AutoOpMode extends LinearOpMode {
   public MarrowGamepad gamepad1;
   public MarrowGamepad gamepad2;
 
-  public abstract void onStateMachineStart();
-
-  public abstract void preAutonomousSetup();
-
   public abstract void onInit();
   public void onInitLoop() {};
   public void onStart() {};
@@ -108,7 +104,6 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void internalLateInit() {
-    preAutonomousSetup();
   }
 
   private void internalInitLoop(){
@@ -117,8 +112,6 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private void internalStart() {
     runtime.reset();
-
-    onStateMachineStart();
   }
 
   private void internalLoop() {
@@ -265,32 +258,6 @@ public abstract class AutoOpMode extends LinearOpMode {
     }
 
     setCurrentState(stateName);
-  }
-
-  /**
-   * Transitions to the specified state if the given condition is true.
-   *
-   * @param condition The condition to evaluate
-   * @param stateName The name of the state to transition to, if the condition is true
-   */
-  protected void conditionalTransition(boolean condition, String stateName) {
-    if (condition) {
-      transition(stateName);
-    }
-  }
-
-  /**
-   * Conditionally transitions to one of two states based on the given condition.
-   * <p>
-   * If the condition is true, transitions to {@code trueState}; otherwise, transitions to {@code falseState}.
-   * </p>
-   *
-   * @param trueState The name of the state to transition to, if the condition is true
-   * @param falseState The name of the state to transition to, if the condition is false
-   * @param condition The condition to evaluate
-   */
-  protected void conditionalTransition(boolean condition, String trueState, String falseState) {
-    transition(condition ? trueState : falseState);
   }
 
   /**
