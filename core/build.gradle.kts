@@ -36,7 +36,7 @@ dairyPublishing {
 publishing {
     publications {
         register<MavenPublication>("release") {
-            groupId = "com.skeletonarmy"
+            groupId = "com.skeletonarmy.marrow"
             artifactId = "core"
 
             artifact(dairyDoc.dokkaHtmlJar)
