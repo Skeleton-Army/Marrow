@@ -1,89 +1,33 @@
-# Marrow
+# SolversLib
 
-[![](https://jitpack.io/v/Skeleton-Army/marrow.svg?label=Tag)](https://jitpack.io/#Skeleton-Army/Marrow)
+An updated and maintained fork of FTCLib
 
-**Introducing the official utility library from FTC Team ☠ **Skeleton Army #23644** ☠ — built by competitors, for competitors.**
+Project led by FTC 23511, Seattle Solvers.
 
-**Marrow** is a collection of modular, high-performance tools designed to streamline development, eliminate boilerplate, and help your team move faster—on and off the field.
+Head maintainer: [Arush](https://github.com/ArushYadlapati)
 
-We also ***highly*** recommend using [Sloth](https://github.com/Dairy-Foundation/Sloth) for *really* fast upload times and quick iterations.
+---
+## Resources
 
-## 🧠 Why Use This?
+Complete Documentation (Highly Reccomended): [https://docs.seattlesolvers.com/](https://docs.seattlesolvers.com/)
 
-- Clean, reusable code that follows best practices
+You can find the latest version number (and the implementation details) at the [Dairy Foundation](https://repo.dairy.foundation/#/releases/org/solverslib/core), where SolversLib is hosted.
 
-- Designed with modularity and performance in mind
+Javadocs for SolversLib Core (standard FTCLib, has Command Base, Hardware, Gamepads, etc.) are available at <https://repo.dairy.foundation/javadoc/releases/org/solverslib/core/latest>, but you can replace `latest` with the desired version number.
 
-- Saves time so you can focus on strategy and innovation
 
-## 🚀 Getting Started
+Javadocs for SolversLib Pedro Pathing (Pedro Pathing support in FTCLib) are available at <https://repo.dairy.foundation/javadoc/releases/org/solverslib/pedroPathing/latest>, but you can replace `latest` with the desired version number.
 
-To install **Marrow** in your project:
 
-1. **Add JitPack to your repositories**
-   
-   In your `TeamCode/build.gradle`, add the following inside the `repositories` block (above `dependencies`):
+FTCLib documentation (has information about how to use FTCLib, and does not have any information about SolversLib) - <https://docs.ftclib.org/ftclib>
 
-   ```gradle
-   repositories {
-       mavenCentral()
-       maven { url "https://jitpack.io" }
-   }
-   ```
+Please note that the vision part of FTCLib has been removed in SolversLib, as it is severly outdated. If you want vision, please use EasyOpenCV (which is built into the SDK).
 
-2. **Add Marrow as a dependency**
-   
-   In the same `build.gradle` file, add one of the following lines inside the `dependencies` block:
+## Installing SolversLib
+See [https://docs.seattlesolvers.com/installation](https://docs.seattlesolvers.com/installation)
 
-   ```gradle
-   dependencies {
-      implementation 'com.github.Skeleton-Army:Marrow:(VERSION)' // Recommended
-      // OR
-      implementation 'com.github.Skeleton-Army:Marrow:main-SNAPSHOT' // Snapshot version – not recommended for production
-   }
-   ```
+## Contributing
 
-3. **Sync your project with Gradle**
-   
-   In Android Studio, click **"Sync Now"** when prompted, or go to `File > Sync Project with Gradle Files` to apply the changes.
+Since this is a community-driven, open source library, we are constantly looking for more content. If you feel there is something missing from our library, feel free to contribute! If you want to contribute to the project, be sure to read the [CONTRIBUTING.md](.github/CONTRIBUTING.md).
 
-## 🛠️ Developing & Contributing
-
-If you're contributing to Marrow or developing a new feature, you can use the `dev-SNAPSHOT` version for testing:
-
-#### In `dependencies`:
-
-```gradle
-implementation("com.github.Skeleton-Army:Marrow:dev-SNAPSHOT") {
-    changing = online  // Only mark it as changing (i.e., check for updates) when online
-}
-```
-
-#### And **above** your `dependencies` block:
-
-```gradle
-// Try connecting to jitpack.io to detect internet
-def online = {
-    try { new URL("https://jitpack.io").openConnection().connect(); true }
-    catch (ignored) { false }
-}.call()
-
-// Don't cache changing modules like SNAPSHOTs when online
-configurations.configureEach {
-    if (online) resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
-}
-```
-
-This quirky workaround ensures you always use the most recent snapshot version while contributing or testing.
-
-> 🔄 Important: After each commit push, make sure to sync your Gradle in your IDE to fetch the latest version.
-
-### ⏱ JitPack Build Time
-
-> ⚠️ Heads up: Every time you push a commit to the `main` or `dev` branch, JitPack can take **~2–3 minutes** to build the new version.
-
-You can **check build status** or manually trigger a build at:  
-👉 https://jitpack.io/#Skeleton-Army/Marrow
-
-## 💡 Ideas?
-If you have suggestions or want to discuss improvements, feel free to open an [issue](https://github.com/Skeleton-Army/Marrow/issues) or start a discussion.
+Please make sure to contact us if you have any other questions.
