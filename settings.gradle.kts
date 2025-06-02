@@ -7,7 +7,7 @@ pluginManagement {
 	}
 }
 
-includeBuild("../Marrow/core") {
+includeBuild("core") {
 	dependencySubstitution {
 		substitute(module("com.skeletonarmy.marrow:core")).using(project(":"))
 	}
