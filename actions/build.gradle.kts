@@ -19,10 +19,13 @@ ftc {
 repositories {
     mavenCentral()
     maven("https://maven.brott.dev")
+    maven("https://repo.dairy.foundation/releases")
 }
 
 dependencies {
-    implementation("com.acmerobotics.roadrunner:actions:1.0.1") { exclude(group = "com.acmerobotics.dashboard") }
+    api("com.skeletonarmy.marrow:core")
+
+    api("com.acmerobotics.roadrunner:actions:1.0.1") { exclude(group = "com.acmerobotics.dashboard") }
     compileOnly("com.acmerobotics.dashboard:dashboard:0.4.16") // compileOnly so it would work with Sloth
 }
 
