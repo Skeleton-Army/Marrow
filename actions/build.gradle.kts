@@ -22,7 +22,7 @@ repositories {
 }
 
 dependencies {
-    implementation ("com.acmerobotics.roadrunner:actions:1.0.1") { exclude(group = "com.acmerobotics.dashboard")  }
+    implementation("com.acmerobotics.roadrunner:actions:1.0.1") { exclude(group = "com.acmerobotics.dashboard") }
     compileOnly("com.acmerobotics.dashboard:dashboard:0.4.16") // compileOnly so it would work with Sloth
 }
 
