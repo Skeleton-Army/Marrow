@@ -11,6 +11,7 @@ import com.skeletonarmy.marrow.AdvancedDcMotor;
 import com.skeletonarmy.marrow.MarrowGamepad;
 import com.skeletonarmy.marrow.MarrowUtils;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -142,7 +143,7 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void registerStates() {
-    for (var method : getClass().getDeclaredMethods()) {
+    for (Method method : getClass().getDeclaredMethods()) {
       State ann = method.getAnnotation(State.class);
 
       if (ann != null) {
