@@ -51,6 +51,9 @@ public abstract class AutoOpMode extends LinearOpMode {
 
   private double autonomousDuration = 30;
 
+  private boolean isInLoop = false;
+  private double lastOpModeTime = -1;
+
   public ElapsedTime runtime = new ElapsedTime();
 
   public ChoiceMenu choiceMenu;
@@ -80,6 +83,8 @@ public abstract class AutoOpMode extends LinearOpMode {
     onStart();
     internalStart();
 
+    isInLoop = true;
+
     while (opModeIsActive() && !isStopRequested()) {
       internalLoop();
     }
@@ -102,8 +107,7 @@ public abstract class AutoOpMode extends LinearOpMode {
     registerStates();
   }
 
-  private void internalLateInit() {
-  }
+  private void internalLateInit() {}
 
   private void internalInitLoop(){
     runAsyncTasks();
@@ -136,10 +140,13 @@ public abstract class AutoOpMode extends LinearOpMode {
   }
 
   private void runAsyncTasks() {
-    AdvancedDcMotor.updateAll();
-    onLoop();
+    if (isInLoop && time != lastOpModeTime) {
+      lastOpModeTime = time;
+      onLoop();
+    }
     runAsyncActions();
     telemetry.update();
+    AdvancedDcMotor.updateAll();
   }
 
   private void registerStates() {
