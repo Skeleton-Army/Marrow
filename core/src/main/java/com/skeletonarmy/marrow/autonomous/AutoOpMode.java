@@ -126,7 +126,6 @@ public abstract class AutoOpMode extends LinearOpMode {
     StateEntry stateEntry = states.get(currentState);
 
     if (stateEntry != null) {
-      telemetry.addData("State", currentState);
       stateEntry.runnable.run();
     } else {
       throw new RuntimeException("State not found: " + currentState);
@@ -142,8 +141,13 @@ public abstract class AutoOpMode extends LinearOpMode {
   private void runAsyncTasks() {
     if (isInLoop && time != lastOpModeTime) {
       lastOpModeTime = time;
+
+      telemetry.addData("Running State", currentState);
+      telemetry.addLine();
+
       onLoop();
     }
+
     runAsyncActions();
     telemetry.update();
     AdvancedDcMotor.updateAll();
@@ -208,7 +212,7 @@ public abstract class AutoOpMode extends LinearOpMode {
         StateEntry fallbackStateEntry = states.get(fallbackState);
 
         if (fallbackStateEntry != null) {
-          telemetry.addData("State", fallbackState);
+          setCurrentState(fallbackState);
           fallbackStateEntry.runnable.run();
         } else {
           throw new RuntimeException("State not found: " + fallbackState);

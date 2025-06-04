@@ -15,6 +15,7 @@ public class BooleanPrompt extends Prompt<Boolean> {
     @Override
     public Boolean process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
         telemetry.addLine(header);
+        telemetry.addLine();
         telemetry.addLine("Current Value: " + (selectedValue ? "Yes" : "No"));
 
         if (gamepad1.dpad_right.isJustPressed() || gamepad2.dpad_right.isJustPressed() || gamepad1.dpad_up.isJustPressed() || gamepad2.dpad_up.isJustPressed() || gamepad1.dpad_left.isJustPressed() || gamepad2.dpad_left.isJustPressed() || gamepad1.dpad_down.isJustPressed() || gamepad2.dpad_down.isJustPressed()) {
@@ -25,6 +26,6 @@ public class BooleanPrompt extends Prompt<Boolean> {
             return selectedValue;
         }
 
-        return false;
+        return null;
     }
 }

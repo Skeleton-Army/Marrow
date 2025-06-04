@@ -36,6 +36,6 @@ public class ValuePrompt extends Prompt<Double> {
             return selectedValue;
         }
 
-        return (double) 0;
+        return null;
     }
 }

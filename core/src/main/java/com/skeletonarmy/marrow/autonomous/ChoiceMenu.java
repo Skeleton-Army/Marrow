@@ -43,7 +43,7 @@ public class ChoiceMenu {
      * Add a prompt to the queue.
      */
     public <T> void enqueuePrompt(String key, Prompt<T> prompt) {
-        prompts.add(new KeyPromptPair<>(key, prompt));
+        prompts.add(new KeyPromptPair<>(key, () -> prompt));
     }
 
     /**
@@ -84,7 +84,10 @@ public class ChoiceMenu {
     private boolean processPrompts() {
         // Handle back navigation
         if ((gamepad1.b.isJustPressed() || gamepad2.b.isJustPressed()) && currentIndex > 0) {
-            currentIndex--;
+            do {
+                prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
+                currentIndex--;
+            } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
         }
 
         // No prompts left
@@ -120,20 +123,16 @@ public class ChoiceMenu {
             if (opMode.time == lastOpModeTime) continue; // Skip if it was already called this frame. This is so it runs only once per loop.
 
             finished = processPrompts();
+            telemetry.update();
             lastOpModeTime = opMode.time;
         }
     }
 
     private static class KeyPromptPair<T> {
         private final String key;
-        private final Prompt<T> prompt;
         private final Supplier<Prompt<T>> promptSupplier;
 
-        public KeyPromptPair(String key, Prompt<T> prompt) {
-            this.key = key;
-            this.prompt = prompt;
-            this.promptSupplier = null;
-        }
+        private Prompt<T> prompt;
 
         public KeyPromptPair(String key, Supplier<Prompt<T>> promptSupplier) {
             this.key = key;
@@ -147,8 +146,19 @@ public class ChoiceMenu {
 
         public Prompt<T> getPrompt() {
             if (prompt != null) return prompt;
-            if (promptSupplier != null) return promptSupplier.get();
+            if (promptSupplier != null) {
+                // Save the created prompt so it doesn't reset every loop
+                prompt = promptSupplier.get();
+                return prompt;
+            }
             return null;
+        }
+
+        public void reset() {
+            // Only clear if it's a supplier-based prompt
+            if (promptSupplier != null) {
+                prompt = null;
+            }
         }
     }
 }
