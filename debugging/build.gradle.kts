@@ -4,7 +4,7 @@ plugins {
     id("dev.frozenmilk.doc") version "0.0.4"
 }
 
-android.namespace = "com.skeletonarmy.marrow.core"
+android.namespace = "com.skeletonarmy.marrow.debugging"
 
 ftc {
     sdk {
