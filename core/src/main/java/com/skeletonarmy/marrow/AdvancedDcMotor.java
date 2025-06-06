@@ -1,13 +1,16 @@
 package com.skeletonarmy.marrow;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 
 import com.arcrobotics.ftclib.controller.PIDFController;
+import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,7 +59,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
         registeredMotors.add(this); // Register this instance
 
         setMode(RunMode.RUN_WITHOUT_ENCODER);
-        setTargetPositionTolerance(10);
+        setTargetPositionTolerance(25);
     }
 
     @Override
@@ -106,7 +109,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
         }
 
         if (overCurrent && !warningActive) {
-            RobotLog.addGlobalWarningMessage("Motor has reached a high current: " + String.format(Locale.ROOT, "%.2f", current) + "A");
+            RobotLog.addGlobalWarningMessage("Motor \"" + getMotorName() + "\" has reached a high current: " + String.format(Locale.ROOT, "%.2f", current) + "A");
             warningActive = true;
         }
 
@@ -347,6 +350,14 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
                 motor.update();
             }
         }
+    }
+
+    private String getMotorName() {
+        Activity act = AppUtil.getInstance().getActivity();
+        OpModeManagerImpl mgr = OpModeManagerImpl.getOpModeManagerOfActivity(act);
+        HardwareMap map = mgr.getHardwareMap();
+
+        return map.getNamesOf(this).iterator().next();
     }
 
     @FunctionalInterface
