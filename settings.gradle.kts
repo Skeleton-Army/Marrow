@@ -14,3 +14,4 @@ includeBuild("core") {
 }
 
 includeBuild("actions")
+includeBuild("debugging")

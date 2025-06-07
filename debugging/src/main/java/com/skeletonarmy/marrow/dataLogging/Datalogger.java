@@ -16,14 +16,14 @@ import java.util.List;
 public class Datalogger {
     public enum AutoTimestamp { NONE, DECIMAL_SECONDS }
     static String SDcard = Environment.getExternalStorageDirectory().getAbsolutePath();
-        public interface LoggableField {
+    public interface LoggableField {
         String getName();
         String getValue();
     }
 
     private File logFile;
     private AutoTimestamp timestampMode;
-    private List<LoggableField> fields = new ArrayList<>();
+    private final List<LoggableField> fields = new ArrayList<>();
     private BufferedWriter writer;
     private long startTime;
 
@@ -75,6 +75,7 @@ public class Datalogger {
         }
     }
 
+    @SuppressLint("DefaultLocale")
     public void writeLine() {
         try {
             List<String> values = new ArrayList<>();
@@ -97,7 +98,7 @@ public class Datalogger {
 
     public static class GenericField implements LoggableField {
         private final String name;
-        private String value = "";
+        private String value;
 
         public GenericField(String name) {
             this.name = name;

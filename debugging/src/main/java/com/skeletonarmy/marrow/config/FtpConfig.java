@@ -3,7 +3,7 @@ package com.skeletonarmy.marrow.config;
 import com.acmerobotics.dashboard.config.Config;
 
 /**
- * <STRONG>These are default values. Please change them to the correct ones.</STRONG>
+ * These are default values. Please change them to the correct ones.
  */
 @Config
 public class FtpConfig {
