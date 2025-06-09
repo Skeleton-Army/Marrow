@@ -1,16 +1,10 @@
 package com.skeletonarmy.marrow;
 
-import android.annotation.SuppressLint;
-import android.app.Activity;
-
 import com.arcrobotics.ftclib.controller.PIDFController;
-import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
-import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +28,8 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
 
     private final List<DcMotorEx> linkedMotors = new ArrayList<>();
 
+    private final String name;
+
     private PIDFController controller;
     private CustomPIDFController customPIDFController = null;
     private boolean useCustomPIDF;
@@ -50,11 +46,14 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Constructs an {@code AdvancedDcMotor} using the primary motor and optional linked motors.
      * The linked motors will mirror the behavior of the primary motor.
      *
+     * @param name the name of the motor (used for alerts)
      * @param primaryMotor the main motor
      * @param linkedMotors motors to mirror behavior of the primary motor (optional)
      */
-    public AdvancedDcMotor(DcMotorEx primaryMotor, DcMotorEx... linkedMotors) {
+    public AdvancedDcMotor(String name, DcMotorEx primaryMotor, DcMotorEx... linkedMotors) {
         super(primaryMotor);
+        this.name = name;
+
         if (linkedMotors != null) this.linkedMotors.addAll(Arrays.asList(linkedMotors));
         registeredMotors.add(this); // Register this instance
 
@@ -109,7 +108,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
         }
 
         if (overCurrent && !warningActive) {
-            RobotLog.addGlobalWarningMessage("Motor \"" + getMotorName() + "\" has reached a high current: " + String.format(Locale.ROOT, "%.2f", current) + "A");
+            RobotLog.addGlobalWarningMessage("Motor \"" + getName() + "\" has reached a high current: " + String.format(Locale.ROOT, "%.2f", current) + "A");
             warningActive = true;
         }
 
@@ -352,12 +351,8 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
         }
     }
 
-    private String getMotorName() {
-        Activity act = AppUtil.getInstance().getActivity();
-        OpModeManagerImpl mgr = OpModeManagerImpl.getOpModeManagerOfActivity(act);
-        HardwareMap map = mgr.getHardwareMap();
-
-        return map.getNamesOf(this).iterator().next();
+    private String getName() {
+        return name;
     }
 
     @FunctionalInterface
