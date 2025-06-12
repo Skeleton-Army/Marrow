@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.dataLogging;
+package com.skeletonarmy.marrow;
 
 import android.annotation.SuppressLint;
 import android.os.Environment;

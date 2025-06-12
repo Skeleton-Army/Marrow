@@ -1,7 +1,8 @@
-package com.skeletonarmy.marrow.dataLogging;
+package com.skeletonarmy.marrow;
 
 import com.skeletonarmy.marrow.MarrowExceptions.ConfigurationException;
 import com.skeletonarmy.marrow.config.FtpConfig;
+import com.skeletonarmy.marrow.MarrowExceptions.NotDirectoryException;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -19,6 +20,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
@@ -30,9 +32,6 @@ import java.util.zip.ZipOutputStream;
  * Uses Apache Commons Net FTPClient to handle FTP communication.
  */
 public class FtpUploading {
-/***
-
-   <STRONG>These are default values. Please change them to the correct ones.</STRONG>*/
     /**
      * ASCII file transfer mode constant.
      */
@@ -568,7 +567,7 @@ public class FtpUploading {
      * @return A {@link File} object representing the created TAR archive.
      * @throws IOException If any file cannot be read, doesn't exist, or an IO operation fails during archiving.
      */
-    public static File createTar (@NotNull String[] filePaths, String dstTar) throws IOException {
+    public static File createTarFile (@NotNull String[] filePaths, String dstTar) throws IOException {
         if (!dstTar.endsWith(".tar")) {
            dstTar = dstTar + ".tar";
         }
@@ -593,5 +592,11 @@ public class FtpUploading {
             throw new IOException(e);
         }
         return new File(dstTar);
+    }
+    public static File createTarFile (@NotNull File srcPath, String dstTar) throws NotDirectoryException {
+        if (!srcPath.isDirectory()) {
+            throw new NotDirectoryException(srcPath.toString());
+        }
+        return null;
     }
 }

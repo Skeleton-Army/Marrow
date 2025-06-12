@@ -1,6 +1,6 @@
-package com.skeletonarmy.marrow.dataLogging.opModeDataLogging;
+package com.skeletonarmy.marrow.OpModeDatalogClasses;
 
-import com.skeletonarmy.marrow.dataLogging.Datalogger;
+import com.skeletonarmy.marrow.Datalogger;
 
 import java.io.File;
 
