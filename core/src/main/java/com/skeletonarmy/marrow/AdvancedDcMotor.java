@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow;
 
 import com.arcrobotics.ftclib.controller.PIDFController;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
@@ -46,16 +47,24 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Constructs an {@code AdvancedDcMotor} using the primary motor and optional linked motors.
      * The linked motors will mirror the behavior of the primary motor.
      *
-     * @param name the name of the motor (used for alerts)
-     * @param primaryMotor the main motor
-     * @param linkedMotors motors to mirror behavior of the primary motor (optional)
+     * @param hardwareMap the HardwareMap to retrieve motors from
+     * @param primaryMotor the name of the primary motor
+     * @param linkedMotors the names of linked motors (optional)
      */
-    public AdvancedDcMotor(String name, DcMotorEx primaryMotor, DcMotorEx... linkedMotors) {
-        super(primaryMotor);
-        this.name = name;
+    public AdvancedDcMotor(HardwareMap hardwareMap, String primaryMotor, String... linkedMotors) {
+        super(hardwareMap.get(DcMotorEx.class, primaryMotor));
+        this.name = primaryMotor;
 
-        if (linkedMotors != null) this.linkedMotors.addAll(Arrays.asList(linkedMotors));
-        registeredMotors.add(this); // Register this instance
+        // Register this instance
+        registeredMotors.add(this);
+
+        // Add linked motors if any
+        if (linkedMotors != null) {
+            for (String linkedName : linkedMotors) {
+                DcMotorEx motor = hardwareMap.get(DcMotorEx.class, linkedName);
+                this.linkedMotors.add(motor);
+            }
+        }
 
         setMode(RunMode.RUN_WITHOUT_ENCODER);
         setTargetPositionTolerance(25);
