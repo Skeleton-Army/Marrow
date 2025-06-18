@@ -27,9 +27,6 @@ dependencies {
     compileOnly("com.acmerobotics.dashboard:dashboard:0.4.16") // compileOnly so it would work with Sloth
     api("dev.frozenmilk.dairy:CachingHardware:1.0.0")
     api("org.ftclib.ftclib:core:2.1.1")
-    implementation("org.apache.commons:commons-compress:1.24.0")
-    implementation("commons-net:commons-net:3.6")
-
 }
 
 dairyPublishing {

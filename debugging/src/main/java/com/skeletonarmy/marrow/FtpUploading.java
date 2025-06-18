@@ -1,8 +1,8 @@
 package com.skeletonarmy.marrow;
 
+import static com.skeletonarmy.marrow.GetConfigValue.getValue;
+
 import com.skeletonarmy.marrow.MarrowExceptions.ConfigurationException;
-import com.skeletonarmy.marrow.config.FtpConfig;
-import com.skeletonarmy.marrow.MarrowExceptions.NotDirectoryException;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -20,9 +20,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.zip.GZIPOutputStream;
 import java.util.zip.ZipOutputStream;
 
@@ -46,23 +46,41 @@ public class FtpUploading {
      * FTP client used for communication with the FTP server.
      */
     private FTPClient ftp;
+    public String serverIp;
+    public int port;
+    public String userName;
+    public String password;
 
     /**
-     * Constructs an instance of the {@code FtpUploading} class.
+     * Constructs a new {@code FtpUploading} instance and attempts to connect to the FTP server
+     * using credentials and connection details loaded from a configuration file located at
+     * {@code /sdcard/config/Marrow.conf}.
      * <p>
-     * During instantiation, this constructor checks if the FTP configuration is valid
-     * using {@code IsConfigValid()}. If the configuration is valid, it attempts to
-     * establish a connection via the {@code Connect()} method. If the configuration
-     * is invalid, a {@link ConfigurationException} is thrown.
+     * The configuration file must contain the following keys:
+     * <ul>
+     *   <li>{@code FtpIp} – the FTP server's IP address</li>
+     *   <li>{@code FtpPort} – the FTP server's port number</li>
+     *   <li>{@code FtpUsername} – the username for authentication</li>
+     *   <li>{@code FtpPassword} – the password for authentication</li>
+     * </ul>
+     * If all required values are present and valid, this constructor will automatically attempt
+     * to establish a connection to the FTP server. If the configuration is missing, malformed, or
+     * invalid, an exception will be thrown.
+     * <p>
+     * Configuration can be created manually or generated using the MarrowConfig tool.
      *
-     * @throws ConfigurationException if the FTP configuration is invalid
-     * @throws IOException              if an error occurs during the connection process
-     */
-    public FtpUploading() throws Exception {
-        if (IsConfigValid()) {
+     * @throws IOException if an error occurs while reading the configuration file or when connecting to the FTP server
+     * @throws ConfigurationException if the configuration is missing required keys or fails validation
+     **/
+    public FtpUploading() throws IOException, ConfigurationException {
+        this.serverIp = getValue("FtpIp");
+        this.port = Integer.parseInt(Objects.requireNonNull(getValue("FtpPort")));
+        this.userName = getValue("FtpUsername");
+        this.password = getValue("FtpPassword");
+        if (isConfigValid()) {
             Connect();
         } else {
-            throw new ConfigurationException("Invalid FTP configuration");
+            throw new ConfigurationException("An error occurred in the configuration, Please regenerate it using MarrowConfig (add link later)");
         }
     }
 
@@ -76,7 +94,7 @@ public class FtpUploading {
     }
 
     /**
-     * Establishes a connection to the FTP server using configuration from {@link FtpConfig}.
+     * Establishes a connection to the FTP server using configuration from {@link GetConfigValue}.
      *
      * @throws IOException if the connection or login fails.
      */
@@ -84,14 +102,14 @@ public class FtpUploading {
         this.ftp = new FTPClient();
         this.ftp.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(System.out)));
 
-        this.ftp.connect(FtpConfig.Server, FtpConfig.ServerPort);
+        this.ftp.connect(this.serverIp, this.port);
         int reply = this.ftp.getReplyCode();
         if (!FTPReply.isPositiveCompletion(reply)) {
             this.ftp.disconnect();
             throw new IOException("Exception in connecting to FTP Server");
         }
 
-        this.ftp.login(FtpConfig.User, FtpConfig.Password);
+        this.ftp.login(this.userName, this.password);
     }
 
     /**
@@ -312,10 +330,10 @@ public class FtpUploading {
      *         have been set to values other than the default placeholders;
      *         false otherwise.
      */
-    private boolean IsConfigValid() {
-        return !FtpConfig.Server.equals("192.168.x.x") &&
-                !FtpConfig.User.equals("Enter UserName") &&
-                !FtpConfig.Password.equals("Enter Password");
+    private boolean isConfigValid() {
+       return  this.serverIp != null &&
+               this.userName != null &&
+               this.password != null;
     }
 
     /**
@@ -592,11 +610,5 @@ public class FtpUploading {
             throw new IOException(e);
         }
         return new File(dstTar);
-    }
-    public static File createTarFile (@NotNull File srcPath, String dstTar) throws NotDirectoryException {
-        if (!srcPath.isDirectory()) {
-            throw new NotDirectoryException(srcPath.toString());
-        }
-        return null;
     }
 }

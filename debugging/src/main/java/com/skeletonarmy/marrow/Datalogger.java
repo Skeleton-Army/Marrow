@@ -96,32 +96,16 @@ public class Datalogger {
         }
     }
 
-    public static class GenericField implements LoggableField {
+    public static class GenericField<T> implements LoggableField {
         private final String name;
         private String value;
 
         public GenericField(String name) {
             this.name = name;
         }
-        public void set(String value) {
-            this.value = value;
+        public void set (T value) {
+            this.value = (String) value;
         }
-        public void set(Boolean value) {
-            this.value = Boolean.toString(value);
-        }
-        public void set(char value) {
-            this.value = Character.toString(value);
-        }
-        public void set(int value) {
-            this.value = Integer.toString(value);
-        }
-        public void set(long value) {
-            this.value = Long.toString(value);
-        }
-        public void set(double value) {
-            this.value = Double.toString(value);
-        }
-
 
         @Override
         public String getName() {
