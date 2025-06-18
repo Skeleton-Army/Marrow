@@ -18,7 +18,8 @@ public class GetConfigValue {
            }
            if (line.startsWith(key + "=")) {
                scanner.close();
-               return line.substring(line.indexOf("=") + 1);
+               line = line.substring(line.indexOf("=") + 2);
+               return line.replaceAll("\"", "").trim();
            }
         }
         scanner.close();
