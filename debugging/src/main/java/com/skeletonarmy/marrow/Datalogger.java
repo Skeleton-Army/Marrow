@@ -116,13 +116,16 @@ public class Datalogger {
             return value;
         }
     }
+    public static String getCurrentTime() {
+        Calendar calendar = Calendar.getInstance();
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat timeFormat = new SimpleDateFormat("HH-mm-ss");
+        return dateFormat.format(calendar.getTime()) + "_" + timeFormat.format(calendar.getTime());
+    }
     public static File setupLogFile(String localName) {
         String logDir = SDcard + "/FIRST/Datalogs";
         if (localName == null) {
-            Calendar calendar = Calendar.getInstance();
-            @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            @SuppressLint("SimpleDateFormat") SimpleDateFormat timeFormat = new SimpleDateFormat("HH-mm-ss");
-            return new File(logDir + "/" + "Log-" + dateFormat.format(calendar.getTime()) + "_" + timeFormat.format(calendar.getTime()) + ".csv");
+            return new File(logDir + "/" + "Log-" + getCurrentTime() + ".csv");
         } else {
             return new File(logDir + "/" + localName + ".csv");
         }

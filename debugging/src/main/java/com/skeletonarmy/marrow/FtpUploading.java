@@ -2,7 +2,10 @@ package com.skeletonarmy.marrow;
 
 import static com.skeletonarmy.marrow.GetConfigValue.getValue;
 
+import android.os.Environment;
+
 import com.skeletonarmy.marrow.MarrowExceptions.ConfigurationException;
+import com.skeletonarmy.marrow.MarrowExceptions.FileTypeException;
 
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream;
@@ -17,6 +20,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -31,7 +35,9 @@ import java.util.zip.ZipOutputStream;
  * <p>
  * Uses Apache Commons Net FTPClient to handle FTP communication.
  */
+@SuppressWarnings("unused")
 public class FtpUploading {
+
     /**
      * ASCII file transfer mode constant.
      */
@@ -51,6 +57,7 @@ public class FtpUploading {
     public String userName;
     public String password;
 
+    static String SDcard = Environment.getExternalStorageDirectory().getAbsolutePath();
     /**
      * Constructs a new {@code FtpUploading} instance and attempts to connect to the FTP server
      * using credentials and connection details loaded from a configuration file located at
@@ -100,8 +107,11 @@ public class FtpUploading {
      */
     private void Connect() throws IOException {
         this.ftp = new FTPClient();
-        this.ftp.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(System.out)));
-
+        try (FileOutputStream FtpLog = new FileOutputStream(SDcard + "/FIRST/Datalog/FtpLog-" + Datalogger.getCurrentTime() + ".log")) {
+            this.ftp.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(FtpLog)));
+        } catch (Exception e) {
+            this.ftp.addProtocolCommandListener(new PrintCommandListener(new PrintWriter(System.out)));
+        }
         this.ftp.connect(this.serverIp, this.port);
         int reply = this.ftp.getReplyCode();
         if (!FTPReply.isPositiveCompletion(reply)) {
@@ -150,18 +160,17 @@ public class FtpUploading {
      */
     public void UploadFile(String LocalFilePath, String RemotePath, int FileType, boolean DeleteAfter) throws Exception {
         File FileToUpload = new File(LocalFilePath);
-        if (FileType == 0 || FileType == 2) {
+        if (FileType == 0 || FileType ==2) {
             this.ftp.setFileType(FileType);
-            if (FileToUpload.exists()) {
-                this.ftp.storeFile(RemotePath, new FileInputStream(FileToUpload));
-                if (DeleteAfter) {
-                    FileToUpload.delete();
-                }
-            } else {
-                throw new IOException("Input file does not exist");
+            if (!FileToUpload.exists()) {
+                throw new IOException("FileToUpload does not exists");
+            }
+            this.ftp.storeFile(RemotePath, new FileInputStream(FileToUpload));
+            if (DeleteAfter) {
+                FileToUpload.delete();;
             }
         } else {
-            throw new Exception("Filetype isnt set to ASCII or Binary");
+            throw new FileTypeException("FileType isn't set to ASCII or BINARY");
         }
     }
 
@@ -174,24 +183,22 @@ public class FtpUploading {
      * @param LocalFilePath the {@link File} object representing the path to the local file to be uploaded
      * @param RemotePath    the destination path on the remote FTP server where the file should be uploaded
      * @param FileType      the file type for FTP transmission
-     * @param DeleteSrc   delete the local file after upload
+     * @param DeleteAfter   delete the local file after upload
      * @throws IOException if the local file does not exist or if an I/O error occurs during upload
      */
-    public void UploadFile(File LocalFilePath, String RemotePath, int FileType, boolean DeleteSrc) throws Exception {
+    public void UploadFile(File LocalFilePath, String RemotePath, int FileType, boolean DeleteAfter) throws Exception {
         if (FileType == 0 || FileType == 2) {
             this.ftp.setFileType(FileType);
-            if (LocalFilePath.exists()) {
-                this.ftp.storeFile(RemotePath, new FileInputStream(LocalFilePath));
-                if (DeleteSrc) {
-                    LocalFilePath.delete();
-                }
-            } else {
-                throw new IOException("Input file does not exist");
+            if (!LocalFilePath.exists()) {
+                throw new IOException("LocalFilePath does not exists");
+            }
+            this.ftp.storeFile(RemotePath, new FileInputStream(LocalFilePath));
+            if (DeleteAfter) {
+                LocalFilePath.delete();;
             }
         } else {
-            throw new Exception("Filetype isnt set to ASCII or Binary");
+            throw new FileTypeException("FileType isn't set to ASCII or BINARY");
         }
-
     }
 
     /**
@@ -281,16 +288,15 @@ public class FtpUploading {
         FileOutputStream DestStream = new FileOutputStream(Dest);
         if (FileType == 0 || FileType == 2) {
             this.ftp.setFileType(FileType);
-            if (Dest.exists()) {
-                this.ftp.retrieveFile(RemoteSrcFile, DestStream);
-                if (DeleteRemote) {
-                    this.ftp.deleteFile(RemoteSrcFile);
-                }
-            } else {
+            if (!Dest.exists()) {
                 throw new IOException("Destination file already exists");
             }
+            this.ftp.retrieveFile(RemoteSrcFile, DestStream);
+            if (DeleteRemote) {
+                this.ftp.deleteFile(RemoteSrcFile);
+            }
         } else {
-            throw new IOException("FileType isnt set to ASCII or BINARY");
+            throw new FileTypeException("FileType isnt set to ASCII or BINARY");
         }
     }
 
@@ -318,7 +324,7 @@ public class FtpUploading {
                 throw new IOException("Destination file already exists");
             }
         } else {
-            throw new IOException("FileType isnt set to ASCII or BINARY");
+            throw new FileTypeException("FileType isnt set to ASCII or BINARY");
         }
     }
 

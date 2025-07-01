@@ -13,7 +13,7 @@ public class DefaultDatalog {
     public GenericField gamepad1Y = new GenericField("Gamepad 2 Y");
     public GenericField gamepad2X = new GenericField("Gamepad 2 X");
     public GenericField gamepad2Y = new GenericField("Gamepad 2 Y");
-    public GenericField battery = new GenericField("Battery");
+    public GenericField batteryVoltage = new GenericField("Battery Voltage");
     public GenericField robotPosX = new GenericField("Robot Position X");
     public GenericField robotPosY = new GenericField("Robot Position Y");
     public GenericField robotAngle = new GenericField("Robot Angle");
@@ -31,7 +31,7 @@ public class DefaultDatalog {
                         gamepad1Y,
                         gamepad2X,
                         gamepad2Y,
-                        battery,
+                        batteryVoltage,
                         robotAngle,
                         robotPosX,
                         robotPosY,
