@@ -13,10 +13,10 @@ public class GetConfigValue {
         Scanner scanner = new Scanner(configFile);
         while (scanner.hasNext()) {
             String line = scanner.nextLine();
-           if (!line.startsWith("#")) {
+           if (line.startsWith("#")) {
                continue;
            }
-           if (line.startsWith(key + "=")) {
+           if (line.startsWith(key + " =")) {
                scanner.close();
                line = line.substring(line.indexOf("=") + 2);
                return line.replaceAll("\"", "").trim();
