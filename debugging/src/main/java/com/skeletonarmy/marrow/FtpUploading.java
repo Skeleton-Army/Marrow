@@ -65,7 +65,7 @@ public class FtpUploading {
      * <p>
      * The configuration file must contain the following keys:
      * <ul>
-     *   <li>{@code FtpIp} – the FTP server's IP address</li>
+     *   <li>{@code FtpServer} – the FTP server's IP address</li>
      *   <li>{@code FtpPort} – the FTP server's port number</li>
      *   <li>{@code FtpUsername} – the username for authentication</li>
      *   <li>{@code FtpPassword} – the password for authentication</li>
@@ -80,7 +80,7 @@ public class FtpUploading {
      * @throws ConfigurationException if the configuration is missing required keys or fails validation
      **/
     public FtpUploading() throws IOException, ConfigurationException {
-        this.serverIp = getValue("FtpIp");
+        this.serverIp = getValue("FtpServer");
         this.port = Integer.parseInt(Objects.requireNonNull(getValue("FtpPort")));
         this.userName = getValue("FtpUsername");
         this.password = getValue("FtpPassword");
