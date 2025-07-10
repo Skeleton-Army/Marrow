@@ -87,7 +87,7 @@ public class FtpUploading {
         if (isConfigValid()) {
             Connect();
         } else {
-            throw new ConfigurationException("An error occurred in the configuration, Please regenerate it using MarrowConfig (add link later)");
+            throw new ConfigurationException("An error occurred in the configuration, Please regenerate it using https://github.com/Skeleton-Army/MarrowConfig.git");
         }
     }
 
