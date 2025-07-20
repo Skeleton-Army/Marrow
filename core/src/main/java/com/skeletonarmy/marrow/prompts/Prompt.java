@@ -1,6 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.skeletonarmy.marrow.MarrowGamepad;
+import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -11,5 +11,5 @@ public abstract class Prompt<T> {
         this.header = header;
     }
 
-    public abstract T process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry);
+    public abstract T process(Gamepad gamepad1, Gamepad gamepad2, Telemetry telemetry);
 }

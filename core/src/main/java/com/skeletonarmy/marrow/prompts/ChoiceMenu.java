@@ -4,8 +4,6 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-import com.skeletonarmy.marrow.MarrowGamepad;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,8 +13,8 @@ import java.util.function.Supplier;
 public class ChoiceMenu {
     private final OpMode opMode;
     private final Telemetry telemetry;
-    private final MarrowGamepad gamepad1;
-    private final MarrowGamepad gamepad2;
+    private final Gamepad gamepad1;
+    private final Gamepad gamepad2;
 
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
@@ -25,13 +23,6 @@ public class ChoiceMenu {
     private double lastOpModeTime = -1;
 
     public ChoiceMenu(OpMode opMode, Gamepad gamepad1, Gamepad gamepad2) {
-        this.opMode = opMode;
-        this.telemetry = opMode.telemetry;
-        this.gamepad1 = new MarrowGamepad(opMode, gamepad1);
-        this.gamepad2 = new MarrowGamepad(opMode, gamepad2);
-    }
-
-    public ChoiceMenu(OpMode opMode, MarrowGamepad gamepad1, MarrowGamepad gamepad2) {
         this.opMode = opMode;
         this.telemetry = opMode.telemetry;
         this.gamepad1 = gamepad1;
@@ -82,7 +73,7 @@ public class ChoiceMenu {
      */
     private boolean processPrompts() {
         // Handle back navigation
-        if ((gamepad1.b.isJustPressed() || gamepad2.b.isJustPressed()) && currentIndex > 0) {
+        if ((gamepad1.bWasPressed() || gamepad2.bWasPressed()) && currentIndex > 0) {
             do {
                 prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
                 currentIndex--;

@@ -1,6 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.skeletonarmy.marrow.MarrowGamepad;
+import com.qualcomm.robotcore.hardware.Gamepad;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -15,7 +15,7 @@ public class OptionPrompt<T> extends Prompt<T> {
     }
 
     @Override
-    public T process(MarrowGamepad gamepad1, MarrowGamepad gamepad2, Telemetry telemetry) {
+    public T process(Gamepad gamepad1, Gamepad gamepad2, Telemetry telemetry) {
         telemetry.addLine(header);
         telemetry.addLine();
 
@@ -27,13 +27,13 @@ public class OptionPrompt<T> extends Prompt<T> {
             }
         }
 
-        if (gamepad1.dpad_up.isJustPressed() || gamepad2.dpad_up.isJustPressed()) {
+        if (gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed()) {
             selectedOptionIndex = (selectedOptionIndex - 1 + options.length) % options.length;
-        } else if (gamepad1.dpad_down.isJustPressed() || gamepad2.dpad_down.isJustPressed()) {
+        } else if (gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) {
             selectedOptionIndex = (selectedOptionIndex + 1) % options.length;
         }
 
-        if (gamepad1.a.isJustPressed() || gamepad2.a.isJustPressed()) {
+        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()) {
             return options[selectedOptionIndex];
         }
 

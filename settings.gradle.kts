@@ -12,5 +12,3 @@ includeBuild("core") {
 		substitute(module("com.skeletonarmy.marrow:core")).using(project(":"))
 	}
 }
-
-includeBuild("actions")
