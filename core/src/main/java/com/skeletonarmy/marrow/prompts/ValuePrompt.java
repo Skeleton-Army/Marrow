@@ -10,6 +10,8 @@ public class ValuePrompt extends Prompt<Double> {
     private final double increment;
     private double selectedValue;
 
+    private boolean prevButtonPressed;
+
     public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
         super(header);
         this.minValue = minValue;
@@ -26,15 +28,17 @@ public class ValuePrompt extends Prompt<Double> {
         telemetry.addData("Increment", increment);
         telemetry.addLine("[" + minValue + "] " + selectedValue + " [" + maxValue + "]");
 
-        if (gamepad1.dpadRightWasPressed() || gamepad2.dpadRightWasPressed() || gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed()) {
+        if (!prevButtonPressed && (gamepad1.dpad_right || gamepad2.dpad_right || gamepad1.dpad_up || gamepad2.dpad_up)) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
-        } else if (gamepad1.dpadLeftWasPressed() || gamepad2.dpadLeftWasPressed() || gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) {
+        } else if (!prevButtonPressed && (gamepad1.dpad_left || gamepad2.dpad_left || gamepad1.dpad_down|| gamepad2.dpad_down)) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         }
 
-        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()) {
+        if (!prevButtonPressed && (gamepad1.a || gamepad2.a)) {
             return selectedValue;
         }
+
+        prevButtonPressed = gamepad1.a || gamepad2.a || gamepad1.dpad_right || gamepad2.dpad_right || gamepad1.dpad_up || gamepad2.dpad_up || gamepad1.dpad_left || gamepad2.dpad_left || gamepad1.dpad_down || gamepad2.dpad_down;
 
         return null;
     }

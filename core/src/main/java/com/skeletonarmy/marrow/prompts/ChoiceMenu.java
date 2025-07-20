@@ -22,6 +22,8 @@ public class ChoiceMenu {
     private int currentIndex = 0;
     private double lastOpModeTime = -1;
 
+    private boolean prevButtonPressed;
+
     public ChoiceMenu(OpMode opMode) {
         this.opMode = opMode;
         this.telemetry = opMode.telemetry;
@@ -75,12 +77,16 @@ public class ChoiceMenu {
      */
     private boolean processPrompts() {
         // Handle back navigation
-        if ((gamepad1.bWasPressed() || gamepad2.bWasPressed()) && currentIndex > 0) {
+        boolean backButtonPressed = gamepad1.b || gamepad2.b;
+
+        if (backButtonPressed && !prevButtonPressed && currentIndex > 0) {
             do {
                 prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
                 currentIndex--;
             } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
         }
+
+        prevButtonPressed = backButtonPressed; // Rising edge detection
 
         // No prompts left
         if (currentIndex >= prompts.size()) {

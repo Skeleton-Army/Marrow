@@ -7,6 +7,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class BooleanPrompt extends Prompt<Boolean> {
     private boolean selectedValue;
 
+    private boolean prevButtonPressed;
+
     public BooleanPrompt(String header, boolean defaultValue) {
         super(header);
         this.selectedValue = defaultValue;
@@ -18,13 +20,15 @@ public class BooleanPrompt extends Prompt<Boolean> {
         telemetry.addLine();
         telemetry.addLine("Current Value: " + (selectedValue ? "Yes" : "No"));
 
-        if (gamepad1.dpadRightWasPressed() || gamepad2.dpadRightWasPressed() || gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed() || gamepad1.dpadLeftWasPressed() || gamepad2.dpadLeftWasPressed() || gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) {
+        if (!prevButtonPressed && (gamepad1.dpad_right || gamepad2.dpad_right || gamepad1.dpad_up || gamepad2.dpad_up || gamepad1.dpad_left || gamepad2.dpad_left || gamepad1.dpad_down || gamepad2.dpad_down)) {
             selectedValue = !selectedValue;
         }
 
-        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()) {
+        if (!prevButtonPressed && (gamepad1.a || gamepad2.a)) {
             return selectedValue;
         }
+
+        prevButtonPressed = gamepad1.a || gamepad2.a || gamepad1.dpad_right || gamepad2.dpad_right || gamepad1.dpad_up || gamepad2.dpad_up || gamepad1.dpad_left || gamepad2.dpad_left || gamepad1.dpad_down || gamepad2.dpad_down;
 
         return null;
     }

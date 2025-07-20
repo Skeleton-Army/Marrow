@@ -8,6 +8,8 @@ public class OptionPrompt<T> extends Prompt<T> {
     private final T[] options;
     private int selectedOptionIndex = 0;
 
+    private boolean prevButtonPressed;
+
     @SafeVarargs
     public OptionPrompt(String header, T... options) {
         super(header);
@@ -27,15 +29,17 @@ public class OptionPrompt<T> extends Prompt<T> {
             }
         }
 
-        if (gamepad1.dpadUpWasPressed() || gamepad2.dpadUpWasPressed()) {
+        if (!prevButtonPressed && (gamepad1.dpad_up || gamepad2.dpad_up)) {
             selectedOptionIndex = (selectedOptionIndex - 1 + options.length) % options.length;
-        } else if (gamepad1.dpadDownWasPressed() || gamepad2.dpadDownWasPressed()) {
+        } else if (!prevButtonPressed && (gamepad1.dpad_down || gamepad2.dpad_down)) {
             selectedOptionIndex = (selectedOptionIndex + 1) % options.length;
         }
 
-        if (gamepad1.aWasPressed() || gamepad2.aWasPressed()) {
+        if (!prevButtonPressed && (gamepad1.a || gamepad2.a)) {
             return options[selectedOptionIndex];
         }
+
+        prevButtonPressed = gamepad1.a || gamepad2.a || gamepad1.dpad_up || gamepad2.dpad_up || gamepad1.dpad_down || gamepad2.dpad_down;
 
         return null;
     }
