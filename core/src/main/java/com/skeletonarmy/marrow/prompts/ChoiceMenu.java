@@ -22,25 +22,27 @@ public class ChoiceMenu {
     private int currentIndex = 0;
     private double lastOpModeTime = -1;
 
-    public ChoiceMenu(OpMode opMode, Gamepad gamepad1, Gamepad gamepad2) {
+    public ChoiceMenu(OpMode opMode) {
         this.opMode = opMode;
         this.telemetry = opMode.telemetry;
-        this.gamepad1 = gamepad1;
-        this.gamepad2 = gamepad2;
+        this.gamepad1 = opMode.gamepad1;
+        this.gamepad2 = opMode.gamepad2;
     }
 
     /**
      * Add a prompt to the queue.
      */
-    public <T> void enqueuePrompt(String key, Prompt<T> prompt) {
+    public <T> ChoiceMenu prompt(String key, Prompt<T> prompt) {
         prompts.add(new KeyPromptPair<>(key, () -> prompt));
+        return this; // For method chaining
     }
 
     /**
      * Add a prompt to the queue.
      */
-    public <T> void enqueuePrompt(String key, Supplier<Prompt<T>> promptSupplier) {
+    public <T> ChoiceMenu prompt(String key, Supplier<Prompt<T>> promptSupplier) {
         prompts.add(new KeyPromptPair<>(key, promptSupplier));
+        return this; // For method chaining
     }
 
 
