@@ -2,6 +2,8 @@ package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.skeletonarmy.marrow.prompts.internal.GamepadInput;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.ArrayList;
@@ -11,24 +13,17 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class ChoiceMenu {
-    private final OpMode opMode;
     private final Telemetry telemetry;
-    private final Gamepad gamepad1;
-    private final Gamepad gamepad2;
+    private final GamepadInput gamepadInput;
 
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
 
     private int currentIndex = 0;
-    private double lastOpModeTime = -1;
-
-    private boolean prevButtonPressed;
 
     public ChoiceMenu(OpMode opMode) {
-        this.opMode = opMode;
         this.telemetry = opMode.telemetry;
-        this.gamepad1 = opMode.gamepad1;
-        this.gamepad2 = opMode.gamepad2;
+        this.gamepadInput = new GamepadInput(opMode.gamepad1, opMode.gamepad2);
     }
 
     /**
@@ -77,16 +72,12 @@ public class ChoiceMenu {
      */
     private boolean processPrompts() {
         // Handle back navigation
-        boolean backButtonPressed = gamepad1.b || gamepad2.b;
-
-        if (backButtonPressed && !prevButtonPressed && currentIndex > 0) {
+        if (gamepadInput.justPressed("b") && currentIndex > 0) {
             do {
                 prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
                 currentIndex--;
             } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
         }
-
-        prevButtonPressed = backButtonPressed; // Rising edge detection
 
         // No prompts left
         if (currentIndex >= prompts.size()) {
@@ -102,7 +93,7 @@ public class ChoiceMenu {
             return false;
         }
 
-        Object result = prompt.process(gamepad1, gamepad2, telemetry);
+        Object result = prompt.process(gamepadInput, telemetry);
         if (result != null) {
             results.put(current.getKey(), result);
             currentIndex++;
@@ -118,11 +109,8 @@ public class ChoiceMenu {
         boolean finished = false;
 
         while (!finished) {
-            if (opMode.time == lastOpModeTime) continue; // Skip if it was already called this frame. This is so it runs only once per loop.
-
             finished = processPrompts();
             telemetry.update();
-            lastOpModeTime = opMode.time;
         }
     }
 
