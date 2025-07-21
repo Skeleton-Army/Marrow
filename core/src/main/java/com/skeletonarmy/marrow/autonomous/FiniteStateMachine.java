@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow.autonomous;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.util.ElapsedTime;
+import com.skeletonarmy.marrow.autonomous.State;
 
 import java.lang.reflect.Method;
 import java.util.LinkedHashMap;
@@ -19,6 +20,7 @@ public class FiniteStateMachine {
     private String fallbackState = "";
 
     private boolean hasRunCurrentState = false;
+    private boolean resetRuntime = false;
 
     public FiniteStateMachine(OpMode opMode, double duration) {
         this.opMode = opMode;
@@ -59,13 +61,6 @@ public class FiniteStateMachine {
     }
 
     /**
-     * Starts the FSM.
-     */
-    public void start() {
-        runtime.reset();
-    }
-
-    /**
      * Transitions to the specified state.
      * <p>
      * If there is insufficient time to complete the target state,
@@ -93,9 +88,14 @@ public class FiniteStateMachine {
     }
 
     /**
-     * Runs the currently active state exactly once, if not already run.
+     * Runs the current state exactly once.
      */
-    public void runCurrentState() {
+    public void run() {
+        if (!resetRuntime) {
+            resetRuntime = true;
+            runtime.reset();
+        }
+
         runState(getCurrentState());
     }
 
@@ -130,8 +130,7 @@ public class FiniteStateMachine {
     }
 
     /**
-     * Checks the fallback condition, and if true, runs the fallback state
-     * and stops the OpMode.
+     * Checks the fallback condition, and if true, runs the fallback state.
      *
      * @return {@code true} if fallback occurred, {@code false} otherwise.
      */
@@ -145,8 +144,6 @@ public class FiniteStateMachine {
             } else {
                 throw new RuntimeException("State not found: " + fallbackState);
             }
-
-            opMode.requestOpModeStop();
 
             return true;
         }
