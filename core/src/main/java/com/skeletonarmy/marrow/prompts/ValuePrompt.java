@@ -10,6 +10,30 @@ public class ValuePrompt extends Prompt<Double> {
     private final double increment;
     private double selectedValue;
 
+    public ValuePrompt(String header) {
+        super(header);
+        this.minValue = Double.MIN_VALUE;
+        this.maxValue = Double.MAX_VALUE;
+        this.increment = 1;
+        this.selectedValue = 0;
+    }
+
+    public ValuePrompt(String header, double defaultValue) {
+        super(header);
+        this.minValue = Double.MIN_VALUE;
+        this.maxValue = Double.MAX_VALUE;
+        this.increment = 1;
+        this.selectedValue = defaultValue;
+    }
+
+    public ValuePrompt(String header, double defaultValue, double increment) {
+        super(header);
+        this.minValue = Double.MIN_VALUE;
+        this.maxValue = Double.MAX_VALUE;
+        this.increment = increment;
+        this.selectedValue = defaultValue;
+    }
+
     public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
         super(header);
         this.minValue = minValue;
@@ -23,8 +47,7 @@ public class ValuePrompt extends Prompt<Double> {
         telemetry.addLine(header);
         telemetry.addLine();
 
-        telemetry.addData("Increment", increment);
-        telemetry.addLine("[" + minValue + "] " + selectedValue + " [" + maxValue + "]");
+        telemetry.addLine("< " + selectedValue + " >");
 
         if (input.anyJustPressed("up", "right")) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
