@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.Gamepad;
 import com.skeletonarmy.marrow.prompts.internal.GamepadInput;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -12,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class ChoiceMenu {
+public class Prompter {
     private final Telemetry telemetry;
     private final GamepadInput gamepadInput;
 
@@ -21,7 +20,7 @@ public class ChoiceMenu {
 
     private int currentIndex = 0;
 
-    public ChoiceMenu(OpMode opMode) {
+    public Prompter(OpMode opMode) {
         this.telemetry = opMode.telemetry;
         this.gamepadInput = new GamepadInput(opMode.gamepad1, opMode.gamepad2);
     }
@@ -29,7 +28,7 @@ public class ChoiceMenu {
     /**
      * Add a prompt to the queue.
      */
-    public <T> ChoiceMenu prompt(String key, Prompt<T> prompt) {
+    public <T> Prompter prompt(String key, Prompt<T> prompt) {
         prompts.add(new KeyPromptPair<>(key, () -> prompt));
         return this; // For method chaining
     }
@@ -37,7 +36,7 @@ public class ChoiceMenu {
     /**
      * Add a prompt to the queue.
      */
-    public <T> ChoiceMenu prompt(String key, Supplier<Prompt<T>> promptSupplier) {
+    public <T> Prompter prompt(String key, Supplier<Prompt<T>> promptSupplier) {
         prompts.add(new KeyPromptPair<>(key, promptSupplier));
         return this; // For method chaining
     }
