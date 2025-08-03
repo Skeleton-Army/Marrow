@@ -24,8 +24,8 @@ import dev.frozenmilk.dairy.cachinghardware.CachingDcMotorEx;
  *     <li><b>Ticks-to-Units Conversion:</b> Converts between encoder ticks and user-defined physical units like inches or degrees.</li>
  * </ul>
  */
-public class AdvancedDcMotor extends CachingDcMotorEx {
-    private static final List<AdvancedDcMotor> registeredMotors = new ArrayList<>(); // Static registry of all AdvancedDcMotors
+public class MarrowMotor extends CachingDcMotorEx {
+    private static final List<MarrowMotor> registeredMotors = new ArrayList<>(); // Static registry of all AdvancedDcMotors
 
     private final List<DcMotorEx> linkedMotors = new ArrayList<>();
 
@@ -51,7 +51,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * @param primaryMotor the name of the primary motor
      * @param linkedMotors the names of linked motors (optional)
      */
-    public AdvancedDcMotor(HardwareMap hardwareMap, String primaryMotor, String... linkedMotors) {
+    public MarrowMotor(HardwareMap hardwareMap, String primaryMotor, String... linkedMotors) {
         super(hardwareMap.get(DcMotorEx.class, primaryMotor));
         this.name = primaryMotor;
 
@@ -128,7 +128,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Sets a current limit for the motor and its linked motors. If any motor exceeds this threshold,
      * it will be detected by {@link #isOverCurrent()}, and power will automatically cut to prevent damage to the motor.
      * <p>
-     * This requires calling {@link AdvancedDcMotor#updateAll()} in each loop iteration.
+     * This requires calling {@link MarrowMotor#updateAll()} in each loop iteration.
      * <p>
      * This method is functionally identical to {@link #setCurrentAlert(double, CurrentUnit)},
      * but the name is changed to more clearly express its purpose as a current limiting mechanism.
@@ -353,7 +353,7 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
      * Call this once per loop to update all motors automatically.
      */
     public static void updateAll() {
-        for (AdvancedDcMotor motor : registeredMotors) {
+        for (MarrowMotor motor : registeredMotors) {
             if (motor.autoUpdate) {
                 motor.update();
             }
@@ -372,6 +372,6 @@ public class AdvancedDcMotor extends CachingDcMotorEx {
          * @param target the target position in ticks
          * @return the power output (PID + feedforward)
          */
-        double calculate(AdvancedDcMotor motor, int target);
+        double calculate(MarrowMotor motor, int target);
     }
 }
