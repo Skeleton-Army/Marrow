@@ -27,6 +27,7 @@ repositories {
 dependencies {
     api("dev.frozenmilk.dairy:CachingHardware:1.0.0")
     implementation("org.ftclib.ftclib:core:2.1.1")
+    implementation("org.solverslib:core:0.3.1")
 }
 
 dairyPublishing {
