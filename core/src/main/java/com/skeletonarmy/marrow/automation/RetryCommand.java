@@ -5,8 +5,6 @@ import com.seattlesolvers.solverslib.command.CommandBase;
 import com.seattlesolvers.solverslib.command.Subsystem;
 
 import java.util.function.BooleanSupplier;
-import java.util.function.IntFunction;
-import java.util.function.Supplier;
 
 /**
  * A command that runs a given command and, if a condition is met,
@@ -16,9 +14,8 @@ import java.util.function.Supplier;
  * and require re-running, such as vision alignment or precise mechanism movement.
  */
 public class RetryCommand extends CommandBase {
-
-    private final Supplier<Command> initialCommandSupplier;
-    private final IntFunction<Command> retryCommandSupplier;
+    private final Command command;
+    private final Command retryCommand;
     private final BooleanSupplier retryCondition;
     private final int maxRetries;
 
@@ -29,94 +26,86 @@ public class RetryCommand extends CommandBase {
     /**
      * Creates a new RetryCommand.
      *
-     * @param initialCommandSupplier Supplies the command to run on the first attempt
-     * @param retryCommandSupplier   A function that takes the retry count (starting at 1) and returns the command for that attempt
-     * @param retryCondition         A condition that returns true if a retry should be attempted
-     * @param maxRetries             The maximum number of retries allowed
-     * @param requirements           The subsystems used by all commands
+     * @param command        Supplies the command to run on the first attempt.
+     * @param retryCommand   A function that takes the retry count (starting at 1) and returns the command for that attempt.
+     * @param retryCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
+     * @param maxRetries     The maximum number of retries allowed.
      */
     public RetryCommand(
-            Supplier<Command> initialCommandSupplier,
-            IntFunction<Command> retryCommandSupplier,
+            Command command,
+            Command retryCommand,
             BooleanSupplier retryCondition,
-            int maxRetries,
-            Subsystem... requirements
+            int maxRetries
     ) {
-        this.initialCommandSupplier = initialCommandSupplier;
-        this.retryCommandSupplier = retryCommandSupplier;
+        this.command = command;
+        this.retryCommand = retryCommand;
         this.retryCondition = retryCondition;
         this.maxRetries = maxRetries;
 
-        addRequirements(requirements);
+        addRequirements(command.getRequirements().toArray(new Subsystem[0]));
+        addRequirements(retryCommand.getRequirements().toArray(new Subsystem[0]));
     }
 
     /**
-     * Creates a new RetryCommand.
+     * Creates a new RetryCommand where the retry command is the same as the initial one.
      *
-     * @param commandSupplier A supplier that creates a new instance of the command to run
-     * @param retryCondition  A condition that returns true if a retry should be attempted
-     * @param maxRetries      The maximum number of retries allowed
-     * @param requirements    The subsystems used by the command
+     * @param command        A supplier that creates a new instance of the command to run.
+     * @param retryCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
+     * @param maxRetries     The maximum number of retries allowed.
      */
     public RetryCommand(
-            Supplier<Command> commandSupplier,
+            Command command,
             BooleanSupplier retryCondition,
-            int maxRetries,
-            Subsystem... requirements
+            int maxRetries
     ) {
-        this(commandSupplier, i -> commandSupplier.get(), retryCondition, maxRetries, requirements);
+        this(command, command, retryCondition, maxRetries);
     }
 
     @Override
     public void initialize() {
         isFinished = false;
         retryCount = 0;
-        scheduleInitialCommand();
+
+        // Get the initial command and initialize it directly
+        currentCommand = command;
+        currentCommand.initialize();
     }
 
     @Override
     public void execute() {
-        if (currentCommand != null && !currentCommand.isScheduled()) {
-            handleCommandCompletion();
+        // If the sub-command is not finished, execute it
+        if (!currentCommand.isFinished()) {
+            currentCommand.execute();
+            return;
+        }
+
+        // --- If we reach here, the currentCommand has just finished ---
+
+        // Properly end the command that just finished
+        currentCommand.end(false);
+
+        // Check if we should retry
+        if (retryCount < maxRetries && retryCondition.getAsBoolean()) {
+            // Yes, so run the retry command
+            retryCount++;
+            currentCommand = retryCommand;
+            currentCommand.initialize();
+        } else {
+            // No, so we are completely finished.
+            isFinished = true;
         }
     }
 
     @Override
     public void end(boolean interrupted) {
-        if (interrupted && currentCommand != null && currentCommand.isScheduled()) {
-            currentCommand.cancel();
+        // When RetryCommand is ended (for any reason), we must also end the sub-command it is currently managing
+        if (currentCommand != null) {
+            currentCommand.end(interrupted);
         }
     }
 
     @Override
     public boolean isFinished() {
         return isFinished;
-    }
-
-    private void handleCommandCompletion() {
-        if (shouldRetry()) {
-            executeRetry();
-        } else {
-            finishCommand();
-        }
-    }
-
-    private boolean shouldRetry() {
-        return retryCount < maxRetries && retryCondition.getAsBoolean();
-    }
-
-    private void scheduleInitialCommand() {
-        currentCommand = initialCommandSupplier.get();
-        currentCommand.schedule();
-    }
-
-    private void executeRetry() {
-        retryCount++;
-        currentCommand = retryCommandSupplier.apply(retryCount);
-        currentCommand.schedule();
-    }
-
-    private void finishCommand() {
-        isFinished = true;
     }
 }
