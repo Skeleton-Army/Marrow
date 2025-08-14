@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow.automation;
 
 import com.seattlesolvers.solverslib.command.Command;
 import com.seattlesolvers.solverslib.command.CommandBase;
+import com.seattlesolvers.solverslib.command.CommandGroupBase;
 import com.seattlesolvers.solverslib.command.Subsystem;
 
 import java.util.function.BooleanSupplier;
@@ -37,6 +38,8 @@ public class RetryCommand extends CommandBase {
             BooleanSupplier retryCondition,
             int maxRetries
     ) {
+        CommandGroupBase.requireUngrouped(command, retryCommand);
+
         this.command = command;
         this.retryCommand = retryCommand;
         this.retryCondition = retryCondition;
