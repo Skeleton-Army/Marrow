@@ -1,10 +1,9 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.Gamepad;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
+import com.skeletonarmy.marrow.prompts.internal.GamepadInput;
 
-import com.skeletonarmy.marrow.MarrowGamepad;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -12,44 +11,34 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
-public class ChoiceMenu {
-    private final OpMode opMode;
+public class Prompter {
     private final Telemetry telemetry;
-    private final MarrowGamepad gamepad1;
-    private final MarrowGamepad gamepad2;
+    private final GamepadInput gamepadInput;
 
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
 
     private int currentIndex = 0;
-    private double lastOpModeTime = -1;
 
-    public ChoiceMenu(OpMode opMode, Gamepad gamepad1, Gamepad gamepad2) {
-        this.opMode = opMode;
+    public Prompter(OpMode opMode) {
         this.telemetry = opMode.telemetry;
-        this.gamepad1 = new MarrowGamepad(opMode, gamepad1);
-        this.gamepad2 = new MarrowGamepad(opMode, gamepad2);
-    }
-
-    public ChoiceMenu(OpMode opMode, MarrowGamepad gamepad1, MarrowGamepad gamepad2) {
-        this.opMode = opMode;
-        this.telemetry = opMode.telemetry;
-        this.gamepad1 = gamepad1;
-        this.gamepad2 = gamepad2;
+        this.gamepadInput = new GamepadInput(opMode.gamepad1, opMode.gamepad2);
     }
 
     /**
      * Add a prompt to the queue.
      */
-    public <T> void enqueuePrompt(String key, Prompt<T> prompt) {
+    public <T> Prompter prompt(String key, Prompt<T> prompt) {
         prompts.add(new KeyPromptPair<>(key, () -> prompt));
+        return this; // For method chaining
     }
 
     /**
      * Add a prompt to the queue.
      */
-    public <T> void enqueuePrompt(String key, Supplier<Prompt<T>> promptSupplier) {
+    public <T> Prompter prompt(String key, Supplier<Prompt<T>> promptSupplier) {
         prompts.add(new KeyPromptPair<>(key, promptSupplier));
+        return this; // For method chaining
     }
 
 
@@ -82,7 +71,7 @@ public class ChoiceMenu {
      */
     private boolean processPrompts() {
         // Handle back navigation
-        if ((gamepad1.b.isJustPressed() || gamepad2.b.isJustPressed()) && currentIndex > 0) {
+        if (gamepadInput.justPressed("b") && currentIndex > 0) {
             do {
                 prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
                 currentIndex--;
@@ -103,7 +92,7 @@ public class ChoiceMenu {
             return false;
         }
 
-        Object result = prompt.process(gamepad1, gamepad2, telemetry);
+        Object result = prompt.process(gamepadInput, telemetry);
         if (result != null) {
             results.put(current.getKey(), result);
             currentIndex++;
@@ -119,11 +108,8 @@ public class ChoiceMenu {
         boolean finished = false;
 
         while (!finished) {
-            if (opMode.time == lastOpModeTime) continue; // Skip if it was already called this frame. This is so it runs only once per loop.
-
             finished = processPrompts();
             telemetry.update();
-            lastOpModeTime = opMode.time;
         }
     }
 

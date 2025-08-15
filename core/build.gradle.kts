@@ -1,8 +1,10 @@
 plugins {
-    id("dev.frozenmilk.android-library") version "10.1.1-0.1.3"
+    id("dev.frozenmilk.android-library") version "10.2.0-0.1.3"
     id("dev.frozenmilk.publish") version "0.0.4"
     id("dev.frozenmilk.doc") version "0.0.4"
 }
+
+apply(from = "./dependencies.gradle")
 
 android.namespace = "com.skeletonarmy.marrow.core"
 
@@ -18,15 +20,11 @@ ftc {
 
 repositories {
     mavenCentral()
-    maven("https://maven.brott.dev")
     maven("https://repo.dairy.foundation/releases")
 }
 
 dependencies {
-    api("com.acmerobotics.roadrunner:actions:1.0.1") { exclude(group = "com.acmerobotics.dashboard") }
-    compileOnly("com.acmerobotics.dashboard:dashboard:0.4.16") // compileOnly so it would work with Sloth
-    api("dev.frozenmilk.dairy:CachingHardware:1.0.0")
-    api("org.ftclib.ftclib:core:2.1.1")
+    implementation("org.solverslib:core:0.3.1")
 }
 
 dairyPublishing {
