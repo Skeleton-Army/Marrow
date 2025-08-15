@@ -20,13 +20,10 @@ ftc {
 
 repositories {
     mavenCentral()
-    maven("https://maven.brott.dev")
     maven("https://repo.dairy.foundation/releases")
 }
 
 dependencies {
-    api("dev.frozenmilk.dairy:CachingHardware:1.0.0")
-    implementation("org.ftclib.ftclib:core:2.1.1")
     implementation("org.solverslib:core:0.3.1")
 }
 
