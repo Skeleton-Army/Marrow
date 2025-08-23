@@ -1,10 +1,13 @@
 package com.skeletonarmy.marrow;
 
+import android.annotation.SuppressLint;
+
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import java.util.List;
-
+@SuppressWarnings("unused")
 public class QoL {
     private static List<LynxModule> allHubs;
 
@@ -46,6 +49,33 @@ public class QoL {
 
         for (LynxModule hub : allHubs) {
             hub.clearBulkCache();
+        }
+    }
+
+    public enum logLevel {
+        LOG,
+        INFO,
+        ERROR,
+        CRITICAL
+    }
+
+    /**
+     * Formats a log message with log level and optional timing information.
+     *
+     * @param message the log message content
+     * @param level the log level
+     * @param timer timer for elapsed time in seconds
+     *              can be {@code null} to not include a timestamp
+     *
+     * @return formatted string like "[1.23]     [INFO] message" or "[INFO] message"
+     */
+    @SuppressLint("DefaultLocale")
+    public static String formatLogMessage(String message, logLevel level, ElapsedTime timer) {
+        if (timer != null) {
+            return String.format("[%f]\t [%s] %s", timer.seconds(), level.name(), message);
+        }
+        else {
+            return String.format("[%s] %s", level.name(), message);
         }
     }
 }
