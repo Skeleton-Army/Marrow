@@ -1,9 +1,7 @@
-package com.skeletonarmy.marrow.automation;
+package com.skeletonarmy.marrow.automation.nextftc;
 
-import com.seattlesolvers.solverslib.command.Command;
-import com.seattlesolvers.solverslib.command.CommandBase;
-import com.seattlesolvers.solverslib.command.CommandGroupBase;
-import com.seattlesolvers.solverslib.command.Subsystem;
+import com.rowanmcalpin.nextftc.core.command.Command;
+import com.rowanmcalpin.nextftc.core.command.CommandManager;
 
 import java.util.function.BooleanSupplier;
 
@@ -14,7 +12,7 @@ import java.util.function.BooleanSupplier;
  * This command is useful for actions that may not succeed on the first attempt
  * and require re-running, such as vision alignment or precise mechanism movement.
  */
-public class RetryCommand extends CommandBase {
+public class RetryCommand extends Command {
     private final Command command;
     private final Command retryCommand;
     private final BooleanSupplier retryCondition;
@@ -38,15 +36,10 @@ public class RetryCommand extends CommandBase {
             BooleanSupplier retryCondition,
             int maxRetries
     ) {
-        CommandGroupBase.requireUngrouped(command, retryCommand);
-
         this.command = command;
         this.retryCommand = retryCommand;
         this.retryCondition = retryCondition;
         this.maxRetries = maxRetries;
-
-        addRequirements(command.getRequirements().toArray(new Subsystem[0]));
-        addRequirements(retryCommand.getRequirements().toArray(new Subsystem[0]));
     }
 
     /**
@@ -65,34 +58,31 @@ public class RetryCommand extends CommandBase {
     }
 
     @Override
-    public void initialize() {
+    public void start() {
         isFinished = false;
         retryCount = 0;
 
-        // Get the initial command and initialize it directly
+        // Get the initial command and schedule it
         currentCommand = command;
-        currentCommand.initialize();
+        CommandManager.INSTANCE.scheduleCommand(currentCommand);
+        CommandManager.INSTANCE.scheduleCommands();
     }
 
     @Override
-    public void execute() {
-        // If the sub-command is not finished, execute it
-        if (!currentCommand.isFinished()) {
-            currentCommand.execute();
+    public void update() {
+        // If the sub-command is not finished and still running (not interrupted)
+        if (!currentCommand.isDone() && CommandManager.INSTANCE.getRunningCommands().contains(currentCommand)) {
             return;
         }
 
         // --- If we reach here, the currentCommand has just finished ---
-
-        // Properly end the command that just finished
-        currentCommand.end(false);
 
         // Check if we should retry
         if (retryCount < maxRetries && retryCondition.getAsBoolean()) {
             // Yes, so run the retry command
             retryCount++;
             currentCommand = retryCommand;
-            currentCommand.initialize();
+            CommandManager.INSTANCE.scheduleCommand(currentCommand);
         } else {
             // No, so we are completely finished.
             isFinished = true;
@@ -100,15 +90,7 @@ public class RetryCommand extends CommandBase {
     }
 
     @Override
-    public void end(boolean interrupted) {
-        // When RetryCommand is ended (for any reason), we must also end the sub-command it is currently managing
-        if (currentCommand != null) {
-            currentCommand.end(interrupted);
-        }
-    }
-
-    @Override
-    public boolean isFinished() {
+    public boolean isDone() {
         return isFinished;
     }
 }
