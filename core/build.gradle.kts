@@ -21,10 +21,12 @@ ftc {
 repositories {
     mavenCentral()
     maven("https://repo.dairy.foundation/releases")
+    maven("https://maven.rowanmcalpin.com/")
 }
 
 dependencies {
     implementation("org.solverslib:core:0.3.1")
+    implementation("com.rowanmcalpin.nextftc:core:0.6.2")
 }
 
 dairyPublishing {
