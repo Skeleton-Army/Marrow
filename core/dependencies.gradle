@@ -1,12 +1,5 @@
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-
-    compileOnly 'org.firstinspires.ftc:Inspection:10.3.0'
-    compileOnly 'org.firstinspires.ftc:RobotCore:10.3.0'
-    compileOnly 'org.firstinspires.ftc:RobotServer:10.3.0'
-    compileOnly 'org.firstinspires.ftc:Hardware:10.3.0'
-    compileOnly 'org.firstinspires.ftc:FtcCommon:10.3.0'
-    compileOnly 'androidx.appcompat:appcompat:1.2.0'
 }
 
 configurations.all {
