@@ -15,7 +15,7 @@ import java.util.function.BooleanSupplier;
 public class RetryCommand extends Command {
     private final Command command;
     private final Command retryCommand;
-    private final BooleanSupplier retryCondition;
+    private final BooleanSupplier successCondition;
     private final int maxRetries;
 
     private Command currentCommand;
@@ -27,18 +27,18 @@ public class RetryCommand extends Command {
      *
      * @param command        Supplies the command to run on the first attempt.
      * @param retryCommand   A function that takes the retry count (starting at 1) and returns the command for that attempt.
-     * @param retryCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
+     * @param successCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
      * @param maxRetries     The maximum number of retries allowed.
      */
     public RetryCommand(
             Command command,
             Command retryCommand,
-            BooleanSupplier retryCondition,
+            BooleanSupplier successCondition,
             int maxRetries
     ) {
         this.command = command;
         this.retryCommand = retryCommand;
-        this.retryCondition = retryCondition;
+        this.successCondition = successCondition;
         this.maxRetries = maxRetries;
     }
 
@@ -46,15 +46,15 @@ public class RetryCommand extends Command {
      * Creates a new RetryCommand where the retry command is the same as the initial one.
      *
      * @param command        A supplier that creates a new instance of the command to run.
-     * @param retryCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
+     * @param successCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
      * @param maxRetries     The maximum number of retries allowed.
      */
     public RetryCommand(
             Command command,
-            BooleanSupplier retryCondition,
+            BooleanSupplier successCondition,
             int maxRetries
     ) {
-        this(command, command, retryCondition, maxRetries);
+        this(command, command, successCondition, maxRetries);
     }
 
     @Override
@@ -62,7 +62,6 @@ public class RetryCommand extends Command {
         isFinished = false;
         retryCount = 0;
 
-        // Get the initial command and schedule it
         currentCommand = command;
         CommandManager.INSTANCE.scheduleCommand(currentCommand);
         CommandManager.INSTANCE.scheduleCommands();
@@ -75,16 +74,12 @@ public class RetryCommand extends Command {
             return;
         }
 
-        // --- If we reach here, the currentCommand has just finished ---
-
         // Check if we should retry
-        if (retryCount < maxRetries && retryCondition.getAsBoolean()) {
-            // Yes, so run the retry command
+        if (retryCount < maxRetries && !successCondition.getAsBoolean()) {
             retryCount++;
             currentCommand = retryCommand;
             CommandManager.INSTANCE.scheduleCommand(currentCommand);
         } else {
-            // No, so we are completely finished.
             isFinished = true;
         }
     }
