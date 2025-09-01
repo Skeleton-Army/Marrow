@@ -27,6 +27,7 @@ repositories {
 dependencies {
     implementation("org.solverslib:core:0.3.1")
     implementation("com.rowanmcalpin.nextftc:core:0.6.2")
+    implementation("org.ftclib.ftclib:core:2.1.1")
 }
 
 dairyPublishing {
