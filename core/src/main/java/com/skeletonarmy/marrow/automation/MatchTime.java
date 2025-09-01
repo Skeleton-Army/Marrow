@@ -6,16 +6,16 @@ public class MatchTime {
     private final ElapsedTime timer = new ElapsedTime();
     private final double periodDuration;
 
-    private boolean started = false;
+    private boolean running = false;
 
     public MatchTime(double periodDuration) {
         this.periodDuration = periodDuration;
     }
 
     public void start() {
-        if (started) return;
+        if (running) return;
         timer.reset();
-        started = true;
+        running = true;
     }
 
     public void restart() {
@@ -38,7 +38,7 @@ public class MatchTime {
         return getRemaining() > secondsLeft;
     }
 
-    public boolean hasStarted() {
-        return started;
+    public boolean isRunning() {
+        return running;
     }
 }
