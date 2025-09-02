@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.automation;
+package com.skeletonarmy.marrow;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 

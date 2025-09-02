@@ -6,7 +6,7 @@ plugins {
 
 apply(from = "./dependencies.gradle")
 
-android.namespace = "com.skeletonarmy.marrow.core"
+android.namespace = "com.skeletonarmy.marrow.solverslib"
 
 ftc {
     sdk {
@@ -18,6 +18,15 @@ ftc {
     }
 }
 
+repositories {
+    mavenCentral()
+    maven("https://repo.dairy.foundation/releases")
+}
+
+dependencies {
+    implementation("org.solverslib:core:0.3.1")
+}
+
 dairyPublishing {
     gitDir = file("..")
 }
@@ -26,7 +35,7 @@ publishing {
     publications {
         register<MavenPublication>("release") {
             groupId = "com.skeletonarmy.marrow"
-            artifactId = "core"
+            artifactId = "solverslib"
 
             artifact(dairyDoc.dokkaHtmlJar)
             artifact(dairyDoc.dokkaJavadocJar)

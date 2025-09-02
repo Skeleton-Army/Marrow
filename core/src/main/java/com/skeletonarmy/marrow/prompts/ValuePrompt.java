@@ -1,7 +1,5 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.skeletonarmy.marrow.prompts.internal.GamepadInput;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class ValuePrompt extends Prompt<Double> {

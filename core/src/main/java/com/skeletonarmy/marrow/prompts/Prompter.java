@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.skeletonarmy.marrow.prompts.internal.GamepadInput;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 

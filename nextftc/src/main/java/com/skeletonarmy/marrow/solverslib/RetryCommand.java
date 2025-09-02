@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.automation.nextftc;
+package com.skeletonarmy.marrow.solverslib;
 
 import com.rowanmcalpin.nextftc.core.command.Command;
 import com.rowanmcalpin.nextftc.core.command.CommandManager;

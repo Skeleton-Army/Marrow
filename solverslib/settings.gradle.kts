@@ -6,8 +6,3 @@ pluginManagement {
 		maven("https://repo.dairy.foundation/releases/")
 	}
 }
-
-includeBuild("core")
-includeBuild("solverslib")
-includeBuild("nextftc")
-includeBuild("ftclib")
