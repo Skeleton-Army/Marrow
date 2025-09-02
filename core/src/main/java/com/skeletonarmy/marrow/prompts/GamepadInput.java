@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.prompts.internal;
+package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
 
@@ -9,7 +9,7 @@ import java.util.Map;
  * INTERNAL USE ONLY.
  * This class is not part of the public API and may change without notice.
  */
-public class GamepadInput {
+class GamepadInput {
     private final Gamepad gamepad1;
     private final Gamepad gamepad2;
 
