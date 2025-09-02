@@ -6,7 +6,7 @@ plugins {
 
 apply(from = "./dependencies.gradle")
 
-android.namespace = "com.skeletonarmy.marrow.core"
+android.namespace = "com.skeletonarmy.marrow.ftclib"
 
 ftc {
     sdk {
@@ -18,6 +18,14 @@ ftc {
     }
 }
 
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("org.ftclib.ftclib:core:2.1.1")
+}
+
 dairyPublishing {
     gitDir = file("..")
 }
@@ -26,7 +34,7 @@ publishing {
     publications {
         register<MavenPublication>("release") {
             groupId = "com.skeletonarmy.marrow"
-            artifactId = "core"
+            artifactId = "ftclib"
 
             artifact(dairyDoc.dokkaHtmlJar)
             artifact(dairyDoc.dokkaJavadocJar)

@@ -1,9 +1,9 @@
-package com.skeletonarmy.marrow.automation.solverslib;
+package com.skeletonarmy.marrow.solverslib;
 
-import com.seattlesolvers.solverslib.command.Command;
-import com.seattlesolvers.solverslib.command.CommandBase;
-import com.seattlesolvers.solverslib.command.CommandGroupBase;
-import com.seattlesolvers.solverslib.command.Subsystem;
+import com.arcrobotics.ftclib.command.Command;
+import com.arcrobotics.ftclib.command.CommandBase;
+import com.arcrobotics.ftclib.command.CommandGroupBase;
+import com.arcrobotics.ftclib.command.Subsystem;
 
 import java.util.function.BooleanSupplier;
 
