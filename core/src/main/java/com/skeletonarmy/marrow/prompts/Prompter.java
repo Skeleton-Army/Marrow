@@ -123,8 +123,9 @@ public class Prompter {
      * Sets a function to run once all prompts are complete.
      * @param func The function to run
      */
-    public void onComplete(Runnable func) {
+    public Prompter onComplete(Runnable func) {
         completeFunc = func;
+        return this; // For method chaining
     }
 
     private static class KeyPromptPair<T> {
