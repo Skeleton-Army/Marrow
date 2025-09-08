@@ -8,6 +8,6 @@ pluginManagement {
 }
 
 includeBuild("core")
-includeBuild("solverslib")
-includeBuild("nextftc")
-includeBuild("ftclib")
+includeBuild("customLibraries/solverslib")
+includeBuild("customLibraries/nextftc")
+includeBuild("customLibraries/ftclib")
