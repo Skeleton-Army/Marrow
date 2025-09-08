@@ -17,7 +17,10 @@ public class Prompter {
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
 
+    private Runnable completeFunc;
+
     private int currentIndex = 0;
+    private boolean isCompleted = false;
 
     public Prompter(OpMode opMode) {
         this.telemetry = opMode.telemetry;
@@ -101,15 +104,27 @@ public class Prompter {
     }
 
     /**
-     * Runs all queued prompts in a blocking loop until all prompts are complete.
+     * Runs all queued prompts until all prompts are complete.
+     * This should be called in a loop.
      */
     public void run() {
-        boolean finished = false;
+        if (isCompleted) return;
 
-        while (!finished) {
-            finished = processPrompts();
-            telemetry.update();
+        boolean finished = processPrompts();
+        telemetry.update();
+
+        if (finished) {
+            isCompleted = true;
+            completeFunc.run();
         }
+    }
+
+    /**
+     * Sets a function to run once all prompts are complete.
+     * @param func The function to run
+     */
+    public void onComplete(Runnable func) {
+        completeFunc = func;
     }
 
     private static class KeyPromptPair<T> {
