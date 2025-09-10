@@ -58,19 +58,19 @@ public class TimerEx {
         isOn = true;
     }
 
-    public double getElapsed() {
+    public long getElapsed() {
         return isOn ? timer.time(unit) : unit.convert(pauseTime, TimeUnit.NANOSECONDS);
     }
 
-    public double getRemaining() {
+    public long getRemaining() {
         return duration - getElapsed();
     }
 
-    public boolean isLessThan(double timeLeft) {
+    public boolean isLessThan(long timeLeft) {
         return getRemaining() < timeLeft;
     }
 
-    public boolean isMoreThan(double timeLeft) {
+    public boolean isMoreThan(long timeLeft) {
         return getRemaining() > timeLeft;
     }
 
