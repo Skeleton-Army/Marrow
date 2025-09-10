@@ -27,6 +27,7 @@ public class TimerEx {
 
     public TimerEx(long duration, TimeUnit unit) {
         this.timer = new ElapsedTime();
+        this.timer.reset();
         this.duration = duration;
         this.unit = unit;
     }
