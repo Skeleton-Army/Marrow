@@ -1,9 +1,8 @@
 package com.skeletonarmy.marrow.solverslib;
 
-import com.rowanmcalpin.nextftc.core.command.Command;
-import com.rowanmcalpin.nextftc.core.command.CommandManager;
-
 import java.util.function.BooleanSupplier;
+
+import dev.nextftc.core.commands.Command;
 
 /**
  * A command that runs a given command and, if a condition is met,
@@ -40,6 +39,9 @@ public class RetryCommand extends Command {
         this.retryCommand = retryCommand;
         this.successCondition = successCondition;
         this.maxRetries = maxRetries;
+
+        addRequirements(command.getRequirements());
+        addRequirements(retryCommand.getRequirements());
     }
 
     /**
@@ -63,24 +65,34 @@ public class RetryCommand extends Command {
         retryCount = 0;
 
         currentCommand = command;
-        CommandManager.INSTANCE.scheduleCommand(currentCommand);
-        CommandManager.INSTANCE.scheduleCommands();
+        currentCommand.start();
     }
 
     @Override
     public void update() {
         // If the sub-command is not finished and still running (not interrupted)
-        if (!currentCommand.isDone() && CommandManager.INSTANCE.getRunningCommands().contains(currentCommand)) {
+        if (!currentCommand.isDone()) {
+            currentCommand.update();
             return;
         }
+
+        currentCommand.stop(false);
 
         // Check if we should retry
         if (retryCount < maxRetries && !successCondition.getAsBoolean()) {
             retryCount++;
             currentCommand = retryCommand;
-            CommandManager.INSTANCE.scheduleCommand(currentCommand);
+            currentCommand.start();
         } else {
             isFinished = true;
+        }
+    }
+
+    @Override
+    public void stop(boolean interrupted) {
+        // When RetryCommand is ended (for any reason), we must also end the sub-command it is currently managing
+        if (currentCommand != null) {
+            currentCommand.stop(interrupted);
         }
     }
 

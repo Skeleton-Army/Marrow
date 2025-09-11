@@ -20,11 +20,10 @@ ftc {
 
 repositories {
     mavenCentral()
-    maven("https://maven.rowanmcalpin.com/")
 }
 
 dependencies {
-    implementation("com.rowanmcalpin.nextftc:core:0.6.2")
+    implementation("dev.nextftc:ftc:1.0.0")
 }
 
 dairyPublishing {
