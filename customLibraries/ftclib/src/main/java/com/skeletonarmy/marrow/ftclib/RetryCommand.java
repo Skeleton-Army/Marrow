@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.solverslib;
+package com.skeletonarmy.marrow.ftclib;
 
 import com.arcrobotics.ftclib.command.Command;
 import com.arcrobotics.ftclib.command.CommandBase;

@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.solverslib;
+package com.skeletonarmy.marrow.nextftc;
 
 import java.util.function.BooleanSupplier;
 
