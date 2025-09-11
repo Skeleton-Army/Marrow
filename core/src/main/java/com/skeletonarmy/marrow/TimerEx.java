@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
 
 public class TimerEx {
     private final TimeUnit unit;
-    private final long duration;
+    private final double duration;
 
     private ElapsedTime timer;
     private long pauseTime;
@@ -21,13 +21,12 @@ public class TimerEx {
         this(0, unit);
     }
 
-    public TimerEx(long duration) {
+    public TimerEx(double duration) {
         this(duration, TimeUnit.SECONDS);
     }
 
-    public TimerEx(long duration, TimeUnit unit) {
+    public TimerEx(double duration, TimeUnit unit) {
         this.timer = new ElapsedTime();
-        this.timer.reset();
         this.duration = duration;
         this.unit = unit;
     }
@@ -59,19 +58,19 @@ public class TimerEx {
         isOn = true;
     }
 
-    public long getElapsed() {
-        return isOn ? timer.time(unit) : unit.convert(pauseTime, TimeUnit.NANOSECONDS);
+    public double getElapsed() {
+        return isOn ? nanoToUnit(timer.nanoseconds(), unit) : nanoToUnit(pauseTime, unit);
     }
 
-    public long getRemaining() {
+    public double getRemaining() {
         return duration - getElapsed();
     }
 
-    public boolean isLessThan(long timeLeft) {
+    public boolean isLessThan(double timeLeft) {
         return getRemaining() < timeLeft;
     }
 
-    public boolean isMoreThan(long timeLeft) {
+    public boolean isMoreThan(double timeLeft) {
         return getRemaining() > timeLeft;
     }
 
@@ -83,11 +82,17 @@ public class TimerEx {
         return isOn;
     }
 
-    public long getDuration() {
+    public double getDuration() {
         return duration;
     }
 
     public TimeUnit getUnit() {
         return unit;
+    }
+
+    private double nanoToUnit(long nanos, TimeUnit unit) {
+        // How many nanoseconds are in one of the requested units
+        double nanosPerUnit = TimeUnit.NANOSECONDS.convert(1, unit);
+        return nanos / nanosPerUnit;
     }
 }
