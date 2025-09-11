@@ -21,10 +21,8 @@ public class QoL {
      * @param mode The desired bulk caching mode to be set.
      */
     public static void setBulkCachingMode(HardwareMap hardwareMap, LynxModule.BulkCachingMode mode) {
-        // Cache all hubs
-        allHubs = hardwareMap.getAll(LynxModule.class);
-
-        for (LynxModule hub : allHubs) {
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) {
             hub.setBulkCachingMode(mode);
         }
     }
@@ -39,12 +37,8 @@ public class QoL {
      * @param hardwareMap The hardware map.
      */
     public static void clearBulkCache(HardwareMap hardwareMap) {
-        // Cache all hubs if not cached already
-        if (allHubs == null) {
-            allHubs = hardwareMap.getAll(LynxModule.class);
-        }
-
-        for (LynxModule hub : allHubs) {
+        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
+        for (LynxModule hub : hubs) {
             hub.clearBulkCache();
         }
     }
