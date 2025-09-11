@@ -4,4 +4,13 @@
 
 Marrow is perfect for teams looking to squeeze every last drop of performance from their robot, as well as those who want cleaner, more modular code.
 
+## Features
+
+* Pre-match autonomous setup
+* Smart retry system
+* Easy time tracking
+* Quality-of-life improvements
+
+and more coming soon...
+
 Read [the documentation](https://skeleton-army.gitbook.io/marrow) for more info.
