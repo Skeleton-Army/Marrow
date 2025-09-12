@@ -7,7 +7,15 @@ pluginManagement {
 	}
 }
 
-includeBuild("core")
-includeBuild("customLibraries/solverslib")
-includeBuild("customLibraries/nextftc")
-includeBuild("customLibraries/ftclib")
+rootProject.name = "Marrow"
+
+include(
+	":core",
+	":solverslib",
+	":nextftc",
+	":ftclib",
+)
+
+project(":solverslib").projectDir = file("customLibraries/solverslib")
+project(":nextftc").projectDir = file("customLibraries/nextftc")
+project(":ftclib").projectDir = file("customLibraries/ftclib")
