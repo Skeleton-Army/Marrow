@@ -1,47 +1,22 @@
-plugins {
-    id("dev.frozenmilk.android-library") version "10.3.0-0.1.4"
-    id("dev.frozenmilk.publish") version "0.0.5"
-    id("dev.frozenmilk.doc") version "0.0.5"
-}
+android {
+    namespace = "io.github.skeletonarmy.marrow.nextftc"
+    compileSdk = 35
 
-apply(from = "./dependencies.gradle")
-
-android.namespace = "com.skeletonarmy.marrow.nextftc"
-
-ftc {
-    sdk {
-        RobotCore {
-            configurationNames += "testImplementation"
-        }
-        FtcCommon
-        Hardware
+    defaultConfig {
+        minSdk = 24
     }
-}
 
-repositories {
-    mavenCentral()
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    publishing {
+        singleVariant("release")
+        multipleVariants("merged") { includeBuildTypeValues("debug", "release") }
+    }
 }
 
 dependencies {
     implementation("dev.nextftc:ftc:1.0.0")
-}
-
-dairyPublishing {
-    gitDir = file("..")
-}
-
-publishing {
-    publications {
-        register<MavenPublication>("release") {
-            groupId = "com.skeletonarmy.marrow"
-            artifactId = "nextftc"
-
-            artifact(dairyDoc.dokkaHtmlJar)
-            artifact(dairyDoc.dokkaJavadocJar)
-
-            afterEvaluate {
-                from(components["release"])
-            }
-        }
-    }
 }

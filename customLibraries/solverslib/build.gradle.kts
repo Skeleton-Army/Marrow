@@ -1,48 +1,26 @@
-plugins {
-    id("dev.frozenmilk.android-library") version "10.3.0-0.1.4"
-    id("dev.frozenmilk.publish") version "0.0.5"
-    id("dev.frozenmilk.doc") version "0.0.5"
-}
+android {
+    namespace = "io.github.skeletonarmy.marrow.solverslib"
+    compileSdk = 35
 
-apply(from = "./dependencies.gradle")
+    defaultConfig {
+        minSdk = 24
+    }
 
-android.namespace = "com.skeletonarmy.marrow.solverslib"
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
 
-ftc {
-    sdk {
-        RobotCore {
-            configurationNames += "testImplementation"
-        }
-        FtcCommon
-        Hardware
+    publishing {
+        singleVariant("release")
+        multipleVariants("merged") { includeBuildTypeValues("debug", "release") }
     }
 }
 
 repositories {
-    mavenCentral()
     maven("https://repo.dairy.foundation/releases")
 }
 
 dependencies {
     implementation("org.solverslib:core:0.3.1")
-}
-
-dairyPublishing {
-    gitDir = file("..")
-}
-
-publishing {
-    publications {
-        register<MavenPublication>("release") {
-            groupId = "com.skeletonarmy.marrow"
-            artifactId = "solverslib"
-
-            artifact(dairyDoc.dokkaHtmlJar)
-            artifact(dairyDoc.dokkaJavadocJar)
-
-            afterEvaluate {
-                from(components["release"])
-            }
-        }
-    }
 }
