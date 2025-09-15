@@ -12,8 +12,10 @@ android {
     }
 
     publishing {
-        singleVariant("release")
-        multipleVariants("merged") { includeBuildTypeValues("debug", "release") }
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
     }
 }
 

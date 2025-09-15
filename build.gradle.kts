@@ -3,7 +3,7 @@ subprojects {
     apply(plugin = "io.deepmedia.tools.deployer")
 
     group = "io.github.skeleton-army.marrow"
-    version = "0.0.0-SNAPSHOT"
+    version = "0.0.1"
 
     repositories {
         mavenCentral()
@@ -22,8 +22,10 @@ subprojects {
         add("compileOnly", "androidx.appcompat:appcompat:1.2.0")
     }
 
-    extensions.configure<io.deepmedia.tools.deployer.DeployerExtension>("deployer") {
+    extensions.configure<io.deepmedia.tools.deployer.DeployerExtension> {
         projectInfo {
+            name.set("Marrow")
+            description.set("A lightweight library for building advanced robot behaviors.")
             url.set("https://github.com/Skeleton-Army/Marrow")
             scm {
                 fromGithub("Skeleton-Army", "Marrow")
