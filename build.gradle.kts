@@ -10,18 +10,6 @@ subprojects {
         google()
     }
 
-    dependencies {
-        add("compileOnly", "org.firstinspires.ftc:Inspection:11.0.0")
-        add("compileOnly", "org.firstinspires.ftc:Blocks:11.0.0")
-        add("compileOnly", "org.firstinspires.ftc:RobotCore:11.0.0")
-        add("compileOnly", "org.firstinspires.ftc:RobotServer:11.0.0")
-        add("compileOnly", "org.firstinspires.ftc:OnBotJava:11.0.0")
-        add("compileOnly", "org.firstinspires.ftc:Hardware:11.0.0")
-        add("compileOnly", "org.firstinspires.ftc:FtcCommon:11.0.0")
-        add("compileOnly", "org.firstinspires.ftc:Vision:11.0.0")
-        add("compileOnly", "androidx.appcompat:appcompat:1.2.0")
-    }
-
     extensions.configure<io.deepmedia.tools.deployer.DeployerExtension> {
         projectInfo {
             name.set("Marrow")
