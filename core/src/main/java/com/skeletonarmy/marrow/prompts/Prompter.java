@@ -2,8 +2,6 @@ package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -11,8 +9,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class Prompter {
-    private final Telemetry telemetry;
-    private final GamepadInput gamepadInput;
+    private OpMode opmode;
+    private GamepadInput gamepadInput;
 
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
@@ -23,8 +21,7 @@ public class Prompter {
     private boolean isCompleted = false;
 
     public Prompter(OpMode opMode) {
-        this.telemetry = opMode.telemetry;
-        this.gamepadInput = new GamepadInput(opMode.gamepad1, opMode.gamepad2);
+        this.opmode = opMode;
     }
 
     /**
@@ -68,10 +65,37 @@ public class Prompter {
     }
 
     /**
+     * Runs all queued prompts until all prompts are complete.
+     * This should be called in a loop.
+     */
+    public void run() {
+        if (isCompleted) return;
+
+        boolean finished = processPrompts();
+        opmode.telemetry.update();
+
+        if (finished) {
+            isCompleted = true;
+            completeFunc.run();
+        }
+    }
+
+    /**
+     * Sets a function to run once all prompts are complete.
+     * @param func The function to run
+     */
+    public Prompter onComplete(Runnable func) {
+        completeFunc = func;
+        return this; // For method chaining
+    }
+
+    /**
      * Handles the prompts and inputs. Should be called in a loop.
      * @return True if there are no more prompts to process, false otherwise
      */
     private boolean processPrompts() {
+        initialize();
+
         // Handle back navigation
         if (gamepadInput.justPressed("b") && currentIndex > 0) {
             navigateBack();
@@ -107,29 +131,10 @@ public class Prompter {
         } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
     }
 
-    /**
-     * Runs all queued prompts until all prompts are complete.
-     * This should be called in a loop.
-     */
-    public void run() {
-        if (isCompleted) return;
-
-        boolean finished = processPrompts();
-        telemetry.update();
-
-        if (finished) {
-            isCompleted = true;
-            completeFunc.run();
+    private void initialize() {
+        if (gamepadInput == null) {
+            gamepadInput = new GamepadInput(opmode.gamepad1, opmode.gamepad2);
         }
-    }
-
-    /**
-     * Sets a function to run once all prompts are complete.
-     * @param func The function to run
-     */
-    public Prompter onComplete(Runnable func) {
-        completeFunc = func;
-        return this; // For method chaining
     }
 
     private class KeyPromptPair<T> {
@@ -156,7 +161,7 @@ public class Prompter {
             prompt = promptSupplier.get();
 
             if (prompt != null) {
-                prompt.configure(gamepadInput, telemetry);
+                prompt.configure(gamepadInput, opmode.telemetry);
             }
 
             return prompt;
