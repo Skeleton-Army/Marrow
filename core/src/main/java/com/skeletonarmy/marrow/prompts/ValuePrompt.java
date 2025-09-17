@@ -1,15 +1,14 @@
 package com.skeletonarmy.marrow.prompts;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 public class ValuePrompt extends Prompt<Double> {
+    private final String header;
     private final double minValue;
     private final double maxValue;
     private final double increment;
     private double selectedValue;
 
     public ValuePrompt(String header) {
-        super(header);
+        this.header = header;
         this.minValue = Double.MIN_VALUE;
         this.maxValue = Double.MAX_VALUE;
         this.increment = 1;
@@ -17,7 +16,7 @@ public class ValuePrompt extends Prompt<Double> {
     }
 
     public ValuePrompt(String header, double defaultValue) {
-        super(header);
+        this.header = header;
         this.minValue = Double.MIN_VALUE;
         this.maxValue = Double.MAX_VALUE;
         this.increment = 1;
@@ -25,7 +24,7 @@ public class ValuePrompt extends Prompt<Double> {
     }
 
     public ValuePrompt(String header, double defaultValue, double increment) {
-        super(header);
+        this.header = header;
         this.minValue = Double.MIN_VALUE;
         this.maxValue = Double.MAX_VALUE;
         this.increment = increment;
@@ -33,7 +32,7 @@ public class ValuePrompt extends Prompt<Double> {
     }
 
     public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
-        super(header);
+        this.header = header;
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.increment = increment;
@@ -41,19 +40,19 @@ public class ValuePrompt extends Prompt<Double> {
     }
 
     @Override
-    public Double process(GamepadInput input, Telemetry telemetry) {
-        telemetry.addLine(header);
-        telemetry.addLine();
+    public Double process() {
+        addLine(header);
+        addLine("");
 
-        telemetry.addLine("< " + selectedValue + " >");
+        addLine("< " + selectedValue + " >");
 
-        if (input.anyJustPressed("up", "right")) {
+        if (anyJustPressed("dpad_up", "dpad_right")) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
-        } else if (input.anyJustPressed("down", "left")) {
+        } else if (anyJustPressed("dpad_down", "dpad_left")) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         }
 
-        if (input.justPressed("a")) {
+        if (justPressed("a")) {
             return selectedValue;
         }
 

@@ -21,22 +21,7 @@ class GamepadInput {
     }
 
     public boolean isPressed(String key) {
-        switch (key) {
-            case "a":
-                return gamepad1.a || gamepad2.a;
-            case "b":
-                return gamepad1.b || gamepad2.b;
-            case "up":
-                return gamepad1.dpad_up || gamepad2.dpad_up;
-            case "down":
-                return gamepad1.dpad_down || gamepad2.dpad_down;
-            case "left":
-                return gamepad1.dpad_left || gamepad2.dpad_left;
-            case "right":
-                return gamepad1.dpad_right || gamepad2.dpad_right;
-            default:
-                return false;
-        }
+        return getButtonState(key);
     }
 
     public boolean justPressed(String key) {
@@ -51,5 +36,62 @@ class GamepadInput {
             if (justPressed(key)) return true;
         }
         return false;
+    }
+
+    private boolean getButtonState(String key) {
+        switch (key) {
+            case "a":
+                return gamepad1.a || gamepad2.a;
+            case "b":
+                return gamepad1.b || gamepad2.b;
+            case "x":
+                return gamepad1.x || gamepad2.x;
+            case "y":
+                return gamepad1.y || gamepad2.y;
+            case "dpad_up":
+                return gamepad1.dpad_up || gamepad2.dpad_up;
+            case "dpad_down":
+                return gamepad1.dpad_down || gamepad2.dpad_down;
+            case "dpad_left":
+                return gamepad1.dpad_left || gamepad2.dpad_left;
+            case "dpad_right":
+                return gamepad1.dpad_right || gamepad2.dpad_right;
+            case "guide":
+                return gamepad1.guide || gamepad2.guide;
+            case "start":
+                return gamepad1.start || gamepad2.start;
+            case "back":
+                return gamepad1.back || gamepad2.back;
+            case "left_bumper":
+                return gamepad1.left_bumper || gamepad2.left_bumper;
+            case "right_bumper":
+                return gamepad1.right_bumper || gamepad2.right_bumper;
+            case "left_stick_button":
+                return gamepad1.left_stick_button || gamepad2.left_stick_button;
+            case "right_stick_button":
+                return gamepad1.right_stick_button || gamepad2.right_stick_button;
+            case "circle":
+                return gamepad1.circle || gamepad2.circle;
+            case "cross":
+                return gamepad1.cross || gamepad2.cross;
+            case "triangle":
+                return gamepad1.triangle || gamepad2.triangle;
+            case "square":
+                return gamepad1.square || gamepad2.square;
+            case "share":
+                return gamepad1.share || gamepad2.share;
+            case "options":
+                return gamepad1.options || gamepad2.options;
+            case "touchpad":
+                return gamepad1.touchpad || gamepad2.touchpad;
+            case "touchpad_finger_1":
+                return gamepad1.touchpad_finger_1 || gamepad2.touchpad_finger_1;
+            case "touchpad_finger_2":
+                return gamepad1.touchpad_finger_2 || gamepad2.touchpad_finger_2;
+            case "ps":
+                return gamepad1.ps || gamepad2.ps;
+            default:
+                return false;
+        }
     }
 }

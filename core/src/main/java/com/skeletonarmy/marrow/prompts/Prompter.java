@@ -74,10 +74,7 @@ public class Prompter {
     private boolean processPrompts() {
         // Handle back navigation
         if (gamepadInput.justPressed("b") && currentIndex > 0) {
-            do {
-                prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
-                currentIndex--;
-            } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
+            navigateBack();
         }
 
         // No prompts left
@@ -94,13 +91,20 @@ public class Prompter {
             return false;
         }
 
-        Object result = prompt.process(gamepadInput, telemetry);
+        Object result = prompt.process();
         if (result != null) {
             results.put(current.getKey(), result);
             currentIndex++;
         }
 
         return false;
+    }
+
+    private void navigateBack() {
+        do {
+            prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
+            currentIndex--;
+        } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
     }
 
     /**
@@ -128,7 +132,7 @@ public class Prompter {
         return this; // For method chaining
     }
 
-    private static class KeyPromptPair<T> {
+    private class KeyPromptPair<T> {
         private final String key;
         private final Supplier<Prompt<T>> promptSupplier;
 
@@ -146,12 +150,16 @@ public class Prompter {
 
         public Prompt<T> getPrompt() {
             if (prompt != null) return prompt;
-            if (promptSupplier != null) {
-                // Save the created prompt so it doesn't reset every loop
-                prompt = promptSupplier.get();
-                return prompt;
+            if (promptSupplier == null) return null;
+
+            // Save the created prompt so it doesn't reset every loop
+            prompt = promptSupplier.get();
+
+            if (prompt != null) {
+                prompt.configure(gamepadInput, telemetry);
             }
-            return null;
+
+            return prompt;
         }
 
         public void reset() {
