@@ -14,16 +14,30 @@ class GamepadInput {
     private final Gamepad gamepad2;
 
     private final Map<String, Boolean> previousStates = new HashMap<>();
+    private final Map<String, Long> pressStartTimes = new HashMap<>();
+    private final Map<String, Long> lastTriggerTimes = new HashMap<>();
 
     public GamepadInput(Gamepad gamepad1, Gamepad gamepad2) {
         this.gamepad1 = gamepad1;
         this.gamepad2 = gamepad2;
     }
 
+    /**
+     * Checks if a specific button is currently pressed.
+     *
+     * @param key The button key to check.
+     * @return true if the button is pressed on either gamepad, false otherwise.
+     */
     public boolean isPressed(String key) {
         return getButtonState(key);
     }
 
+    /**
+     * Checks if a specific button was just pressed.
+     *
+     * @param key The button key to check.
+     * @return true if the button was just pressed, false otherwise.
+     */
     public boolean justPressed(String key) {
         boolean current = isPressed(key);
         boolean previous = Boolean.TRUE.equals(previousStates.getOrDefault(key, false));
@@ -31,10 +45,59 @@ class GamepadInput {
         return current && !previous;
     }
 
+    /**
+     * Checks if any of the specified buttons were just pressed.
+     *
+     * @param keys The button keys to check.
+     * @return true if any of the buttons were just pressed, false otherwise.
+     */
     public boolean anyJustPressed(String... keys) {
         for (String key : keys) {
             if (justPressed(key)) return true;
         }
+        return false;
+    }
+
+    /**
+     * Checks if the button has been held for more than the initial delay,
+     * and continues to return true at a specified interval.
+     *
+     * @param key The button key to check.
+     * @param initialDelayMs The initial time (in milliseconds) before the first trigger.
+     * @param intervalMs The time (in milliseconds) between subsequent triggers.
+     * @return True if the button is held and triggers on the interval, otherwise false.
+     */
+    public boolean isHeld(String key, long initialDelayMs, long intervalMs) {
+        boolean isCurrentlyPressed = isPressed(key);
+        long currentTime = System.currentTimeMillis();
+
+        if (isCurrentlyPressed) {
+            // Get the start and last trigger times.
+            Long pressStartTime = pressStartTimes.get(key);
+            Long lastTriggerTime = lastTriggerTimes.get(key);
+
+            // This is the very first time the button is pressed.
+            if (pressStartTime == null || lastTriggerTime == null) {
+                pressStartTimes.put(key, currentTime);
+                lastTriggerTimes.put(key, currentTime);
+                return true;
+            }
+
+            // Calculate time elapsed since the press started and since the last trigger.
+            long timeSincePressStart = currentTime - pressStartTime;
+            long timeSinceLastTrigger = currentTime - lastTriggerTime;
+
+            // Return true if the initial delay and subsequent interval conditions are met.
+            if (timeSincePressStart > initialDelayMs && timeSinceLastTrigger > intervalMs) {
+                lastTriggerTimes.put(key, currentTime);
+                return true;
+            }
+        } else {
+            // Button is not pressed, so reset its state for the next press.
+            pressStartTimes.remove(key);
+            lastTriggerTimes.remove(key);
+        }
+
         return false;
     }
 
