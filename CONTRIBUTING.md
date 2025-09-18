@@ -120,8 +120,8 @@ To make changes, please do the following:
 
 Before making a pull request, please test your changes locally:
 
-1. In the library rpeo, run `./gradlew deployLocal`.
-2. In your team code, in the `repositories { }` block, add `mavenLocal()`.
+1. In the root folder, run `./gradlew deployLocal`.
+2. In your TeamCode, in the `repositories` block, add `mavenLocal()`.
 3. If not added already, add an `implementation` with the version you deployed.
 4. Sync with Gradle.
 
