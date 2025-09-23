@@ -34,9 +34,9 @@ public class ValuePrompt extends Prompt<Double> {
 
         addLine("< " + selectedValue + " >");
 
-        if (isHeld(Button.DPAD_UP, 500, 100) || isHeld(Button.DPAD_RIGHT, 500, 100)) {
+        if (pressAndHold(Button.DPAD_UP, 500, 100) || pressAndHold(Button.DPAD_RIGHT, 500, 100)) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
-        } else if (isHeld(Button.DPAD_DOWN, 500, 100) || isHeld(Button.DPAD_LEFT, 500, 100)) {
+        } else if (pressAndHold(Button.DPAD_DOWN, 500, 100) || pressAndHold(Button.DPAD_LEFT, 500, 100)) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         }
 

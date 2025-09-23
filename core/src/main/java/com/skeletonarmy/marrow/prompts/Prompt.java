@@ -45,8 +45,8 @@ public abstract class Prompt<T> {
      * Checks if the button has been held for more than the initial delay,
      * and continues to return true at a specified interval.
      */
-    protected boolean isHeld(Button button, long initialDelayMs, long intervalMs) {
-        return input.isHeld(button, initialDelayMs, intervalMs);
+    protected boolean pressAndHold(Button button, long initialDelayMs, long intervalMs) {
+        return input.pressAndHold(button, initialDelayMs, intervalMs);
     }
 
     /**

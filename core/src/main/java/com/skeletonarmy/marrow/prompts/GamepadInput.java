@@ -58,7 +58,7 @@ class GamepadInput {
      * Checks if the button has been held for more than the initial delay,
      * and continues to return true at a specified interval.
      */
-    public boolean isHeld(Button button, long initialDelayMs, long intervalMs) {
+    public boolean pressAndHold(Button button, long initialDelayMs, long intervalMs) {
         long currentTime = System.currentTimeMillis();
 
         if (isPressed(button)) {
