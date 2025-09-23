@@ -59,10 +59,9 @@ class GamepadInput {
      * and continues to return true at a specified interval.
      */
     public boolean isHeld(Button button, long initialDelayMs, long intervalMs) {
-        boolean isCurrentlyPressed = isPressed(button);
         long currentTime = System.currentTimeMillis();
 
-        if (isCurrentlyPressed) {
+        if (isPressed(button)) {
             Long pressStartTime = pressStartTimes.get(button);
             Long lastTriggerTime = lastTriggerTimes.get(button);
 
@@ -79,7 +78,8 @@ class GamepadInput {
                 lastTriggerTimes.put(button, currentTime);
                 return true;
             }
-        } else {
+        } else if (Boolean.TRUE.equals(previousStates.getOrDefault(button, false))) {
+            // Only reset timers if the button was pressed last frame, i.e., actual release
             pressStartTimes.remove(button);
             lastTriggerTimes.remove(button);
         }
