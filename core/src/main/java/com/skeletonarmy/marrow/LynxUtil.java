@@ -5,9 +5,7 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import java.util.List;
 
-public class QoL {
-    private static List<LynxModule> allHubs;
-
+public class LynxUtil {
     /**
      * Sets the bulk caching mode for all Lynx modules in the hardware map.
      * <p>
