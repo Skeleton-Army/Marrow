@@ -95,6 +95,7 @@ public class Prompter {
      */
     private boolean processPrompts() {
         initialize();
+        gamepadInput.update();
 
         // Handle back navigation
         if (gamepadInput.justPressed(Button.B) && currentIndex > 0) {

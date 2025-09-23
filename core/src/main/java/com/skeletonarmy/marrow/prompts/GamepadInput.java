@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
-
 import java.util.EnumMap;
 
 /**
@@ -12,6 +11,7 @@ class GamepadInput {
     private final Gamepad gamepad1;
     private final Gamepad gamepad2;
 
+    private final EnumMap<Button, Boolean> currentStates = new EnumMap<>(Button.class);
     private final EnumMap<Button, Boolean> previousStates = new EnumMap<>(Button.class);
     private final EnumMap<Button, Long> pressStartTimes = new EnumMap<>(Button.class);
     private final EnumMap<Button, Long> lastTriggerTimes = new EnumMap<>(Button.class);
@@ -19,19 +19,31 @@ class GamepadInput {
     public GamepadInput(Gamepad gamepad1, Gamepad gamepad2) {
         this.gamepad1 = gamepad1;
         this.gamepad2 = gamepad2;
+
+        for (Button button : Button.values()) {
+            currentStates.put(button, false);
+            previousStates.put(button, false);
+        }
+    }
+
+    /**
+     * Should be called once per loop/frame to update the input state.
+     */
+    public void update() {
+        for (Button button : Button.values()) {
+            previousStates.put(button, currentStates.get(button));
+            currentStates.put(button, getButtonState(button));
+        }
     }
 
     /** Checks if a specific button is currently pressed. */
     public boolean isPressed(Button button) {
-        return getButtonState(button);
+        return Boolean.TRUE.equals(currentStates.getOrDefault(button, false));
     }
 
     /** Checks if a specific button was just pressed. */
     public boolean justPressed(Button button) {
-        boolean current = isPressed(button);
-        boolean previous = Boolean.TRUE.equals(previousStates.getOrDefault(button, false));
-        previousStates.put(button, current);
-        return current && !previous;
+        return isPressed(button) && Boolean.FALSE.equals(previousStates.getOrDefault(button, false));
     }
 
     /** Checks if any of the specified buttons were just pressed. */
@@ -98,9 +110,6 @@ class GamepadInput {
             case SQUARE: return gamepad1.square || gamepad2.square;
             case SHARE: return gamepad1.share || gamepad2.share;
             case OPTIONS: return gamepad1.options || gamepad2.options;
-            case TOUCHPAD: return gamepad1.touchpad || gamepad2.touchpad;
-            case TOUCHPAD_FINGER_1: return gamepad1.touchpad_finger_1 || gamepad2.touchpad_finger_1;
-            case TOUCHPAD_FINGER_2: return gamepad1.touchpad_finger_2 || gamepad2.touchpad_finger_2;
             case PS: return gamepad1.ps || gamepad2.ps;
             default: return false;
         }
