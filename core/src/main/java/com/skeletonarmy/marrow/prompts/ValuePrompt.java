@@ -8,30 +8,18 @@ public class ValuePrompt extends Prompt<Double> {
     private double selectedValue;
 
     public ValuePrompt(String header) {
-        this.header = header;
-        this.minValue = Double.MIN_VALUE;
-        this.maxValue = Double.MAX_VALUE;
-        this.increment = 1;
-        this.selectedValue = 0;
+        this(header, 0, Double.MIN_VALUE, Double.MAX_VALUE, 1);
     }
 
     public ValuePrompt(String header, double defaultValue) {
-        this.header = header;
-        this.minValue = Double.MIN_VALUE;
-        this.maxValue = Double.MAX_VALUE;
-        this.increment = 1;
-        this.selectedValue = defaultValue;
+        this(header, defaultValue, Double.MIN_VALUE, Double.MAX_VALUE, 1);
     }
 
     public ValuePrompt(String header, double defaultValue, double increment) {
-        this.header = header;
-        this.minValue = Double.MIN_VALUE;
-        this.maxValue = Double.MAX_VALUE;
-        this.increment = increment;
-        this.selectedValue = defaultValue;
+        this(header, defaultValue, Double.MIN_VALUE, Double.MAX_VALUE, increment);
     }
 
-    public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
+    public ValuePrompt(String header, double defaultValue, double minValue, double maxValue, double increment) {
         this.header = header;
         this.minValue = minValue;
         this.maxValue = maxValue;
@@ -46,13 +34,13 @@ public class ValuePrompt extends Prompt<Double> {
 
         addLine("< " + selectedValue + " >");
 
-        if (isHeld("dpad_up", 500, 100) || isHeld("dpad_right", 500, 100)) {
+        if (isHeld(Button.DPAD_UP, 500, 100) || isHeld(Button.DPAD_RIGHT, 500, 100)) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
-        } else if (isHeld("dpad_down", 500, 100) || isHeld("dpad_left", 500, 100)) {
+        } else if (isHeld(Button.DPAD_DOWN, 500, 100) || isHeld(Button.DPAD_LEFT, 500, 100)) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         }
 
-        if (justPressed("a")) {
+        if (justPressed(Button.A)) {
             return selectedValue;
         }
 

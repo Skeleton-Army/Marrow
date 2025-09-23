@@ -97,7 +97,7 @@ public class Prompter {
         initialize();
 
         // Handle back navigation
-        if (gamepadInput.justPressed("b") && currentIndex > 0) {
+        if (gamepadInput.justPressed(Button.B) && currentIndex > 0) {
             navigateBack();
         }
 

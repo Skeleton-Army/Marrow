@@ -23,30 +23,30 @@ public abstract class Prompt<T> {
     /**
      * Checks if a specific button is currently pressed.
      */
-    protected boolean isPressed(String key) {
-        return input.isPressed(key);
+    protected boolean isPressed(Button button) {
+        return input.isPressed(button);
     }
 
     /**
      * Checks if a specific button was just pressed.
      */
-    protected boolean justPressed(String key) {
-        return input.justPressed(key);
+    protected boolean justPressed(Button button) {
+        return input.justPressed(button);
     }
 
     /**
      * Checks if any of the specified buttons were just pressed.
      */
-    protected boolean anyJustPressed(String... keys) {
-        return input.anyJustPressed(keys);
+    protected boolean anyJustPressed(Button... buttons) {
+        return input.anyJustPressed(buttons);
     }
 
     /**
      * Checks if the button has been held for more than the initial delay,
      * and continues to return true at a specified interval.
      */
-    protected boolean isHeld(String key, long initialDelayMs, long intervalMs) {
-        return input.isHeld(key, initialDelayMs, intervalMs);
+    protected boolean isHeld(Button button, long initialDelayMs, long intervalMs) {
+        return input.isHeld(button, initialDelayMs, intervalMs);
     }
 
     /**

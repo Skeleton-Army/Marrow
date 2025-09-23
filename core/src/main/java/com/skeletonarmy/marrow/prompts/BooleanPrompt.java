@@ -15,11 +15,16 @@ public class BooleanPrompt extends Prompt<Boolean> {
         addLine("");
         addLine("Current Value: " + (selectedValue ? "Yes" : "No"));
 
-        if (anyJustPressed("dpad_up", "dpad_down", "dpad_left", "dpad_right")) {
+        if (anyJustPressed(
+                Button.DPAD_UP,
+                Button.DPAD_DOWN,
+                Button.DPAD_LEFT,
+                Button.DPAD_RIGHT
+        )) {
             selectedValue = !selectedValue;
         }
 
-        if (justPressed("a")) {
+        if (justPressed(Button.A)) {
             return selectedValue;
         }
 

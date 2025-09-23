@@ -18,19 +18,19 @@ public class OptionPrompt<T> extends Prompt<T> {
 
         for (int i = 0; i < options.length; i++) {
             if (i == selectedOptionIndex) {
-                addLine((i + 1) + ") " + options[i].toString() + " <");
+                addLine((i + 1) + ") " + options[i] + " <");
             } else {
-                addLine((i + 1) + ") " + options[i].toString());
+                addLine((i + 1) + ") " + options[i]);
             }
         }
 
-        if (justPressed("dpad_up")) {
+        if (justPressed(Button.DPAD_UP)) {
             selectedOptionIndex = (selectedOptionIndex - 1 + options.length) % options.length;
-        } else if (justPressed("dpad_down")) {
+        } else if (justPressed(Button.DPAD_DOWN)) {
             selectedOptionIndex = (selectedOptionIndex + 1) % options.length;
         }
 
-        if (justPressed("a")) {
+        if (justPressed(Button.A)) {
             return options[selectedOptionIndex];
         }
 
