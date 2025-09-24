@@ -1,3 +1,7 @@
+plugins {
+    base // provides the clean task
+}
+
 subprojects {
     apply(plugin = "com.android.library")
     apply(plugin = "io.deepmedia.tools.deployer")
@@ -49,15 +53,22 @@ subprojects {
     }
 }
 
+tasks.named<Delete>("clean") {
+    delete(rootProject.layout.buildDirectory)
+    delete(subprojects.map { it.layout.buildDirectory })
+}
+
 tasks.register("deployCentralPortal") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Central."
+    dependsOn("clean")
     dependsOn(subprojects.map { it.tasks.named("deployCentralPortal") })
 }
 
 tasks.register("deployNexusSnapshot") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Central Snapshots."
+    dependsOn("clean")
     dependsOn(subprojects.map { it.tasks.named("deployNexusSnapshot") })
 }
 
