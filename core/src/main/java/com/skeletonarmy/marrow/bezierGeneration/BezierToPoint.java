@@ -1,11 +1,8 @@
 package com.skeletonarmy.marrow.bezierGeneration;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-import org.firstinspires.ftc.robotcore.external.navigation.Position;
-
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 public class BezierToPoint {
@@ -27,53 +24,21 @@ public class BezierToPoint {
         BezierToPoint.obstacles = Arrays.asList(obstacles);
     }
 
-    public static Point generateMidPoint(Pose3D begin, Pose3D end) {
-        Position beginPose = begin.getPosition();
-        Position endPose = end.getPosition();
-
+    public static Point generateMidPoint(Pose begin, Pose end) {
         Point midPoint = adjustMidpointToAvoid(
-                new Point(beginPose.x, beginPose.y),
-                new Point(endPose.x, endPose.y),
-                begin.getOrientation().getYaw(AngleUnit.DEGREES),
-                end.getOrientation().getYaw(AngleUnit.DEGREES),
+                begin.getPosition(),
+                end.getPosition(),
+                begin.getHeadingRad(),
+                end.getHeadingRad(),
                 obstacles,
                 BezierType.SHORTEST
         );
 
         if (midPoint == null) {
-            midPoint = new Point((beginPose.x + endPose.x) / 2, (beginPose.y + endPose.y) / 2);
+            midPoint = new Point((begin.x + end.x) / 2, (begin.y + end.y) / 2);
         }
 
         return midPoint;
-    }
-
-    private static Point[] rotatePolygon(Point[] points, double angleRad) {
-        double cos = Math.cos(angleRad);
-        double sin = Math.sin(angleRad);
-        Point[] rotated = new Point[points.length];
-
-        for (int i = 0; i < points.length; i++) {
-            double x = points[i].x;
-            double y = points[i].y;
-            rotated[i].x = x * cos - y * sin;
-            rotated[i].y = x * sin + y * cos;
-        }
-
-        return rotated;
-    }
-
-    private static boolean pointInPolygon(Point point, Point[] polygon) {
-        int crossings = 0;
-        for (int i = 0; i < polygon.length; i++) {
-            Point a = polygon[i];
-            Point b = polygon[(i + 1) % polygon.length];
-
-            if (((a.y > point.y) != (b.y > point.y)) &&
-                    (point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x)) {
-                crossings++;
-            }
-        }
-        return (crossings % 2 == 1);
     }
 
     private static double minDistanceBetweenPolygons(Point[] poly1, Point[] poly2) {
@@ -89,35 +54,56 @@ public class BezierToPoint {
         return minDist;
     }
 
-    private static boolean isOverlapping(Point center, double angle, List<Obstacle> obstacles) {
-        double cx = center.x, cy = center.y;
-        double dx = (robotWidth) / 2, dy = (robotHeight) / 2;
-        Point[] corners = new Point[] {
-                new Point(-dx, -dy),
-                new Point(dx, -dy),
-                new Point(dx, dy),
-                new Point(-dx, dy)
-        };
-
-        Point[] rotated = rotatePolygon(corners, angle);
-        for (Point point : rotated) {
-            point.x += cx;
-            point.y += cy;
-        }
+    private static boolean isRobotOverlapping(Point robotCenter, double robotAngleRad, List<Obstacle> obstacles) {
+        Point[] robotCorners = createRobotPolygon(robotCenter, robotAngleRad);
 
         for (Obstacle obs : obstacles) {
-            for (Point corner : rotated) {
-                if (pointInPolygon(corner, obs)) return true;
-            }
+            if (obs instanceof PolygonObstacle) {
+                PolygonObstacle polyObs = (PolygonObstacle) obs;
+                for (Point corner : robotCorners) {
+                    if (polyObs.isOverlapping(corner)) return true;
+                }
 
-            if (minDistanceBetweenPolygons(rotated, obs) < -1) return true;
+                // Check if the two polygons are overlapping by checking the distance between them
+                if (minDistanceBetweenPolygons(robotCorners, polyObs.corners) < -1) return true;
+            } else if (obs instanceof CircleObstacle) {
+                CircleObstacle circleObs = (CircleObstacle) obs;
+                for (Point corner : robotCorners) {
+                    if (circleObs.isOverlapping(corner)) return true;
+                }
+            }
         }
 
-        for (Point corner : rotated) {
+        // Check if the robot is outside the field boundary
+        for (Point corner : robotCorners) {
             if (corner.x < 0 || corner.x > FIELD_SIZE || corner.y < 0 || corner.y > FIELD_SIZE) return true;
         }
 
         return false;
+    }
+
+    private static Point[] createRobotPolygon(Point center, double angleRad) {
+        double halfWidth = robotWidth / 2.0;
+        double halfHeight = robotHeight / 2.0;
+
+        Point[] corners = new Point[]{
+                new Point(-halfWidth, -halfHeight),
+                new Point(halfWidth, -halfHeight),
+                new Point(halfWidth, halfHeight),
+                new Point(-halfWidth, halfHeight)
+        };
+
+        double cos = Math.cos(angleRad);
+        double sin = Math.sin(angleRad);
+
+        for (Point point : corners) {
+            double x = point.x;
+            double y = point.y;
+            point.x = x * cos - y * sin + center.x;
+            point.y = x * sin + y * cos + center.y;
+        }
+
+        return corners;
     }
 
     private static Point bezierPoint(Point[] controlPoints, double t) {
@@ -155,10 +141,18 @@ public class BezierToPoint {
         double minDistEnd = Double.MAX_VALUE;
 
         for (Obstacle obs : obstacles) {
-            for (Point vertex : obs) {
-                double distToStart = Math.hypot(start.x - vertex.x, start.y - vertex.y);
-                double distToEnd = Math.hypot(end.x - vertex.x, end.y - vertex.y);
-
+            if (obs instanceof PolygonObstacle) {
+                PolygonObstacle polyObs = (PolygonObstacle) obs;
+                for (Point vertex : polyObs.corners) {
+                    double distToStart = start.distanceTo(vertex);
+                    double distToEnd = end.distanceTo(vertex);
+                    if (distToStart < minDistStart) minDistStart = distToStart;
+                    if (distToEnd < minDistEnd) minDistEnd = distToEnd;
+                }
+            } else if (obs instanceof CircleObstacle) {
+                CircleObstacle circleObs = (CircleObstacle) obs;
+                double distToStart = start.distanceTo(circleObs.center) - circleObs.radius;
+                double distToEnd = end.distanceTo(circleObs.center) - circleObs.radius;
                 if (distToStart < minDistStart) minDistStart = distToStart;
                 if (distToEnd < minDistEnd) minDistEnd = distToEnd;
             }
@@ -173,7 +167,7 @@ public class BezierToPoint {
 
     private static Point adjustMidpointToAvoid(
             Point start, Point end,
-            double startAngle, double endAngle,
+            double startAngleRad, double endAngleRad,
             List<Obstacle> obstacles,
             BezierType type
     ) {
@@ -183,9 +177,9 @@ public class BezierToPoint {
         direction.y /= mag;
 
         Point perpendicular = new Point(-direction.y, direction.x);
-        // Step 1: Base midpoint shifted along the path direction
+
+        // Base midpoint shifted along the path direction
         double tBias = computeDynamicTBias(start, end, obstacles);
-        System.out.println(tBias);
         Point mid = new Point(
                 start.x * (1 - tBias) + end.x * tBias,
                 start.y * (1 - tBias) + end.y * tBias
@@ -199,7 +193,7 @@ public class BezierToPoint {
             if (i != 0) offsetMagnitudes.add((double) -i);
         }
 
-        offsetMagnitudes.sort((a, b) -> Double.compare(Math.abs(a), Math.abs(b)));
+        offsetMagnitudes.sort(Comparator.comparingDouble(Math::abs));
 
         double bestShortest = Double.POSITIVE_INFINITY;
         double bestFastest = Double.POSITIVE_INFINITY;
@@ -220,8 +214,8 @@ public class BezierToPoint {
 
             for (int i = 0; i < candidatePath.size(); i++) {
                 Point pt = candidatePath.get(i);
-                double angle = startAngle + (endAngle - startAngle) * i / candidatePath.size();
-                if (isOverlapping(pt, angle, obstacles)) {
+                double angleRad = startAngleRad + (endAngleRad - startAngleRad) * i / candidatePath.size();
+                if (isRobotOverlapping(pt, angleRad, obstacles)) {
                     collision = true;
                     break;
                 }
@@ -247,25 +241,7 @@ public class BezierToPoint {
                 }
 
                 double fastCost = length + 100 * curvaturePenalty;
-
-                // Clearance calculation (optional)
-                double minClearance = Double.POSITIVE_INFINITY;
-                for (Obstacle obs : obstacles) {
-                    Point[] robotCorners = rotatePolygon(new Point[] {
-                            new Point(-robotWidth / 2.0, -robotHeight / 2.0),
-                            new Point(robotWidth / 2.0, -robotHeight / 2.0),
-                            new Point(robotWidth / 2.0, robotHeight / 2.0),
-                            new Point(-robotWidth / 2.0, robotHeight / 2.0)
-                    }, 0);
-
-                    for (Point robotCorner : robotCorners) {
-                        robotCorner.x += testMid.x;
-                        robotCorner.y += testMid.y;
-                    }
-
-                    double clearance = minDistanceBetweenPolygons(robotCorners, obs);
-                    if (clearance < minClearance) minClearance = clearance;
-                }
+                double minClearance = calculateMinClearance(testMid, obstacles);
 
                 validCandidates.add(ctrlPts);
 
@@ -294,5 +270,21 @@ public class BezierToPoint {
             case WIDEST: return bestMidWidest;
             default: return null;
         }
+    }
+
+    private static double calculateMinClearance(Point testMid, List<Obstacle> obstacles) {
+        double minClearance = Double.POSITIVE_INFINITY;
+        Point[] robotCorners = createRobotPolygon(testMid, 0);
+
+        for (Obstacle obs : obstacles) {
+            if (obs instanceof PolygonObstacle) {
+                double clearance = minDistanceBetweenPolygons(robotCorners, ((PolygonObstacle) obs).corners);
+                if (clearance < minClearance) minClearance = clearance;
+            } else if (obs instanceof CircleObstacle) {
+                double clearance = testMid.distanceTo(((CircleObstacle) obs).center) - ((CircleObstacle) obs).radius;
+                if (clearance < minClearance) minClearance = clearance;
+            }
+        }
+        return minClearance;
     }
 }

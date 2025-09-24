@@ -20,6 +20,9 @@ android {
 }
 
 dependencies {
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
+
     compileOnly("org.firstinspires.ftc:Inspection:11.0.0")
     compileOnly("org.firstinspires.ftc:Blocks:11.0.0")
     compileOnly("org.firstinspires.ftc:RobotCore:11.0.0")
@@ -29,4 +32,8 @@ dependencies {
     compileOnly("org.firstinspires.ftc:FtcCommon:11.0.0")
     compileOnly("org.firstinspires.ftc:Vision:11.0.0")
     compileOnly("androidx.appcompat:appcompat:1.2.0")
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }

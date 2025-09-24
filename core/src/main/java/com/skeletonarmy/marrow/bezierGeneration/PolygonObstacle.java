@@ -1,5 +1,12 @@
 package com.skeletonarmy.marrow.bezierGeneration;
 
+/**
+ * A polygon-based obstacle on the field.
+ * <p>
+ * This class uses the Ray Casting algorithm to determine if a point
+ * is inside the polygon. It also provides utility methods for geometric
+ * transformations like rotation.
+ */
 public class PolygonObstacle implements Obstacle {
     public final Point[] corners;
 
@@ -9,26 +16,21 @@ public class PolygonObstacle implements Obstacle {
     }
 
     public PolygonObstacle(Point center, double width, double height, double angle) {
-        double dx = width / 2.0;
-        double dy = height / 2.0;
+        double halfWidth = width / 2.0;
+        double halfHeight = height / 2.0;
 
-        Point[] corners = new Point[] {
-                new Point(-dx, -dy),
-                new Point(dx, -dy),
-                new Point(dx, -dy),
-                new Point(-dx, dy)
+        Point[] corners = new Point[]{
+                new Point(-halfWidth, -halfHeight),
+                new Point(halfWidth, -halfHeight),
+                new Point(halfWidth, halfHeight),
+                new Point(-halfWidth, halfHeight)
         };
 
-        double cos = Math.cos(angle);
-        double sin = Math.sin(angle);
+        rotatePolygon(corners, angle);
 
         for (Point corner : corners) {
-            double x = corner.x;
-            double y = corner.y;
-            double rx = x * cos - y * sin;
-            double ry = x * sin + y * cos;
-            corner.x = rx + center.x;
-            corner.y = ry + center.y;
+            corner.x += center.x;
+            corner.y += center.y;
         }
 
         this.corners = corners;
@@ -41,13 +43,10 @@ public class PolygonObstacle implements Obstacle {
 
         if (length == 0) throw new IllegalArgumentException("Points should not overlap in a polygon.");
 
-        dx /= length;
-        dy /= length;
+        double px = -dy * (thickness / 2) / length;
+        double py = dx * (thickness / 2) / length;
 
-        double px = -dy * (thickness / 2);
-        double py = dx * (thickness / 2);
-
-        this.corners = new Point[] {
+        this.corners = new Point[]{
                 new Point(point1.x + px, point1.y + py),
                 new Point(point1.x - px, point1.y - py),
                 new Point(point2.x - px, point2.y - py),
@@ -55,21 +54,40 @@ public class PolygonObstacle implements Obstacle {
         };
     }
 
+    /**
+     * Rotates a polygon (an array of points) around the origin.
+     *
+     * @param points The polygon to rotate.
+     * @param angleRad The angle in radians to rotate by.
+     */
+    private static void rotatePolygon(Point[] points, double angleRad) {
+        double cos = Math.cos(angleRad);
+        double sin = Math.sin(angleRad);
+
+        for (Point point : points) {
+            double x = point.x;
+            double y = point.y;
+            point.x = x * cos - y * sin;
+            point.y = x * sin + y * cos;
+        }
+    }
+
     @Override
     public boolean isOverlapping(Point point) {
-        boolean isInside = false;
+        int crossings = 0;
         int numVertices = corners.length;
         Point currentVertex, nextVertex;
 
-        for (int i = 0, j = numVertices - 1; i < numVertices; j = i++) {
+        for (int i = 0; i < numVertices; i++) {
             currentVertex = corners[i];
-            nextVertex = corners[j];
+            nextVertex = corners[(i + 1) % numVertices];
 
             if (((currentVertex.y > point.y) != (nextVertex.y > point.y)) &&
                     (point.x < (nextVertex.x - currentVertex.x) * (point.y - currentVertex.y) / (nextVertex.y - currentVertex.y) + currentVertex.x)) {
-                isInside = !isInside;
+                crossings++;
             }
         }
-        return isInside;
+
+        return (crossings % 2 == 1);
     }
 }
