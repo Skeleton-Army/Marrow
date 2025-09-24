@@ -8,18 +8,22 @@ public class ValuePrompt extends Prompt<Double> {
     private double selectedValue;
 
     public ValuePrompt(String header) {
-        this(header, Double.MIN_VALUE, Double.MAX_VALUE, 0, 1);
+        this(header, 0, Double.POSITIVE_INFINITY, 0, 1);
     }
 
     public ValuePrompt(String header, double defaultValue) {
-        this(header, Double.MIN_VALUE, Double.MAX_VALUE, defaultValue, 1);
+        this(header, 0, Double.POSITIVE_INFINITY, defaultValue, 1);
     }
 
     public ValuePrompt(String header, double defaultValue, double increment) {
-        this(header, Double.MIN_VALUE, Double.MAX_VALUE, defaultValue, increment);
+        this(header, 0, Double.POSITIVE_INFINITY, defaultValue, increment);
     }
 
     public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
+        if (minValue >= maxValue) throw new IllegalArgumentException("Max value must be greater than min value.");
+        if (defaultValue < minValue || defaultValue > maxValue) throw new IllegalArgumentException("Default value must be between min and max value.");
+        if (increment <= 0) throw new IllegalArgumentException("Increment must be greater than zero.");
+
         this.header = header;
         this.minValue = minValue;
         this.maxValue = maxValue;
