@@ -1,111 +1,87 @@
 package com.skeletonarmy.marrow.bezierGeneration;
 
-import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class BezierToPoint {
+    public enum BezierType {
+        SHORTEST,
+        FASTEST,
+        WIDEST
+    }
 
-    public Position beginPose;
-    public Position endPose;
+    private static final double FIELD_SIZE = 144;
 
-    public Point midPoint;
+    private static double robotWidth;
+    private static double robotHeight;
+    private static List<Obstacle> obstacles;
 
-    public Telemetry telemetry;
-    public static boolean useTelemetry;
-    public static List<Point> path;
-    public static Point testMid;
-    static double width;
-    static double height;
-    static final double fieldSize = 144;
-    public BezierToPoint(Pose3D begin, Pose3D end, double width, double height , List<double[][]> obstacles, boolean useTelemetry , Telemetry telemetry) {
-        this.beginPose = begin.getPosition();
-        this.endPose = end.getPosition();
-        this.width = width;
-        this.height = height;
+    public static void initialize(double robotWidth, double robotHeight, Obstacle... obstacles) {
+        BezierToPoint.robotWidth = robotWidth;
+        BezierToPoint.robotHeight = robotHeight;
+        BezierToPoint.obstacles = Arrays.asList(obstacles);
+    }
 
-        // starting mid point
-        midPoint = new Point((beginPose.x + endPose.x) / 2, (beginPose.y + endPose.y) / 2);
+    public static Point generateMidPoint(Pose3D begin, Pose3D end) {
+        Position beginPose = begin.getPosition();
+        Position endPose = end.getPosition();
 
-        midPoint = adjustMidpointToAvoid(
+        Point midPoint = adjustMidpointToAvoid(
                 new Point(beginPose.x, beginPose.y),
                 new Point(endPose.x, endPose.y),
                 begin.getOrientation().getYaw(AngleUnit.DEGREES),
                 end.getOrientation().getYaw(AngleUnit.DEGREES),
                 obstacles,
-                "shortest", // <-- try "fastest", "shortest", or "widest"
-                5,
-                telemetry,
-                "right"
+                BezierType.SHORTEST
         );
-
 
         if (midPoint == null) {
             midPoint = new Point((beginPose.x + endPose.x) / 2, (beginPose.y + endPose.y) / 2);
         }
 
-        BezierToPoint.useTelemetry = useTelemetry;
-        path = bezierCurve(new Point[]{new Point(beginPose.x, beginPose.y), midPoint, new Point(endPose.x, endPose.y)}, 1000);
-
-        if (useTelemetry && telemetry != null) {
-            telemetry.addData("Final Midpoint", "x: %.2f, y: %.2f", midPoint.x, midPoint.y);
-            telemetry.addData("Path Points", path.size());
-            telemetry.update();
-        }
+        return midPoint;
     }
 
-    public static List<Point> getPath() {
-        return path;
-    }
-
-    public static class Point {
-        public double x, y;
-        public Point(double x, double y) { this.x = x; this.y = y; }
-
-        public double distanceTo(Point other) {
-            return Math.hypot(this.x - other.x, this.y - other.y);
-        }
-    }
-
-    public static double[][] rotatePolygon(double[][] points, double angleRad) {
+    private static Point[] rotatePolygon(Point[] points, double angleRad) {
         double cos = Math.cos(angleRad);
         double sin = Math.sin(angleRad);
-        double[][] rotated = new double[points.length][2];
+        Point[] rotated = new Point[points.length];
 
         for (int i = 0; i < points.length; i++) {
-            double x = points[i][0];
-            double y = points[i][1];
-            rotated[i][0] = x * cos - y * sin;
-            rotated[i][1] = x * sin + y * cos;
+            double x = points[i].x;
+            double y = points[i].y;
+            rotated[i].x = x * cos - y * sin;
+            rotated[i].y = x * sin + y * cos;
         }
 
         return rotated;
     }
 
-    public static boolean pointInPolygon(double[] point, double[][] polygon) {
+    private static boolean pointInPolygon(Point point, Point[] polygon) {
         int crossings = 0;
         for (int i = 0; i < polygon.length; i++) {
-            double[] a = polygon[i];
-            double[] b = polygon[(i + 1) % polygon.length];
+            Point a = polygon[i];
+            Point b = polygon[(i + 1) % polygon.length];
 
-            if (((a[1] > point[1]) != (b[1] > point[1])) &&
-                    (point[0] < (b[0] - a[0]) * (point[1] - a[1]) / (b[1] - a[1]) + a[0])) {
+            if (((a.y > point.y) != (b.y > point.y)) &&
+                    (point.x < (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x)) {
                 crossings++;
             }
         }
         return (crossings % 2 == 1);
     }
 
-    public static double minDistanceBetweenPolygons(double[][] poly1, double[][] poly2) {
+    private static double minDistanceBetweenPolygons(Point[] poly1, Point[] poly2) {
         double minDist = Double.MAX_VALUE;
-        for (double[] p1 : poly1) {
-            for (double[] p2 : poly2) {
-                double dx = p1[0] - p2[0];
-                double dy = p1[1] - p2[1];
+        for (Point p1 : poly1) {
+            for (Point p2 : poly2) {
+                double dx = p1.x - p2.x;
+                double dy = p1.y - p2.y;
                 double dist = Math.hypot(dx, dy);
                 if (dist < minDist) minDist = dist;
             }
@@ -113,35 +89,38 @@ public class BezierToPoint {
         return minDist;
     }
 
-    public static boolean isOverlapping(Point center, double angle, List<double[][]> obstacles) {
+    private static boolean isOverlapping(Point center, double angle, List<Obstacle> obstacles) {
         double cx = center.x, cy = center.y;
-        double dx = (width) / 2, dy = (height) / 2;
-        double[][] corners = new double[][] {
-                {-dx, -dy}, {dx, -dy}, {dx, dy}, {-dx, dy}
+        double dx = (robotWidth) / 2, dy = (robotHeight) / 2;
+        Point[] corners = new Point[] {
+                new Point(-dx, -dy),
+                new Point(dx, -dy),
+                new Point(dx, dy),
+                new Point(-dx, dy)
         };
 
-        double[][] rotated = rotatePolygon(corners, angle);
-        for (int i = 0; i < rotated.length; i++) {
-            rotated[i][0] += cx;
-            rotated[i][1] += cy;
+        Point[] rotated = rotatePolygon(corners, angle);
+        for (Point point : rotated) {
+            point.x += cx;
+            point.y += cy;
         }
 
-        for (double[][] obs : obstacles) {
-            for (double[] corner : rotated) {
+        for (Obstacle obs : obstacles) {
+            for (Point corner : rotated) {
                 if (pointInPolygon(corner, obs)) return true;
             }
 
             if (minDistanceBetweenPolygons(rotated, obs) < -1) return true;
         }
 
-        for (double[] corner : rotated) {
-            if (corner[0] < 0 || corner[0] > fieldSize || corner[1] < 0 || corner[1] > fieldSize) return true;
+        for (Point corner : rotated) {
+            if (corner.x < 0 || corner.x > FIELD_SIZE || corner.y < 0 || corner.y > FIELD_SIZE) return true;
         }
 
         return false;
     }
 
-    public static Point bezierPoint(Point[] controlPoints, double t) {
+    private static Point bezierPoint(Point[] controlPoints, double t) {
         int n = controlPoints.length - 1;
         Point result = new Point(0, 0);
         for (int i = 0; i <= n; i++) {
@@ -153,7 +132,7 @@ public class BezierToPoint {
         return result;
     }
 
-    public static double binomialCoeff(int n, int k) {
+    private static double binomialCoeff(int n, int k) {
         double res = 1;
         for (int i = 0; i < k; ++i) {
             res *= (n - i);
@@ -162,7 +141,7 @@ public class BezierToPoint {
         return res;
     }
 
-    public static List<Point> bezierCurve(Point[] controlPoints, int numPoints) {
+    private static List<Point> bezierCurve(Point[] controlPoints, int numPoints) {
         List<Point> curve = new ArrayList<>();
         for (int i = 0; i < numPoints; i++) {
             double t = i / (double)(numPoints - 1);
@@ -171,14 +150,14 @@ public class BezierToPoint {
         return curve;
     }
 
-    public static double computeDynamicTBias(Point start, Point end, List<double[][]> obstacles) {
+    private static double computeDynamicTBias(Point start, Point end, List<Obstacle> obstacles) {
         double minDistStart = Double.MAX_VALUE;
         double minDistEnd = Double.MAX_VALUE;
 
-        for (double[][] obs : obstacles) {
-            for (double[] vertex : obs) {
-                double distToStart = Math.hypot(start.x - vertex[0], start.y - vertex[1]);
-                double distToEnd = Math.hypot(end.x - vertex[0], end.y - vertex[1]);
+        for (Obstacle obs : obstacles) {
+            for (Point vertex : obs) {
+                double distToStart = Math.hypot(start.x - vertex.x, start.y - vertex.y);
+                double distToEnd = Math.hypot(end.x - vertex.x, end.y - vertex.y);
 
                 if (distToStart < minDistStart) minDistStart = distToStart;
                 if (distToEnd < minDistEnd) minDistEnd = distToEnd;
@@ -192,14 +171,11 @@ public class BezierToPoint {
         return minDistStart / total; // Normalized to [0, 1]
     }
 
-    public static Point adjustMidpointToAvoid(
+    private static Point adjustMidpointToAvoid(
             Point start, Point end,
             double startAngle, double endAngle,
-            List<double[][]> obstacles,
-            String preference,
-            int topN,
-            Telemetry telemetry,
-            String preferredSide  // You can keep this in signature, but it's no longer used
+            List<Obstacle> obstacles,
+            BezierType type
     ) {
         Point direction = new Point(end.x - start.x, end.y - start.y);
         double mag = Math.hypot(direction.x, direction.y);
@@ -236,7 +212,7 @@ public class BezierToPoint {
         List<Point[]> validCandidates = new ArrayList<>();
 
         for (double offset : offsetMagnitudes) {
-            testMid = new Point(mid.x + perpendicular.x * offset, mid.y + perpendicular.y * offset);
+            Point testMid = new Point(mid.x + perpendicular.x * offset, mid.y + perpendicular.y * offset);
             Point[] ctrlPts = new Point[]{start, testMid, end};
             List<Point> candidatePath = bezierCurve(ctrlPts, 5000);
 
@@ -274,17 +250,17 @@ public class BezierToPoint {
 
                 // Clearance calculation (optional)
                 double minClearance = Double.POSITIVE_INFINITY;
-                for (double[][] obs : obstacles) {
-                    double[][] robotCorners = rotatePolygon(new double[][]{
-                            {-width / 2.0, -height / 2.0},
-                            {width / 2.0, -height / 2.0},
-                            {width / 2.0, height / 2.0},
-                            {-width / 2.0, height / 2.0}
+                for (Obstacle obs : obstacles) {
+                    Point[] robotCorners = rotatePolygon(new Point[] {
+                            new Point(-robotWidth / 2.0, -robotHeight / 2.0),
+                            new Point(robotWidth / 2.0, -robotHeight / 2.0),
+                            new Point(robotWidth / 2.0, robotHeight / 2.0),
+                            new Point(-robotWidth / 2.0, robotHeight / 2.0)
                     }, 0);
 
-                    for (int j = 0; j < robotCorners.length; j++) {
-                        robotCorners[j][0] += testMid.x;
-                        robotCorners[j][1] += testMid.y;
+                    for (Point robotCorner : robotCorners) {
+                        robotCorner.x += testMid.x;
+                        robotCorner.y += testMid.y;
                     }
 
                     double clearance = minDistanceBetweenPolygons(robotCorners, obs);
@@ -310,38 +286,13 @@ public class BezierToPoint {
             }
         }
 
-        // Telemetry output
-        if (useTelemetry && telemetry != null) {
-            telemetry.addData("Checked Candidates", offsetMagnitudes.size());
-            telemetry.addData("Valid Midpoints", validCandidates.size());
-
-            for (int i = 0; i < Math.min(topN, validCandidates.size()); i++) {
-                Point midpt = validCandidates.get(i)[1];
-                telemetry.addData("Midpoint #" + (i + 1), "x: %.2f, y: %.2f", midpt.x, midpt.y);
-            }
-
-            if (validCandidates.isEmpty()) {
-                telemetry.addLine("No valid path candidates found!");
-            }
-
-            telemetry.update();
-        }
-
         if (validCandidates.isEmpty()) return null;
 
-        // Return based on selected preference
-        if ("fastest".equals(preference) && bestMidFastest != null) return bestMidFastest;
-        if ("shortest".equals(preference) && bestMidShortest != null) return bestMidShortest;
-        if ("widest".equals(preference) && bestMidWidest != null) return bestMidWidest;
-
-        // Fallback
-        if (bestMidFastest != null) return bestMidFastest;
-        if (bestMidShortest != null) return bestMidShortest;
-        if (bestMidWidest != null) return bestMidWidest;
-
-        return null;
+        switch (type) {
+            case FASTEST: return bestMidFastest;
+            case SHORTEST: return bestMidShortest;
+            case WIDEST: return bestMidWidest;
+            default: return null;
+        }
     }
-
-
 }
-
