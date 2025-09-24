@@ -1,11 +1,16 @@
 package com.skeletonarmy.marrow.prompts;
 
-public class ValuePrompt extends Prompt<Double> {
+public class ValuePrompt extends Prompt<Number> {
     private final String header;
     private final double minValue;
     private final double maxValue;
     private final double increment;
-    private double selectedValue;
+    private Double selectedValue;
+
+    // Flag that tells us whether this ValuePrompt should be treated as an integer prompt.
+    // If true → values are displayed/returned as integers (no decimals).
+    // If false → values are treated as doubles (can have decimals).
+    private final boolean isInteger;
 
     public ValuePrompt(String header) {
         this(header, 0, Double.POSITIVE_INFINITY, 0, 1);
@@ -29,14 +34,23 @@ public class ValuePrompt extends Prompt<Double> {
         this.maxValue = maxValue;
         this.increment = increment;
         this.selectedValue = defaultValue;
+
+        this.isInteger = isIntegerLike(minValue) &&
+                         isIntegerLike(maxValue) &&
+                         isIntegerLike(defaultValue) &&
+                         isIntegerLike(increment);
     }
 
     @Override
-    public Double process() {
+    public Number process() {
         addLine(header);
         addLine("");
 
-        addLine("< " + selectedValue + " >");
+        if (isInteger) {
+            addLine("< " + selectedValue.intValue() + " >");
+        } else {
+            addLine("< " + selectedValue + " >");
+        }
 
         if (pressAndHold(Button.DPAD_UP, 500, 100) || pressAndHold(Button.DPAD_RIGHT, 500, 100)) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
@@ -45,9 +59,20 @@ public class ValuePrompt extends Prompt<Double> {
         }
 
         if (justPressed(Button.A)) {
-            return selectedValue;
+            if (isInteger) {
+                return selectedValue.intValue();
+            } else {
+                return selectedValue;
+            }
         }
 
         return null;
+    }
+
+    /**
+     * Checks whether a double value is a whole number (integer).
+     */
+    private boolean isIntegerLike(double value) {
+        return Double.isInfinite(value) || value == (int)value;
     }
 }
