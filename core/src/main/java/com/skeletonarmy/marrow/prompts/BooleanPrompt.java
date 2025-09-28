@@ -11,9 +11,9 @@ public class BooleanPrompt extends Prompt<Boolean> {
 
     @Override
     public Boolean process() {
-        addLine(header);
+        addLine("=== " + header + " ===");
         addLine("");
-        addLine("Current Value: " + (selectedValue ? "Yes" : "No"));
+        addLine("--- " + (selectedValue ? "YES" : "NO") + " ---");
 
         if (anyJustPressed(
                 Button.DPAD_UP,

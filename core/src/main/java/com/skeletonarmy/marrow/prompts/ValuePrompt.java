@@ -43,7 +43,7 @@ public class ValuePrompt extends Prompt<Number> {
 
     @Override
     public Number process() {
-        addLine(header);
+        addLine("=== " + header + " ===");
         addLine("");
 
         if (isInteger) {
