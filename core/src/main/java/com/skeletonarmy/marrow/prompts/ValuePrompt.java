@@ -71,7 +71,7 @@ public class ValuePrompt extends Prompt<Number> {
         } else if (pressAndHold(Button.DPAD_DOWN, 500, 100)) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         } else if (pressAndHold(Button.DPAD_LEFT, 500, 100)) {
-            selectedValue = Math.min(minValue, selectedValue - bigIncrement);
+            selectedValue = Math.max(minValue, selectedValue - bigIncrement);
         }
 
         if (justPressed(Button.A)) {
