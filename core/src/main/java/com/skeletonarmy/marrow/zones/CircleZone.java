@@ -4,30 +4,12 @@ package com.skeletonarmy.marrow.zones;
  * A circle-based zone on the field.
  */
 public class CircleZone implements Zone {
-    private Point center;
-    private final double radius;
+    public final Point center;
+    public final double radius;
 
     public CircleZone(Point center, double radius) {
         this.center = center;
         this.radius = radius;
-    }
-    
-    /**
-     * Gets the center point of the circle.
-     * 
-     * @return The center point
-     */
-    public Point getCenter() {
-        return center;
-    }
-    
-    /**
-     * Gets the radius of the circle.
-     * 
-     * @return The radius
-     */
-    public double getRadius() {
-        return radius;
     }
 
     /**
@@ -38,7 +20,7 @@ public class CircleZone implements Zone {
      */
     @Override
     public boolean contains(Point point) {
-        return distanceToBoundary(point) <= 0;
+        return signedDistance(point) <= 0;
     }
 
     /**
@@ -76,7 +58,8 @@ public class CircleZone implements Zone {
             }
 
             // 2. Shortest distance from center to any polygon edge is >= radius.
-            return other.distanceToBoundary(this.center) >= this.radius;
+            // distanceTo(Point) for PolygonZone gives the shortest distance to the boundary.
+            return other.distanceTo(this.center) >= this.radius;
         }
 
         return false;
@@ -91,7 +74,8 @@ public class CircleZone implements Zone {
      */
     @Override
     public double distanceTo(Point point) {
-        return Math.max(0, distanceToBoundary(point));
+        double signedDistance = signedDistance(point);
+        return Math.max(0, signedDistance);
     }
 
     /**
@@ -123,35 +107,13 @@ public class CircleZone implements Zone {
     }
 
     /**
-     * Calculates the shortest distance from the given point to the zone's boundary.
+     * Calculates the signed distance from a point to the circle's perimeter.
      * Negative if the point is inside, positive if outside.
-     * 
-     * @param point The point to measure to
-     * @return The minimum distance to the boundary
+     *
+     * @param point The point to measure the distance from
+     * @return double The signed distance
      */
-    @Override
-    public double distanceToBoundary(Point point) {
+    private double signedDistance(Point point) {
         return point.distanceTo(this.center) - this.radius;
-    }
-    
-    /**
-     * Moves the circle by the specified offset.
-     * 
-     * @param deltaX The amount to move in the X direction
-     * @param deltaY The amount to move in the Y direction
-     */
-    @Override
-    public void moveBy(double deltaX, double deltaY) {
-        this.center = new Point(this.center.getX() + deltaX, this.center.getY() + deltaY);
-    }
-    
-    /**
-     * Moves the circle to a new position.
-     * 
-     * @param newPosition The new position for the circle's center
-     */
-    @Override
-    public void setPosition(Point newPosition) {
-        this.center = newPosition;
     }
 }
