@@ -9,5 +9,5 @@ public interface Zone {
     double distanceTo(Zone zone);
     double distanceToBoundary(Point point);
     void moveBy(double deltaX, double deltaY);
-    void setPosition(Point newPosition);
+    void setPosition(double posX, double posY);
 }

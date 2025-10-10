@@ -315,10 +315,11 @@ public class PolygonZone implements Zone {
     /**
      * Moves the polygon to a new position by translating all corners.
      *
-     * @param newPosition The new position for the polygon's center
+     * @param posX The new X position for the polygon's center
+     * @param posY The new Y position for the polygon's center
      */
     @Override
-    public void setPosition(Point newPosition) {
+    public void setPosition(double posX, double posY) {
         // Calculate current center
         double centerX = 0, centerY = 0;
         for (Point corner : corners) {
@@ -329,8 +330,8 @@ public class PolygonZone implements Zone {
         centerY /= corners.length;
 
         // Calculate offset needed to move center to new position
-        double deltaX = newPosition.getX() - centerX;
-        double deltaY = newPosition.getY() - centerY;
+        double deltaX = posX - centerX;
+        double deltaY = posY - centerY;
 
         // Apply the offset to all corners
         moveBy(deltaX, deltaY);

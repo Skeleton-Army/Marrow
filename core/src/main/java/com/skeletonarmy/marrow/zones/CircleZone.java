@@ -149,10 +149,11 @@ public class CircleZone implements Zone {
     /**
      * Moves the circle to a new position.
      * 
-     * @param newPosition The new position for the circle's center
+     * @param posX The new X position for the circle's center
+     * @param posY The new Y position for the circle's center
      */
     @Override
-    public void setPosition(Point newPosition) {
-        this.center = newPosition;
+    public void setPosition(double posX, double posY) {
+        this.center = new Point(posX, posY);
     }
 }

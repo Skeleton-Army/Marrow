@@ -347,7 +347,7 @@ public class CircleZoneTests {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
         
         // Move the circle to center at (10, 7)
-        circle.setPosition(new Point(10, 7));
+        circle.setPosition(10, 7);
         
         // Check that the circle is now centered at (10, 7)
         assertTrue(circle.contains(new Point(10, 7))); // Center
@@ -406,10 +406,10 @@ public class CircleZoneTests {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
         
         // Move to different positions
-        circle.setPosition(new Point(10, 5));
+        circle.setPosition(10, 5);
         assertTrue(circle.contains(new Point(10, 5)));
         
-        circle.setPosition(new Point(-3, 7));
+        circle.setPosition(-3, 7);
         assertTrue(circle.contains(new Point(-3, 7)));
         assertFalse(circle.contains(new Point(10, 5))); // Previous position should not be contained
     }
@@ -420,7 +420,7 @@ public class CircleZoneTests {
         Point originalCenter = circle.getPosition();
         
         // Move to same position
-        circle.setPosition(new Point(0, 0));
+        circle.setPosition(0, 0);
         
         // Should remain unchanged
         assertEquals(originalCenter.getX(), circle.getPosition().getX(), DELTA);
