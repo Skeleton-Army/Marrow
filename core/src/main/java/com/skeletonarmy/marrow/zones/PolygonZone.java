@@ -82,6 +82,11 @@ public class PolygonZone implements Zone {
      */
     @Override
     public boolean contains(Point point) {
+        // Treat points on the boundary (edges or vertices) as inside
+        if (distanceToBoundary(point) <= 1e-9) {
+            return true;
+        }
+
         int crossings = 0;
         int numVertices = corners.length;
         Point currentVertex, nextVertex;
@@ -183,6 +188,21 @@ public class PolygonZone implements Zone {
             PolygonZone other = (PolygonZone) zone;
             double minDistance = Double.MAX_VALUE;
 
+            // If any edges intersect, polygons overlap → distance is 0
+            int n1 = this.corners.length;
+            int n2 = other.corners.length;
+            for (int i = 0; i < n1; i++) {
+                Point a1 = this.corners[i];
+                Point a2 = this.corners[(i + 1) % n1];
+                for (int j = 0; j < n2; j++) {
+                    Point b1 = other.corners[j];
+                    Point b2 = other.corners[(j + 1) % n2];
+                    if (segmentsIntersect(a1, a2, b1, b2)) {
+                        return 0.0;
+                    }
+                }
+            }
+
             // Check distance from this polygon's vertices to the other polygon's edges
             for (Point vertex : this.corners) {
                 if (other.contains(vertex)) {
@@ -205,6 +225,28 @@ public class PolygonZone implements Zone {
         }
 
         return Double.NaN;
+    }
+
+    /**
+     * Calculates the shortest distance from the given point to the zone's boundary.
+     * 
+     * @param point The point to measure to
+     * @return The minimum distance to the boundary
+     */
+    public double distanceToBoundary(Point point) {
+        double minDistanceSq = Double.MAX_VALUE;
+        int numVertices = corners.length;
+        Point currentVertex, nextVertex;
+
+        for (int i = 0; i < numVertices; i++) {
+            currentVertex = corners[i];
+            nextVertex = corners[(i + 1) % numVertices];
+
+            double distance = distancePointToSegment(point, currentVertex, nextVertex);
+            minDistanceSq = Math.min(minDistanceSq, distance * distance);
+        }
+
+        return Math.sqrt(minDistanceSq);
     }
 
     // ----- HELPERS -----
@@ -267,5 +309,35 @@ public class PolygonZone implements Zone {
         }
 
         return p.distanceTo(closest);
+    }
+
+    private static boolean segmentsIntersect(Point p1, Point q1, Point p2, Point q2) {
+        int o1 = orientation(p1, q1, p2);
+        int o2 = orientation(p1, q1, q2);
+        int o3 = orientation(p2, q2, p1);
+        int o4 = orientation(p2, q2, q1);
+
+        if (o1 != o2 && o3 != o4) return true;
+
+        if (o1 == 0 && onSegment(p1, p2, q1)) return true;
+        if (o2 == 0 && onSegment(p1, q2, q1)) return true;
+        if (o3 == 0 && onSegment(p2, p1, q2)) return true;
+        if (o4 == 0 && onSegment(p2, q1, q2)) return true;
+
+        return false;
+    }
+
+    private static int orientation(Point a, Point b, Point c) {
+        double val = (b.getY() - a.getY()) * (c.getX() - b.getX()) -
+                (b.getX() - a.getX()) * (c.getY() - b.getY());
+        if (Math.abs(val) <= 1e-12) return 0; // colinear
+        return (val > 0) ? 1 : 2; // 1: clockwise, 2: counterclockwise
+    }
+
+    private static boolean onSegment(Point a, Point b, Point c) {
+        return b.getX() <= Math.max(a.getX(), c.getX()) + 1e-12 &&
+                b.getX() + 1e-12 >= Math.min(a.getX(), c.getX()) &&
+                b.getY() <= Math.max(a.getY(), c.getY()) + 1e-12 &&
+                b.getY() + 1e-12 >= Math.min(a.getY(), c.getY());
     }
 }

@@ -147,6 +147,79 @@ public class CircleZoneTests {
         assertEquals(0.0, distance, DELTA);
     }
 
+    @Test
+    public void isInside_triangleEdgesCrossCircleNoVerticesInside_returnsTrue() {
+        // Arrange
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0); // radius 2
+        // Triangle whose edges cross the circle, but all vertices are outside
+        PolygonZone triangle = new PolygonZone(
+                new Point(5, 0),
+                new Point(-5, 2),
+                new Point(-5, -2)
+        );
+
+        // Act
+        boolean isInside = circle.isInside(triangle);
+
+        // Assert
+        assertTrue(isInside);
+    }
+
+    @Test
+    public void isInside_triangleVertexExactlyOnCircle_returnsTrue() {
+        // Arrange
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        // One vertex exactly on the circle at (2,0), others outside
+        PolygonZone triangle = new PolygonZone(
+                new Point(2, 0),
+                new Point(-4, 3),
+                new Point(-4, -3)
+        );
+
+        // Act
+        boolean isInside = circle.isInside(triangle);
+
+        // Assert
+        assertTrue(isInside);
+    }
+
+    @Test
+    public void isInside_triangleEdgeTangentToCircle_returnsTrue() {
+        // Arrange
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        // Triangle with one edge tangent to the circle at (0,2)
+        PolygonZone triangle = new PolygonZone(
+                new Point(-5, 2),
+                new Point(5, 2),
+                new Point(0, 5)
+        );
+
+        // Act
+        boolean isInside = circle.isInside(triangle);
+
+        // Assert
+        assertTrue(isInside);
+    }
+
+    @Test
+    public void isInside_triangleJustOutsideNoTouch_returnsFalse() {
+        // Arrange
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        double eps = 1e-6; // larger than boundary epsilon used in geometry helpers
+        // Triangle entirely to the right of the circle; closest edge is a vertical line at x = 2 + eps
+        PolygonZone triangle = new PolygonZone(
+                new Point(2 + eps, 3),
+                new Point(2 + eps, -3),
+                new Point(5, 0)
+        );
+
+        // Act
+        boolean isInside = circle.isInside(triangle);
+
+        // Assert
+        assertFalse(isInside);
+    }
+
 
     // --- Tests for isInside(Zone) / isFullyInside(Zone) ---
 

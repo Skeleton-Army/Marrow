@@ -20,7 +20,7 @@ public class CircleZone implements Zone {
      */
     @Override
     public boolean contains(Point point) {
-        return signedDistance(point) <= 0;
+        return distanceToBoundary(point) <= 0;
     }
 
     /**
@@ -58,8 +58,7 @@ public class CircleZone implements Zone {
             }
 
             // 2. Shortest distance from center to any polygon edge is >= radius.
-            // distanceTo(Point) for PolygonZone gives the shortest distance to the boundary.
-            return other.distanceTo(this.center) >= this.radius;
+            return other.distanceToBoundary(this.center) >= this.radius;
         }
 
         return false;
@@ -74,8 +73,7 @@ public class CircleZone implements Zone {
      */
     @Override
     public double distanceTo(Point point) {
-        double signedDistance = signedDistance(point);
-        return Math.max(0, signedDistance);
+        return Math.max(0, distanceToBoundary(point));
     }
 
     /**
@@ -107,13 +105,14 @@ public class CircleZone implements Zone {
     }
 
     /**
-     * Calculates the signed distance from a point to the circle's perimeter.
+     * Calculates the shortest distance from the given point to the zone's boundary.
      * Negative if the point is inside, positive if outside.
-     *
-     * @param point The point to measure the distance from
-     * @return double The signed distance
+     * 
+     * @param point The point to measure to
+     * @return The minimum distance to the boundary
      */
-    private double signedDistance(Point point) {
+    @Override
+    public double distanceToBoundary(Point point) {
         return point.distanceTo(this.center) - this.radius;
     }
 }
