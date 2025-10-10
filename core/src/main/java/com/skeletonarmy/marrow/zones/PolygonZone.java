@@ -14,8 +14,8 @@ public class PolygonZone implements Zone {
     public PolygonZone(Point center, double width, double height) {
         double halfWidth = width / 2.0;
         double halfHeight = height / 2.0;
-        double centerX = center.getX(); // Use getter
-        double centerY = center.getY(); // Use getter
+        double centerX = center.getX();
+        double centerY = center.getY();
 
         this.corners = new Point[] {
                 // Initialize the corners centered at (0,0) and then translate
