@@ -80,6 +80,24 @@ public class PolygonZone implements Zone {
     }
 
     /**
+     * Gets the geometric center (centroid) of the polygon.
+     *
+     * @return The center point of the polygon
+     */
+    @Override
+    public Point getPosition() {
+        double sumX = 0.0;
+        double sumY = 0.0;
+
+        for (Point corner : corners) {
+            sumX += corner.getX();
+            sumY += corner.getY();
+        }
+
+        return new Point(sumX / corners.length, sumY / corners.length);
+    }
+
+    /**
      * Gets the corners of the polygon.
      *
      * @return Array of corner points
@@ -210,7 +228,7 @@ public class PolygonZone implements Zone {
             CircleZone other = (CircleZone) zone;
 
             // Find the closest point of the circle's center to the polygon.
-            double polygonDistanceToCenter = this.distanceTo(other.getCenter());
+            double polygonDistanceToCenter = this.distanceTo(other.getPosition());
 
             // The distance is the distance to the center minus the circle's radius.
             return Math.max(0, polygonDistanceToCenter - other.getRadius());
