@@ -302,4 +302,93 @@ public class PolygonZoneTests {
         // Assert
         assertFalse(isFullyInside);
     }
+
+    @Test
+    public void isInside_vertexBarelyInsideOtherPolygon_returnsTrue() {
+        // Arrange
+        PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
+        PolygonZone triangle = new PolygonZone(
+                new Point(1.9999, 0),
+                new Point(-3, 2),
+                new Point(-3, -2)
+        );
+
+        // Act
+        boolean isInside = outerSquare.isInside(triangle);
+
+        // Assert
+        assertTrue(isInside);
+    }
+
+    @Test
+    public void isInside_triangleEdgesCrossSquareNoVerticesInside_returnsTrue() {
+        // Arrange
+        PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
+        PolygonZone triangle = new PolygonZone(
+                new Point(5, 0),
+                new Point(-5, 2),
+                new Point(-5, -2)
+        );
+
+        // Act
+        boolean isInside = outerSquare.isInside(triangle);
+
+        // Assert
+        assertTrue(isInside);
+    }
+
+    @Test
+    public void isInside_triangleVertexExactlyOnEdge_returnsTrue() {
+        // Arrange
+        PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
+        // Triangle with a vertex exactly on the right edge x=2, others outside
+        PolygonZone triangle = new PolygonZone(
+                new Point(2, 0), // on boundary
+                new Point(4, 3),
+                new Point(4, -3)
+        );
+
+        // Act
+        boolean isInside = outerSquare.isInside(triangle);
+
+        // Assert
+        assertTrue(isInside);
+    }
+
+    @Test
+    public void isInside_triangleEdgeColinearWithSquareEdge_returnsTrue() {
+        // Arrange
+        PolygonZone outerSquare = createUnitSquareZone(); // top edge y=2 from x=-2 to 2
+        // Triangle with one edge lying along the square's top edge
+        PolygonZone triangle = new PolygonZone(
+                new Point(-3, 2), // colinear beyond left
+                new Point(3, 2),  // colinear beyond right
+                new Point(0, 4)   // above
+        );
+
+        // Act
+        boolean isInside = outerSquare.isInside(triangle);
+
+        // Assert
+        assertTrue(isInside);
+    }
+
+    @Test
+    public void isInside_triangleJustOutsideNoTouch_returnsFalse() {
+        // Arrange
+        PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
+        // Triangle whose closest vertex is just outside the right edge by epsilon
+        double eps = 1e-6; // larger than boundary epsilon inside PolygonZone.contains
+        PolygonZone triangle = new PolygonZone(
+                new Point(2 + eps, 0),
+                new Point(4 + eps, 3),
+                new Point(4 + eps, -3)
+        );
+
+        // Act
+        boolean isInside = outerSquare.isInside(triangle);
+
+        // Assert
+        assertFalse(isInside);
+    }
 }
