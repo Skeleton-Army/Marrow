@@ -17,7 +17,8 @@ public class CircleZone implements Zone {
      * 
      * @return The center point
      */
-    public Point getCenter() {
+    @Override
+    public Point getPosition() {
         return center;
     }
     
