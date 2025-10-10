@@ -379,14 +379,14 @@ public class CircleZoneTests {
     @Test
     public void testMoveByZero() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
-        Point originalCenter = circle.getCenter();
-        
+        Point originalCenter = circle.getPosition();
+
         // Move by zero
         circle.moveBy(0, 0);
         
         // Should remain unchanged
-        assertEquals(originalCenter.getX(), circle.getCenter().getX(), DELTA);
-        assertEquals(originalCenter.getY(), circle.getCenter().getY(), DELTA);
+        assertEquals(originalCenter.getX(), circle.getPosition().getX(), DELTA);
+        assertEquals(originalCenter.getY(), circle.getPosition().getY(), DELTA);
     }
 
     @Test
@@ -417,14 +417,14 @@ public class CircleZoneTests {
     @Test
     public void testSetPositionSamePosition() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
-        Point originalCenter = circle.getCenter();
+        Point originalCenter = circle.getPosition();
         
         // Move to same position
         circle.setPosition(new Point(0, 0));
         
         // Should remain unchanged
-        assertEquals(originalCenter.getX(), circle.getCenter().getX(), DELTA);
-        assertEquals(originalCenter.getY(), circle.getCenter().getY(), DELTA);
+        assertEquals(originalCenter.getX(), circle.getPosition().getX(), DELTA);
+        assertEquals(originalCenter.getY(), circle.getPosition().getY(), DELTA);
     }
 
     @Test

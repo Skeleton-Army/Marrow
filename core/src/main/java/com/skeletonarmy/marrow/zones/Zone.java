@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.zones;
 
 public interface Zone {
+    Point getPosition();
     boolean contains(Point point);
     boolean isInside(Zone zone);
     boolean isFullyInside(Zone zone);
