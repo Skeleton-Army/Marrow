@@ -4,11 +4,13 @@ package com.skeletonarmy.marrow.zones;
  * A polygon-based zone on the field.
  */
 public class PolygonZone implements Zone {
-    public final Point[] corners;
+    private final Point[] corners;
+    private double rotation;
 
     public PolygonZone(Point... points) {
         if (points.length < 3) throw new IllegalArgumentException("Not enough points to create a polygon. Minimum is 3.");
         this.corners = points;
+        this.rotation = 0.0;
     }
 
     public PolygonZone(Point center, double width, double height) {
@@ -24,6 +26,7 @@ public class PolygonZone implements Zone {
                 new Point(halfWidth + centerX, halfHeight + centerY),
                 new Point(-halfWidth + centerX, halfHeight + centerY)
         };
+        this.rotation = 0.0;
     }
 
     public PolygonZone(Point center, double width, double height, double angle) {
@@ -53,6 +56,7 @@ public class PolygonZone implements Zone {
         }
 
         this.corners = finalCorners;
+        this.rotation = angle;
     }
 
     public PolygonZone(Point point1, Point point2, double thickness) {
@@ -72,6 +76,34 @@ public class PolygonZone implements Zone {
                 new Point(point2.getX() - px, point2.getY() - py),
                 new Point(point2.getX() + px, point2.getY() + py)
         };
+        this.rotation = 0.0;
+    }
+
+    /**
+     * Gets the corners of the polygon.
+     *
+     * @return Array of corner points
+     */
+    public Point[] getCorners() {
+        return corners.clone(); // Return a copy to maintain immutability
+    }
+
+    /**
+     * Gets the current rotation of the polygon in radians.
+     *
+     * @return Current rotation angle in radians
+     */
+    public double getRotation() {
+        return rotation;
+    }
+
+    /**
+     * Gets the current rotation of the polygon in degrees.
+     *
+     * @return Current rotation angle in degrees
+     */
+    public double getRotationDegrees() {
+        return Math.toDegrees(rotation);
     }
 
     /**
@@ -178,10 +210,10 @@ public class PolygonZone implements Zone {
             CircleZone other = (CircleZone) zone;
 
             // Find the closest point of the circle's center to the polygon.
-            double polygonDistanceToCenter = this.distanceTo(other.center);
+            double polygonDistanceToCenter = this.distanceTo(other.getCenter());
 
             // The distance is the distance to the center minus the circle's radius.
-            return Math.max(0, polygonDistanceToCenter - other.radius);
+            return Math.max(0, polygonDistanceToCenter - other.getRadius());
         }
 
         if (zone instanceof PolygonZone) {
@@ -249,6 +281,107 @@ public class PolygonZone implements Zone {
         return Math.sqrt(minDistanceSq);
     }
 
+    /**
+     * Moves the polygon by the specified offset.
+     *
+     * @param deltaX The amount to move in the X direction
+     * @param deltaY The amount to move in the Y direction
+     */
+    @Override
+    public void moveBy(double deltaX, double deltaY) {
+        for (int i = 0; i < corners.length; i++) {
+            corners[i] = new Point(corners[i].getX() + deltaX, corners[i].getY() + deltaY);
+        }
+    }
+
+    /**
+     * Moves the polygon to a new position by translating all corners.
+     *
+     * @param newPosition The new position for the polygon's center
+     */
+    @Override
+    public void setPosition(Point newPosition) {
+        // Calculate current center
+        double centerX = 0, centerY = 0;
+        for (Point corner : corners) {
+            centerX += corner.getX();
+            centerY += corner.getY();
+        }
+        centerX /= corners.length;
+        centerY /= corners.length;
+
+        // Calculate offset needed to move center to new position
+        double deltaX = newPosition.getX() - centerX;
+        double deltaY = newPosition.getY() - centerY;
+
+        // Apply the offset to all corners
+        moveBy(deltaX, deltaY);
+    }
+
+    /**
+     * Rotates the polygon around its center by the specified angle.
+     *
+     * @param angleRadians The angle to rotate by in radians
+     */
+    public void rotateBy(double angleRadians) {
+        if (Math.abs(angleRadians) < 1e-12) return; // No rotation needed
+
+        // Calculate current center
+        double centerX = 0, centerY = 0;
+        for (Point corner : corners) {
+            centerX += corner.getX();
+            centerY += corner.getY();
+        }
+        centerX /= corners.length;
+        centerY /= corners.length;
+
+        // Translate corners to origin, rotate, then translate back
+        for (int i = 0; i < corners.length; i++) {
+            double x = corners[i].getX() - centerX;
+            double y = corners[i].getY() - centerY;
+
+            // Apply rotation
+            double cos = Math.cos(angleRadians);
+            double sin = Math.sin(angleRadians);
+            double newX = x * cos - y * sin;
+            double newY = x * sin + y * cos;
+
+            // Translate back and update corner
+            corners[i] = new Point(newX + centerX, newY + centerY);
+        }
+
+        // Update rotation tracking
+        rotation += angleRadians;
+    }
+
+    /**
+     * Rotates the polygon around its center by the specified angle in degrees.
+     *
+     * @param angleDegrees The angle to rotate by in degrees
+     */
+    public void rotateByDegrees(double angleDegrees) {
+        rotateBy(Math.toRadians(angleDegrees));
+    }
+
+    /**
+     * Sets the rotation of the polygon to the specified angle.
+     *
+     * @param angleRadians The new rotation angle in radians
+     */
+    public void setRotation(double angleRadians) {
+        double deltaAngle = angleRadians - rotation;
+        rotateBy(deltaAngle);
+    }
+
+    /**
+     * Sets the rotation of the polygon to the specified angle in degrees.
+     *
+     * @param angleDegrees The new rotation angle in degrees
+     */
+    public void setRotationDegrees(double angleDegrees) {
+        setRotation(Math.toRadians(angleDegrees));
+    }
+
     // ----- HELPERS -----
 
     /**
@@ -285,7 +418,7 @@ public class PolygonZone implements Zone {
      * @param b The end of the line segment
      * @return The shortest distance
      */
-    private double distancePointToSegment(Point p, Point a, Point b) {
+    private static double distancePointToSegment(Point p, Point a, Point b) {
         double segmentLengthSq = a.distanceTo(b) * a.distanceTo(b);
 
         if (segmentLengthSq == 0.0) return p.distanceTo(a);
