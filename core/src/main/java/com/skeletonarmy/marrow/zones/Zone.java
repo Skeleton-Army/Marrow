@@ -6,4 +6,5 @@ public interface Zone {
     boolean isFullyInside(Zone zone);
     double distanceTo(Point point);
     double distanceTo(Zone zone);
+    double distanceToBoundary(Point point);
 }
