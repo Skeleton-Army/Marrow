@@ -4,12 +4,30 @@ package com.skeletonarmy.marrow.zones;
  * A circle-based zone on the field.
  */
 public class CircleZone implements Zone {
-    public final Point center;
-    public final double radius;
+    private Point center;
+    private final double radius;
 
     public CircleZone(Point center, double radius) {
         this.center = center;
         this.radius = radius;
+    }
+    
+    /**
+     * Gets the center point of the circle.
+     * 
+     * @return The center point
+     */
+    public Point getCenter() {
+        return center;
+    }
+    
+    /**
+     * Gets the radius of the circle.
+     * 
+     * @return The radius
+     */
+    public double getRadius() {
+        return radius;
     }
 
     /**
@@ -114,5 +132,26 @@ public class CircleZone implements Zone {
     @Override
     public double distanceToBoundary(Point point) {
         return point.distanceTo(this.center) - this.radius;
+    }
+    
+    /**
+     * Moves the circle by the specified offset.
+     * 
+     * @param deltaX The amount to move in the X direction
+     * @param deltaY The amount to move in the Y direction
+     */
+    @Override
+    public void moveBy(double deltaX, double deltaY) {
+        this.center = new Point(this.center.getX() + deltaX, this.center.getY() + deltaY);
+    }
+    
+    /**
+     * Moves the circle to a new position.
+     * 
+     * @param newPosition The new position for the circle's center
+     */
+    @Override
+    public void setPosition(Point newPosition) {
+        this.center = newPosition;
     }
 }

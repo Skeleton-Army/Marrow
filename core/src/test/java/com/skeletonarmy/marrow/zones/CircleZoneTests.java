@@ -6,10 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 
 public class CircleZoneTests {
-
     private static final double DELTA = 0.0001;
-
-    // --- Tests for contains(Point) and distanceTo(Point) (from original) ---
 
     @Test
     public void contains_pointIsInside_returnsTrue() {
@@ -325,5 +322,127 @@ public class CircleZoneTests {
 
         // Assert
         assertTrue(isFullyInside);
+    }
+
+    @Test
+    public void testMoveBy() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        
+        // Move the circle by (5, 3)
+        circle.moveBy(5, 3);
+        
+        // Check that the circle is now at the new position
+        assertTrue(circle.contains(new Point(5, 3))); // Center
+        assertTrue(circle.contains(new Point(7, 3))); // Right edge
+        assertTrue(circle.contains(new Point(3, 3))); // Left edge
+        assertTrue(circle.contains(new Point(5, 5))); // Top edge
+        assertTrue(circle.contains(new Point(5, 1))); // Bottom edge
+        
+        // Original position should no longer be contained
+        assertFalse(circle.contains(new Point(0, 0)));
+    }
+
+    @Test
+    public void testSetPosition() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        
+        // Move the circle to center at (10, 7)
+        circle.setPosition(new Point(10, 7));
+        
+        // Check that the circle is now centered at (10, 7)
+        assertTrue(circle.contains(new Point(10, 7))); // Center
+        assertTrue(circle.contains(new Point(12, 7))); // Right edge
+        assertTrue(circle.contains(new Point(8, 7))); // Left edge
+        assertTrue(circle.contains(new Point(10, 9))); // Top edge
+        assertTrue(circle.contains(new Point(10, 5))); // Bottom edge
+        
+        // Original position should no longer be contained
+        assertFalse(circle.contains(new Point(0, 0)));
+    }
+
+    // --- Tests for Movement Methods ---
+
+    @Test
+    public void testMoveByMultipleTimes() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        
+        // Move multiple times
+        circle.moveBy(1, 1);
+        circle.moveBy(2, 3);
+        circle.moveBy(-1, 0);
+        
+        // Total movement: (1+2-1, 1+3+0) = (2, 4)
+        assertTrue(circle.contains(new Point(2, 4))); // Center should be at (2, 4)
+        assertFalse(circle.contains(new Point(0, 0))); // Original center should not be contained
+    }
+
+    @Test
+    public void testMoveByZero() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        Point originalCenter = circle.getCenter();
+        
+        // Move by zero
+        circle.moveBy(0, 0);
+        
+        // Should remain unchanged
+        assertEquals(originalCenter.getX(), circle.getCenter().getX(), DELTA);
+        assertEquals(originalCenter.getY(), circle.getCenter().getY(), DELTA);
+    }
+
+    @Test
+    public void testMoveByNegative() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        
+        // Move by negative values
+        circle.moveBy(-5, -3);
+        
+        // Check new position
+        assertTrue(circle.contains(new Point(-5, -3))); // Center should be at (-5, -3)
+        assertFalse(circle.contains(new Point(0, 0))); // Original center should not be contained
+    }
+
+    @Test
+    public void testSetPositionMultipleTimes() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        
+        // Move to different positions
+        circle.setPosition(new Point(10, 5));
+        assertTrue(circle.contains(new Point(10, 5)));
+        
+        circle.setPosition(new Point(-3, 7));
+        assertTrue(circle.contains(new Point(-3, 7)));
+        assertFalse(circle.contains(new Point(10, 5))); // Previous position should not be contained
+    }
+
+    @Test
+    public void testSetPositionSamePosition() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
+        Point originalCenter = circle.getCenter();
+        
+        // Move to same position
+        circle.setPosition(new Point(0, 0));
+        
+        // Should remain unchanged
+        assertEquals(originalCenter.getX(), circle.getCenter().getX(), DELTA);
+        assertEquals(originalCenter.getY(), circle.getCenter().getY(), DELTA);
+    }
+
+    @Test
+    public void testMoveByPreservesRadius() {
+        CircleZone circle = new CircleZone(new Point(0, 0), 5.0);
+        double originalRadius = circle.getRadius();
+        
+        // Move the circle
+        circle.moveBy(5, 3);
+        
+        // Radius should be preserved
+        assertEquals(originalRadius, circle.getRadius(), DELTA);
+        
+        // Check that it's still a circle with the same radius
+        assertTrue(circle.contains(new Point(5, 3))); // Center
+        assertTrue(circle.contains(new Point(10, 3))); // Right edge
+        assertTrue(circle.contains(new Point(0, 3))); // Left edge
+        assertTrue(circle.contains(new Point(5, 8))); // Top edge
+        assertTrue(circle.contains(new Point(5, -2))); // Bottom edge
     }
 }
