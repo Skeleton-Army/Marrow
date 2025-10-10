@@ -730,7 +730,7 @@ public class PolygonZoneTests {
         PolygonZone zone = createUnitSquareZone();
         
         // Move the zone to center at (10, 5)
-        zone.setPosition(new Point(10, 5));
+        zone.setPosition(10, 5);
         
         // Check that the zone is now centered at (10, 5)
         assertTrue(zone.contains(new Point(10, 5))); // Center
@@ -884,10 +884,10 @@ public class PolygonZoneTests {
         PolygonZone zone = createUnitSquareZone();
         
         // Move to different positions
-        zone.setPosition(new Point(10, 5));
+        zone.setPosition(10, 5);
         assertTrue(zone.contains(new Point(10, 5)));
         
-        zone.setPosition(new Point(-3, 7));
+        zone.setPosition(-3, 7);
         assertTrue(zone.contains(new Point(-3, 7)));
         assertFalse(zone.contains(new Point(10, 5))); // Previous position should not be contained
     }
@@ -898,7 +898,7 @@ public class PolygonZoneTests {
         Point[] originalCorners = zone.getCorners();
         
         // Move to same position
-        zone.setPosition(new Point(0, 0));
+        zone.setPosition(0, 0);
         
         // Should remain unchanged
         Point[] newCorners = zone.getCorners();
@@ -1093,7 +1093,7 @@ public class PolygonZoneTests {
         PolygonZone zone = createUnitSquareZone();
         
         // Move to specific position then rotate
-        zone.setPosition(new Point(10, 5));
+        zone.setPosition(10, 5);
         zone.rotateByDegrees(180);
         
         // Check that both operations were applied
@@ -1108,7 +1108,7 @@ public class PolygonZoneTests {
         // Complex sequence of operations
         zone.moveBy(2, 1);
         zone.rotateByDegrees(30);
-        zone.setPosition(new Point(5, 3));
+        zone.setPosition(5, 3);
         zone.rotateByDegrees(60);
         zone.moveBy(-1, 2);
         
