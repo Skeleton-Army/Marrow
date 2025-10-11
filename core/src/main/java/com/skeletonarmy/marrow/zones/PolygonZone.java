@@ -13,6 +13,19 @@ public class PolygonZone implements Zone {
         this.rotation = 0.0;
     }
 
+    public PolygonZone(double width, double height) {
+        double halfWidth = width / 2.0;
+        double halfHeight = height / 2.0;
+
+        this.corners = new Point[] {
+                new Point(-halfWidth, -halfHeight),
+                new Point(halfWidth, -halfHeight),
+                new Point(halfWidth, halfHeight),
+                new Point(-halfWidth, halfHeight)
+        };
+        this.rotation = 0.0;
+    }
+
     public PolygonZone(Point center, double width, double height) {
         double halfWidth = width / 2.0;
         double halfHeight = height / 2.0;
