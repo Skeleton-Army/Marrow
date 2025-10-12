@@ -23,17 +23,8 @@ public class ValuePrompt extends Prompt<Number> {
         this(header, 0, Double.POSITIVE_INFINITY, defaultValue, 1);
     }
 
-    /*
-    Commented out for test writing purposes. Will be reverted before merging.
-
     public ValuePrompt(String header, double defaultValue, double increment) {
         this(header, 0, Double.POSITIVE_INFINITY, defaultValue, increment);
-    }
-     */
-
-    // The temporary constructor for testing. Will be removed before merging.
-    public ValuePrompt(String header, double maxValue, double increment) {
-        this(header, 0, maxValue, 0, increment);
     }
 
     public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
@@ -48,19 +39,13 @@ public class ValuePrompt extends Prompt<Number> {
         this.selectedValue = defaultValue;
 
         this.isInteger = isIntegerLike(minValue) &&
-                isIntegerLike(maxValue) &&
-                isIntegerLike(defaultValue) &&
-                isIntegerLike(increment);
+                         isIntegerLike(maxValue) &&
+                         isIntegerLike(defaultValue) &&
+                         isIntegerLike(increment);
     }
 
     @Override
     public Number process() {
-
-        // Temporary variables to speedup testing. Once final ones are decided should be inlined.
-        int speedupDivisor = 13;
-        int minIntervalMs = 4;
-        double speedupPercent = maxValue/speedupDivisor;
-
         addLine("=== " + header + " ===");
         addLine("");
 
@@ -70,12 +55,15 @@ public class ValuePrompt extends Prompt<Number> {
             addLine("< " + round(selectedValue, 2) + " >");
         }
 
-        // IntervalMs is different in DPAD_UP and DPAD_RIGHT for purposes of testing another variable.
-        if (pressAndHold(Button.DPAD_UP, 500, 50, speedupPercent, minIntervalMs)
-                || pressAndHold(Button.DPAD_RIGHT, 500, 75, speedupPercent, minIntervalMs)) {
+        // Increase speedup based on range size and precision:
+        // larger maxValue or smaller increment = faster acceleration
+        double speedupPercent = Math.max(2, (maxValue / increment) / 50.0);
+
+        if (pressAndHold(Button.DPAD_UP, 500, 50, speedupPercent)
+                || pressAndHold(Button.DPAD_RIGHT, 500, 50, speedupPercent)) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
-        } else if (pressAndHold(Button.DPAD_DOWN, 500, 100, speedupPercent, minIntervalMs)
-                || pressAndHold(Button.DPAD_LEFT, 500, 100, speedupPercent, minIntervalMs)) {
+        } else if (pressAndHold(Button.DPAD_DOWN, 500, 50, speedupPercent)
+                || pressAndHold(Button.DPAD_LEFT, 500, 50, speedupPercent)) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         }
 
