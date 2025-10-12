@@ -7,6 +7,16 @@ public class CircleZone implements Zone {
     private Point center;
     private final double radius;
 
+    public CircleZone() {
+        this.center = new Point(0, 0);
+        this.radius = 1;
+    }
+
+    public CircleZone(double radius) {
+        this.center = new Point(0, 0);
+        this.radius = radius;
+    }
+
     public CircleZone(Point center, double radius) {
         this.center = center;
         this.radius = radius;
