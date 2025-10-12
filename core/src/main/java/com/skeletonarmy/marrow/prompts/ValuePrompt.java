@@ -1,5 +1,8 @@
 package com.skeletonarmy.marrow.prompts;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 public class ValuePrompt extends Prompt<Number> {
     private final String header;
     private final double minValue;
@@ -49,7 +52,7 @@ public class ValuePrompt extends Prompt<Number> {
         if (isInteger) {
             addLine("< " + selectedValue.intValue() + " >");
         } else {
-            addLine("< " + selectedValue + " >");
+            addLine("< " + round(selectedValue, 2) + " >");
         }
 
         if (pressAndHold(Button.DPAD_UP, 500, 100) || pressAndHold(Button.DPAD_RIGHT, 500, 100)) {
@@ -72,7 +75,18 @@ public class ValuePrompt extends Prompt<Number> {
     /**
      * Checks whether a double value is a whole number (integer).
      */
-    private boolean isIntegerLike(double value) {
+    private static boolean isIntegerLike(double value) {
         return Double.isInfinite(value) || value == (int)value;
+    }
+
+    /**
+     * Rounds a double to the specified number of decimal {@code places}.
+     */
+    private static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 }
