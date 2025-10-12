@@ -49,6 +49,10 @@ public abstract class Prompt<T> {
         return input.pressAndHold(button, initialDelayMs, intervalMs);
     }
 
+    protected boolean pressAndHold(Button button, long initialDelayMs, long intervalMs, double speedupPercent, int minIntervalMs) {
+        return input.pressAndHold(button, initialDelayMs, intervalMs, speedupPercent, minIntervalMs);
+    }
+
     /**
      * Adds a line to the Telemetry.
      */
