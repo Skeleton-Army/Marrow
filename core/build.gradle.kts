@@ -1,5 +1,5 @@
 android {
-    namespace = "io.github.skeletonarmy.marrow.core"
+    namespace = "com.skeletonarmyftc.marrow.core"
     compileSdk = 35
 
     defaultConfig {

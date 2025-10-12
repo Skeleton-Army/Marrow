@@ -1,5 +1,5 @@
 android {
-    namespace = "io.github.skeletonarmy.marrow.solverslib"
+    namespace = "com.skeletonarmyftc.marrow.solverslib"
     compileSdk = 35
 
     defaultConfig {

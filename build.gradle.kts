@@ -6,8 +6,8 @@ subprojects {
     apply(plugin = "com.android.library")
     apply(plugin = "io.deepmedia.tools.deployer")
 
-    group = "io.github.skeleton-army.marrow"
-    version = "0.1.3-SNAPSHOT"
+    group = "com.skeletonarmyftc.marrow"
+    version = "0.2.0"
 
     repositories {
         mavenCentral()
