@@ -1,5 +1,5 @@
 android {
-    namespace = "io.github.skeletonarmy.marrow.ftclib"
+    namespace = "com.skeletonarmyftc.marrow.ftclib"
     compileSdk = 35
 
     defaultConfig {

@@ -1,5 +1,5 @@
 android {
-    namespace = "io.github.skeletonarmy.marrow.nextftc"
+    namespace = "com.skeletonarmyftc.marrow.nextftc"
     compileSdk = 35
 
     defaultConfig {
