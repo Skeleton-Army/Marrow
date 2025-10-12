@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 public class Prompter {
-    private OpMode opmode;
+    private final OpMode opMode;
     private GamepadInput gamepadInput;
 
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
@@ -21,7 +21,7 @@ public class Prompter {
     private boolean isCompleted = false;
 
     public Prompter(OpMode opMode) {
-        this.opmode = opMode;
+        this.opMode = opMode;
     }
 
     /**
@@ -72,7 +72,7 @@ public class Prompter {
         if (isCompleted) return;
 
         boolean finished = processPrompts();
-        opmode.telemetry.update();
+        opMode.telemetry.update();
 
         if (finished) {
             isCompleted = true;
@@ -134,7 +134,7 @@ public class Prompter {
 
     private void initialize() {
         if (gamepadInput == null) {
-            gamepadInput = new GamepadInput(opmode.gamepad1, opmode.gamepad2);
+            gamepadInput = new GamepadInput(opMode.gamepad1, opMode.gamepad2);
         }
     }
 
@@ -162,7 +162,7 @@ public class Prompter {
             prompt = promptSupplier.get();
 
             if (prompt != null) {
-                prompt.configure(gamepadInput, opmode.telemetry);
+                prompt.configure(gamepadInput, opMode.telemetry);
             }
 
             return prompt;
