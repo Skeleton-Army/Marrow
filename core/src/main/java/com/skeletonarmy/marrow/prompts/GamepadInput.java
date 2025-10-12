@@ -55,8 +55,16 @@ class GamepadInput {
     }
 
     /**
-     * Checks if the button has been held for more than the initial delay,
-     * and continues to return true at a specified interval.
+     * Checks if the specified button has been held long enough to trigger an initial action,
+     * and then continues to return {@code true} at fixed intervals while the button remains held.
+     *
+     * @param button the button to check for press-and-hold behavior
+     * @param initialDelayMs the delay in milliseconds before the first repeated trigger occurs
+     *                       after the button is initially pressed
+     * @param intervalMs the interval in milliseconds between subsequent triggers
+     *                   while the button continues to be held
+     * @return {@code true} if the button press should trigger an action at this time;
+     *         {@code false} otherwise
      */
     public boolean pressAndHold(Button button, long initialDelayMs, long intervalMs) {
         long currentTime = System.currentTimeMillis();
@@ -80,6 +88,65 @@ class GamepadInput {
             }
         } else if (Boolean.TRUE.equals(previousStates.getOrDefault(button, false))) {
             // Only reset timers if the button was pressed last frame, i.e., actual release
+            pressStartTimes.remove(button);
+            lastTriggerTimes.remove(button);
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if the specified button has been held long enough to trigger an initial action,
+     * then repeatedly returns {@code true} at accelerating intervals while the button remains held.
+     *
+     * @param button          the button to check
+     * @param initialDelayMs  the delay in milliseconds before auto-repeat begins
+     * @param intervalMs      the initial repeat interval in milliseconds
+     * @param speedupPercent  the percentage decrease in interval after each repeat (e.g. {@code 10} means each repeat is 10% faster)
+     */
+    public boolean pressAndHold(
+            Button button,
+            long initialDelayMs,
+            long intervalMs,
+            double speedupPercent
+    ) {
+        long now = System.currentTimeMillis();
+        boolean pressed = Boolean.TRUE.equals(currentStates.get(button));
+        boolean wasPressed = Boolean.TRUE.equals(previousStates.get(button));
+
+        if (pressed) {
+            long pressStart = pressStartTimes.getOrDefault(button, now);
+            long lastTrigger = lastTriggerTimes.getOrDefault(button, now);
+
+            if (!wasPressed) {
+                pressStartTimes.put(button, now);
+                lastTriggerTimes.put(button, now);
+                return true;
+            }
+
+            long sinceStart = now - pressStart;
+            long sinceLast = now - lastTrigger;
+
+            // Compute easing for a soft first repeat before the full delay
+            double delayProgress = Math.min(1.0, (double) sinceStart / initialDelayMs);
+            long effectiveDelay = (long) (initialDelayMs * (1.0 - 0.5 * delayProgress));
+
+            // Estimate how many repeats have occurred since delay ended
+            long repeats = (sinceStart - initialDelayMs) / Math.max(intervalMs, 1);
+            if (repeats < 0) repeats = 0;
+
+            // Exponentially reduce interval based on repeat count
+            double speedupFactor = Math.pow(1.0 - (speedupPercent / 100.0), repeats);
+            long dynamicInterval = (long) (intervalMs * speedupFactor);
+
+            // Trigger if delay has elapsed or easing allows early repeat
+            if ((sinceStart >= effectiveDelay && sinceLast >= dynamicInterval)
+                    || (sinceStart >= initialDelayMs && sinceLast >= dynamicInterval)) {
+                lastTriggerTimes.put(button, now);
+                return true;
+            }
+
+        } else if (wasPressed) {
             pressStartTimes.remove(button);
             lastTriggerTimes.remove(button);
         }

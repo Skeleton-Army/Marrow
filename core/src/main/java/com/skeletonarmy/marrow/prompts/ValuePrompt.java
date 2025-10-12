@@ -55,9 +55,15 @@ public class ValuePrompt extends Prompt<Number> {
             addLine("< " + round(selectedValue, 2) + " >");
         }
 
-        if (pressAndHold(Button.DPAD_UP, 500, 100) || pressAndHold(Button.DPAD_RIGHT, 500, 100)) {
+        // Increase speedup based on range size and precision:
+        // larger maxValue or smaller increment = faster acceleration
+        double speedupPercent = Math.max(2, (maxValue / increment) / 50.0);
+
+        if (pressAndHold(Button.DPAD_UP, 500, 50, speedupPercent)
+                || pressAndHold(Button.DPAD_RIGHT, 500, 50, speedupPercent)) {
             selectedValue = Math.min(maxValue, selectedValue + increment);
-        } else if (pressAndHold(Button.DPAD_DOWN, 500, 100) || pressAndHold(Button.DPAD_LEFT, 500, 100)) {
+        } else if (pressAndHold(Button.DPAD_DOWN, 500, 50, speedupPercent)
+                || pressAndHold(Button.DPAD_LEFT, 500, 50, speedupPercent)) {
             selectedValue = Math.max(minValue, selectedValue - increment);
         }
 
