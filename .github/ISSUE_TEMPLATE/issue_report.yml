@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a bug and help us improve Marrow
+description: Report a bug and help us improve Marrow.
 title: '[Module]: '
 body:
   - type: markdown
