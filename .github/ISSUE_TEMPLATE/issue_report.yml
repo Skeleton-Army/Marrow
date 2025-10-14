@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a bug and help up improve Marrow
+description: Report a bug and help us improve Marrow
 title: '[Module]: '
 body:
   - type: markdown
@@ -49,7 +49,7 @@ body:
     attributes:
       label: Version
       description: The version of Marrow you are using
-      placeholder: 0.1.2
+      placeholder: 0.2.3, 0.1.3, SNAPSHOT, etc.
     validations:
       required: true
   - type: textarea
