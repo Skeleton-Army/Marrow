@@ -1,0 +1,30 @@
+name: Feature Request
+description: Request a new feature and help us improve Marrow.
+title: '[Feature Request]: '
+body:
+  - type: checkboxes
+    attributes:
+      label: >-
+        I have searched the existing feature requests, both open and closed, to
+        make sure this is not a duplicate request.
+      options:
+        - label: 'Yes'
+          required: true
+  - type: textarea
+    attributes:
+      label: Description
+      description: A clear and concise description of the problem or missing capability.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Describe the solution you'd like
+      description: If you have a solution in mind, please describe it.
+  - type: textarea
+    attributes:
+      label: Describe alternatives you've considered
+      description: Have you considered any alternative solutions or workarounds?
+  - type: markdown
+    attributes:
+      value: >-
+        ## Thank you for taking the time to request a new feature and contributing to make Marrow better.

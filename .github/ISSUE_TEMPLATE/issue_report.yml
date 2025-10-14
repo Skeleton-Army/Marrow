@@ -1,0 +1,62 @@
+name: Bug report
+description: Report a bug and help us improve Marrow.
+title: '[Module]: '
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        *Please replace "Module" in the report name with the module you are
+        having issue with (e.g. Prompter, OptionPrompt, TimerEx, etc.)*.
+  - type: checkboxes
+    attributes:
+      label: 'This issue respects the following points:'
+      description: >-
+        If your issue isn't following one or more of these points it will be closed.
+      options:
+        - label: This is a **bug**, not a question or configuration issue
+          required: true
+        - label: >-
+            This issue is **not** already reported on Github *(I've searched
+            it)*
+          required: true
+        - label: >-
+            This isn't a feature request; For feature requests please use the
+            `Feature Request` template.
+          required: true
+        - label: >-
+            This report addresses only a single issue; If you encounter multiple
+            issues, please create separate reports for each one.
+          required: true
+  - type: textarea
+    attributes:
+      label: 'Describe the bug '
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: To Reproduce
+      description: Paste the section in your code that causes the bug.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Version
+      description: The version of Marrow you are using
+      placeholder: 0.2.3, 0.1.3, SNAPSHOT, etc.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem.
+  - type: markdown
+    attributes:
+      value: >-
+        ## Thank you for taking the time to submit a bug report and contributing to make Marrow better.
