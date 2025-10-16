@@ -15,7 +15,7 @@ public class Prompter {
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
 
-    private Runnable completeFunc;
+    private Runnable completeFunc = null;
 
     private int currentIndex = 0;
     private boolean isCompleted = false;
@@ -76,7 +76,7 @@ public class Prompter {
 
         if (finished) {
             isCompleted = true;
-            completeFunc.run();
+            if (completeFunc != null) completeFunc.run();
         }
     }
 
