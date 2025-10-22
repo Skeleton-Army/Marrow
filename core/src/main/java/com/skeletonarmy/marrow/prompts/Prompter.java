@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.skeletonarmy.marrow.GamepadInput;
 
 import java.util.ArrayList;
 import java.util.HashMap;
