@@ -1,5 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
+import com.skeletonarmy.marrow.GamepadInput;
+
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public abstract class Prompt<T> {

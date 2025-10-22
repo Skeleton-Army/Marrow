@@ -1,13 +1,19 @@
-package com.skeletonarmy.marrow.prompts;
+package com.skeletonarmy.marrow;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
-import java.util.EnumMap;
+import com.skeletonarmy.marrow.prompts.Button;
 
+import java.util.EnumMap;
 /**
- * INTERNAL USE ONLY.
- * This class is not part of the public API and may change without notice.
+ * Handles input from both controllers at the same time.
+ *
+ * <p><b>Internal API - Not Documented:</b> This class is public for
+ * internal framework use. No formal documentation is provided
+ * beyond these Javadoc comments. Contact the team in case you need support.
+ *
+ * <p><b>Warning:</b> Subject to change without notice.
  */
-class GamepadInput {
+public class GamepadInput {
     private final Gamepad gamepad1;
     private final Gamepad gamepad2;
 
