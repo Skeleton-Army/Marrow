@@ -1,5 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
+import com.skeletonarmy.marrow.internal.Button;
+
 public class BooleanPrompt extends Prompt<Boolean> {
     private final String header;
     private boolean selectedValue;

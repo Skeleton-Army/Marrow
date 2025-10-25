@@ -1,5 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
+import com.skeletonarmy.marrow.internal.Button;
+
 public class OptionPrompt<T> extends Prompt<T> {
     private final String header;
     private final T[] options;

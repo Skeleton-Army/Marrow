@@ -1,7 +1,8 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.skeletonarmy.marrow.GamepadInput;
+import com.skeletonarmy.marrow.internal.Button;
+import com.skeletonarmy.marrow.internal.GamepadInput;
 
 import java.util.ArrayList;
 import java.util.HashMap;

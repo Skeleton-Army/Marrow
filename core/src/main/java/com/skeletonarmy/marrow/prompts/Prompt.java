@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
-import com.skeletonarmy.marrow.GamepadInput;
+import com.skeletonarmy.marrow.internal.Button;
+import com.skeletonarmy.marrow.internal.GamepadInput;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
