@@ -1,5 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
+import com.skeletonarmy.marrow.internal.Button;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 

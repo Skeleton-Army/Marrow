@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.prompts;
+package com.skeletonarmy.marrow.internal;
 
 public enum Button {
     A, B, X, Y,

@@ -1,7 +1,6 @@
-package com.skeletonarmy.marrow;
+package com.skeletonarmy.marrow.internal;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
-import com.skeletonarmy.marrow.prompts.Button;
 
 import java.util.EnumMap;
 /**
