@@ -18,7 +18,6 @@ public abstract class SettingsOpMode extends OpMode {
     private static final Map<String, Object> results = new HashMap<>();
     private final List<Setting<?>> settingPrompts = new ArrayList<>();
 
-    private GamepadInput gamepadInput;
     private State currentState = State.MENU;
     private Prompter prompter;
     private int cursorIndex = 0;
@@ -27,8 +26,6 @@ public abstract class SettingsOpMode extends OpMode {
 
     @Override
     public void init() {
-        gamepadInput = new GamepadInput(gamepad1, gamepad2);
-
         defineSettings();
         SettingsFileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
 
@@ -46,7 +43,7 @@ public abstract class SettingsOpMode extends OpMode {
                 handlePrompt();
         }
 
-        gamepadInput.update();
+        GamepadInput.update(gamepad1, gamepad2);
         telemetry.update();
     }
 
@@ -94,13 +91,13 @@ public abstract class SettingsOpMode extends OpMode {
 
         int numberOfSettings = settingPrompts.size();
 
-        if (gamepadInput.justPressed(Button.DPAD_UP)) {
+        if (GamepadInput.justPressed(Button.DPAD_UP)) {
             cursorIndex = (cursorIndex - 1 + numberOfSettings) % numberOfSettings;
-        } else if (gamepadInput.justPressed(Button.DPAD_DOWN)) {
+        } else if (GamepadInput.justPressed(Button.DPAD_DOWN)) {
             cursorIndex = (cursorIndex + 1) % numberOfSettings;
         }
 
-        if (gamepadInput.justPressed(Button.A)) {
+        if (GamepadInput.justPressed(Button.A)) {
             currentState = State.PROMPT;
 
             Setting<?> selected = settingPrompts.get(cursorIndex);
