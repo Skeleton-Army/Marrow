@@ -6,7 +6,6 @@ import com.skeletonarmy.marrow.internal.GamepadInput;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public abstract class Prompt<T> {
-    private GamepadInput input;
     private Telemetry telemetry;
 
     public abstract T process();
@@ -16,8 +15,7 @@ public abstract class Prompt<T> {
      * This method is package-private to allow Prompter to configure the prompt
      * without exposing these dependencies publicly.
      */
-    void configure(GamepadInput input, Telemetry telemetry) {
-        this.input = input;
+    void configure(Telemetry telemetry) {
         this.telemetry = telemetry;
     }
 
@@ -27,21 +25,21 @@ public abstract class Prompt<T> {
      * Checks if a specific button is currently pressed.
      */
     protected boolean isPressed(Button button) {
-        return input.isPressed(button);
+        return GamepadInput.isPressed(button);
     }
 
     /**
      * Checks if a specific button was just pressed.
      */
     protected boolean justPressed(Button button) {
-        return input.justPressed(button);
+        return GamepadInput.justPressed(button);
     }
 
     /**
      * Checks if any of the specified buttons were just pressed.
      */
     protected boolean anyJustPressed(Button... buttons) {
-        return input.anyJustPressed(buttons);
+        return GamepadInput.anyJustPressed(buttons);
     }
 
     /**
@@ -57,7 +55,7 @@ public abstract class Prompt<T> {
      *         {@code false} otherwise
      */
     protected boolean pressAndHold(Button button, long initialDelayMs, long intervalMs) {
-        return input.pressAndHold(button, initialDelayMs, intervalMs);
+        return GamepadInput.pressAndHold(button, initialDelayMs, intervalMs);
     }
 
     /**
@@ -71,7 +69,7 @@ public abstract class Prompt<T> {
      *                        (e.g. {@code 10} means each repeat is 10% faster)
      */
     protected boolean pressAndHold(Button button, long initialDelayMs, long intervalMs, double speedupPercent) {
-        return input.pressAndHold(button, initialDelayMs, intervalMs, speedupPercent);
+        return GamepadInput.pressAndHold(button, initialDelayMs, intervalMs, speedupPercent);
     }
 
     /**

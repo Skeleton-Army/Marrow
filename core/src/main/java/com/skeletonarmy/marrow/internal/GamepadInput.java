@@ -3,6 +3,7 @@ package com.skeletonarmy.marrow.internal;
 import com.qualcomm.robotcore.hardware.Gamepad;
 
 import java.util.EnumMap;
+
 /**
  * Handles input from both controllers at the same time.
  *
@@ -12,47 +13,41 @@ import java.util.EnumMap;
  *
  * <p><b>Warning:</b> Subject to change without notice.
  */
-public class GamepadInput {
-    private final Gamepad gamepad1;
-    private final Gamepad gamepad2;
+public final class GamepadInput {
+    private static final EnumMap<Button, Boolean> currentStates = new EnumMap<>(Button.class);
+    private static final EnumMap<Button, Boolean> previousStates = new EnumMap<>(Button.class);
+    private static final EnumMap<Button, Long> pressStartTimes = new EnumMap<>(Button.class);
+    private static final EnumMap<Button, Long> lastTriggerTimes = new EnumMap<>(Button.class);
 
-    private final EnumMap<Button, Boolean> currentStates = new EnumMap<>(Button.class);
-    private final EnumMap<Button, Boolean> previousStates = new EnumMap<>(Button.class);
-    private final EnumMap<Button, Long> pressStartTimes = new EnumMap<>(Button.class);
-    private final EnumMap<Button, Long> lastTriggerTimes = new EnumMap<>(Button.class);
-
-    public GamepadInput(Gamepad gamepad1, Gamepad gamepad2) {
-        this.gamepad1 = gamepad1;
-        this.gamepad2 = gamepad2;
-
-        for (Button button : Button.values()) {
-            currentStates.put(button, false);
-            previousStates.put(button, false);
-        }
-    }
+    private GamepadInput() {}
 
     /**
      * Should be called once per loop/frame to update the input state.
+     * The current Gamepad instances must be passed with every call.
+     *
+     * @param gamepad1 The first gamepad instance.
+     * @param gamepad2 The second gamepad instance.
      */
-    public void update() {
+    public static void update(Gamepad gamepad1, Gamepad gamepad2) {
         for (Button button : Button.values()) {
             previousStates.put(button, currentStates.get(button));
-            currentStates.put(button, getButtonState(button));
+            // Pass the gamepads to getButtonState to get the live state
+            currentStates.put(button, getButtonState(button, gamepad1, gamepad2));
         }
     }
 
     /** Checks if a specific button is currently pressed. */
-    public boolean isPressed(Button button) {
+    public static boolean isPressed(Button button) {
         return Boolean.TRUE.equals(currentStates.getOrDefault(button, false));
     }
 
     /** Checks if a specific button was just pressed. */
-    public boolean justPressed(Button button) {
+    public static boolean justPressed(Button button) {
         return isPressed(button) && Boolean.FALSE.equals(previousStates.getOrDefault(button, false));
     }
 
     /** Checks if any of the specified buttons were just pressed. */
-    public boolean anyJustPressed(Button... buttons) {
+    public static boolean anyJustPressed(Button... buttons) {
         for (Button button : buttons) {
             if (justPressed(button)) return true;
         }
@@ -71,7 +66,7 @@ public class GamepadInput {
      * @return {@code true} if the button press should trigger an action at this time;
      *         {@code false} otherwise
      */
-    public boolean pressAndHold(Button button, long initialDelayMs, long intervalMs) {
+    public static boolean pressAndHold(Button button, long initialDelayMs, long intervalMs) {
         long currentTime = System.currentTimeMillis();
 
         if (isPressed(button)) {
@@ -109,7 +104,7 @@ public class GamepadInput {
      * @param intervalMs      the initial repeat interval in milliseconds
      * @param speedupPercent  the percentage decrease in interval after each repeat (e.g. {@code 10} means each repeat is 10% faster)
      */
-    public boolean pressAndHold(
+    public static boolean pressAndHold(
             Button button,
             long initialDelayMs,
             long intervalMs,
@@ -159,7 +154,16 @@ public class GamepadInput {
         return false;
     }
 
-    private boolean getButtonState(Button button) {
+    /**
+     * Retrieves the current logical state (pressed or not) for a button,
+     * combining input from both gamepads.
+     *
+     * @param button The button to check.
+     * @param gamepad1 The first gamepad.
+     * @param gamepad2 The second gamepad.
+     * @return True if the button is pressed on either gamepad, false otherwise.
+     */
+    private static boolean getButtonState(Button button, Gamepad gamepad1, Gamepad gamepad2) {
         switch (button) {
             case A: return gamepad1.a || gamepad2.a;
             case B: return gamepad1.b || gamepad2.b;

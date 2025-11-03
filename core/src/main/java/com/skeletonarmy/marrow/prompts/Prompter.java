@@ -12,7 +12,6 @@ import java.util.function.Supplier;
 
 public class Prompter {
     private final OpMode opMode;
-    private GamepadInput gamepadInput;
 
     private final List<KeyPromptPair<?>> prompts = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
@@ -73,6 +72,8 @@ public class Prompter {
     public void run() {
         if (isCompleted) return;
 
+        GamepadInput.update(opMode.gamepad1, opMode.gamepad2);
+
         boolean finished = processPrompts();
         opMode.telemetry.update();
 
@@ -96,11 +97,8 @@ public class Prompter {
      * @return True if there are no more prompts to process, false otherwise
      */
     private boolean processPrompts() {
-        initialize();
-        gamepadInput.update();
-
         // Handle back navigation
-        if (gamepadInput.justPressed(Button.B) && currentIndex > 0) {
+        if (GamepadInput.justPressed(Button.B) && currentIndex > 0) {
             navigateBack();
         }
 
@@ -134,12 +132,6 @@ public class Prompter {
         } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
     }
 
-    private void initialize() {
-        if (gamepadInput == null) {
-            gamepadInput = new GamepadInput(opMode.gamepad1, opMode.gamepad2);
-        }
-    }
-
     private class KeyPromptPair<T> {
         private final String key;
         private final Supplier<Prompt<T>> promptSupplier;
@@ -164,7 +156,7 @@ public class Prompter {
             prompt = promptSupplier.get();
 
             if (prompt != null) {
-                prompt.configure(gamepadInput, opMode.telemetry);
+                prompt.configure(opMode.telemetry);
             }
 
             return prompt;
