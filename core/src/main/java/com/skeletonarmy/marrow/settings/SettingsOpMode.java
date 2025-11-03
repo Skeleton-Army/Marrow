@@ -46,6 +46,7 @@ public abstract class SettingsOpMode extends OpMode {
                 handlePrompt();
         }
 
+        gamepadInput.update();
         telemetry.update();
     }
 
