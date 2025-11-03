@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.settings;
+package com.skeletonarmy.marrow.internal;
 
 import android.os.Environment;
 
@@ -14,13 +14,13 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-public class SettingsFileHandler {
+public class FileHandler {
     private static final Gson GSON = new Gson();
     private static final Type RESULTS_MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
 
     /**
-     * Saves the provided settings map to a JSON file.
-     * @param map The map containing the settings key-value pairs.
+     * Saves the provided map to a JSON file.
+     * @param map The map containing key-value pairs.
      * @param directoryName The directory name (e.g., "FIRST").
      * @param fileName The file name (e.g., "marrow_settings.json").
      */
@@ -39,13 +39,13 @@ public class SettingsFileHandler {
             String json = GSON.toJson(map);
             fw.write(json);
         } catch (IOException e) {
-            RobotLog.addGlobalWarningMessage("Error saving settings file: " + file.getAbsolutePath() + "\n" + e.getMessage());
+            RobotLog.addGlobalWarningMessage("Error saving file: " + file.getAbsolutePath() + "\n" + e.getMessage());
         }
     }
 
     /**
-     * Loads settings from a JSON file into the provided map.
-     * @param map The map to load the settings into (it will be cleared first).
+     * Loads a JSON file into the provided map.
+     * @param map The map to load the data into (it will be cleared first).
      * @param directoryName The directory name (e.g., "FIRST").
      * @param fileName The file name (e.g., "marrow_settings.json").
      */
@@ -66,9 +66,9 @@ public class SettingsFileHandler {
                 map.putAll(loadedMap);
             }
         } catch (IOException e) {
-            RobotLog.addGlobalWarningMessage("Error loading settings file: " + file.getAbsolutePath() + "\n" + e.getMessage());
+            RobotLog.addGlobalWarningMessage("Error loading file: " + file.getAbsolutePath() + "\n" + e.getMessage());
         } catch (JsonSyntaxException e) {
-            RobotLog.addGlobalWarningMessage("Error parsing settings file (corrupted JSON): " + file.getAbsolutePath() + "\n" + e.getMessage());
+            RobotLog.addGlobalWarningMessage("Error parsing file (corrupted JSON): " + file.getAbsolutePath() + "\n" + e.getMessage());
         }
     }
 }
