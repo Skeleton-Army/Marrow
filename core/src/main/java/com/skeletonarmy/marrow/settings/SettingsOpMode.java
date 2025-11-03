@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow.settings;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.skeletonarmy.marrow.internal.Button;
+import com.skeletonarmy.marrow.internal.FileHandler;
 import com.skeletonarmy.marrow.internal.GamepadInput;
 import com.skeletonarmy.marrow.prompts.Prompt;
 import com.skeletonarmy.marrow.prompts.Prompter;
@@ -27,7 +28,7 @@ public abstract class SettingsOpMode extends OpMode {
     @Override
     public void init() {
         defineSettings();
-        SettingsFileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
+        FileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
 
         telemetry.addLine("Press START to enter the menu.");
         telemetry.update();
@@ -49,7 +50,7 @@ public abstract class SettingsOpMode extends OpMode {
 
     @Override
     public void stop() {
-        SettingsFileHandler.saveToFile(results, FILE_DIR, FILE_NAME);
+        FileHandler.saveToFile(results, FILE_DIR, FILE_NAME);
     }
 
     public <T> void add(String key, String name, Prompt<T> prompt) {
@@ -66,7 +67,7 @@ public abstract class SettingsOpMode extends OpMode {
     @SuppressWarnings("unchecked")
     public static <T> T get(String key) {
         if (!results.containsKey(key)) {
-            SettingsFileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
+            FileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
         }
 
         Object value = results.get(key);
