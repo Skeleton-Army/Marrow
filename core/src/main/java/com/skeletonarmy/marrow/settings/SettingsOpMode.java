@@ -17,6 +17,8 @@ public abstract class SettingsOpMode extends OpMode {
     private static final String FILE_NAME = "marrow_settings.json";
 
     private static final Map<String, Object> results = new HashMap<>();
+    private static boolean loaded = false;
+
     private final List<Setting<?>> settingPrompts = new ArrayList<>();
 
     private State currentState = State.MENU;
@@ -27,8 +29,12 @@ public abstract class SettingsOpMode extends OpMode {
 
     @Override
     public void init() {
+        if (!loaded) {
+            FileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
+            loaded = true;
+        }
+
         defineSettings();
-        FileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
 
         telemetry.addLine("Press START to enter the menu.");
         telemetry.update();
@@ -66,8 +72,9 @@ public abstract class SettingsOpMode extends OpMode {
 
     @SuppressWarnings("unchecked")
     public static <T> T get(String key) {
-        if (!results.containsKey(key)) {
+        if (!loaded) {
             FileHandler.loadFromFile(results, FILE_DIR, FILE_NAME);
+            loaded = true;
         }
 
         Object value = results.get(key);
