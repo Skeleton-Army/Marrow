@@ -36,6 +36,17 @@ public abstract class SettingsOpMode extends OpMode {
 
         defineSettings();
 
+        // Purge any orphaned keys loaded from the file
+        Map<String, Object> cleanResults = new HashMap<>();
+
+        for (Setting<?> setting : settingPrompts) {
+            String key = setting.getKey();
+            cleanResults.put(key, results.get(key));
+        }
+
+        results.clear();
+        results.putAll(cleanResults);
+
         telemetry.addLine("Press START to enter the menu.");
         telemetry.update();
     }
@@ -67,7 +78,6 @@ public abstract class SettingsOpMode extends OpMode {
         }
 
         settingPrompts.add(new Setting<>(key, name, prompt));
-        results.put(key, null);
     }
 
     @SuppressWarnings("unchecked")
