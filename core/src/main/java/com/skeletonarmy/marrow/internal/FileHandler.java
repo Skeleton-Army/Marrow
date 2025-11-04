@@ -58,8 +58,6 @@ public class FileHandler {
         }
 
         try (FileReader fr = new FileReader(file)) {
-            map.clear();
-
             Map<String, Object> loadedMap = GSON.fromJson(fr, RESULTS_MAP_TYPE);
 
             if (loadedMap != null) {
