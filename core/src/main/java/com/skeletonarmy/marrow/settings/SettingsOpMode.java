@@ -85,8 +85,10 @@ public abstract class SettingsOpMode extends OpMode {
     }
 
     public <T> void add(String key, String name, Prompt<T> prompt) {
+        String normalizedKey = key.toLowerCase();
+
         for (Setting<?> existingSetting : settingPrompts) {
-            if (existingSetting.getKey().equals(key)) {
+            if (existingSetting.getKey().equals(normalizedKey)) {
                 throw new IllegalArgumentException("Duplicate key: " + key);
             }
         }
@@ -101,7 +103,8 @@ public abstract class SettingsOpMode extends OpMode {
             loaded = true;
         }
 
-        Object value = RESULTS.get(key);
+        String normalizedKey = key.toLowerCase();
+        Object value = RESULTS.get(normalizedKey);
         if (value == null) return defaultValue;
 
         // Enum conversion
@@ -171,7 +174,7 @@ public abstract class SettingsOpMode extends OpMode {
                         // If enum, store as string
                         if (value != null && value.getClass().isEnum()) value = value.toString();
 
-                            // If class, store as JSON string
+                        // If class, store as JSON string
                         else if (value != null && !(value instanceof Number) && !(value instanceof String)) {
                             value = GSON.toJson(value);
                         }
@@ -197,7 +200,7 @@ public abstract class SettingsOpMode extends OpMode {
         private final Prompt<T> prompt;
 
         public Setting(String key, String name, Prompt<T> prompt) {
-            this.key = key;
+            this.key = key.toLowerCase();
             this.name = name;
             this.prompt = prompt;
         }
