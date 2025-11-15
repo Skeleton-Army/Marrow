@@ -141,6 +141,39 @@ public abstract class SettingsOpMode extends OpMode {
         );
     }
 
+    public static void set(String key, Object value) {
+        if (key == null || key.isEmpty()) {
+            throw new IllegalArgumentException("Setting key cannot be null or empty");
+        }
+
+        Object finalValue = prepareValueForStorage(value);
+
+        RESULTS.put(key.toLowerCase(), finalValue);
+    }
+
+    private static Object prepareValueForStorage(Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        // If enum, store as string
+        if (value.getClass().isEnum()) {
+            return value.toString();
+        }
+
+        // If a custom class, store as JSON string
+        // We exclude Number and String which are handled natively
+        if (!(value instanceof Number) && !(value instanceof String)) {
+            try {
+                return GSON.toJson(value);
+            } catch (Exception e) {
+                throw new IllegalArgumentException("Failed to serialize object for key", e);
+            }
+        }
+
+        return value;
+    }
+
     private void handleMenu() {
         int i = 0;
         for (Setting<?> setting : settingPrompts) {
@@ -170,16 +203,9 @@ public abstract class SettingsOpMode extends OpMode {
             prompter.prompt("_", selected.getPrompt())
                     .onComplete(() -> {
                         Object value = prompter.get("_");
+                        Object finalValue = prepareValueForStorage(value);
 
-                        // If enum, store as string
-                        if (value != null && value.getClass().isEnum()) value = value.toString();
-
-                        // If class, store as JSON string
-                        else if (value != null && !(value instanceof Number) && !(value instanceof String)) {
-                            value = GSON.toJson(value);
-                        }
-
-                        RESULTS.put(selected.getKey(), value);
+                        RESULTS.put(selected.getKey(), finalValue);
                         currentState = State.MENU;
                     });
         }
