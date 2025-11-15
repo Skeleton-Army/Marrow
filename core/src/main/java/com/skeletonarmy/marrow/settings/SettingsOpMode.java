@@ -187,6 +187,11 @@ public abstract class SettingsOpMode extends OpMode {
 
     private void handlePrompt() {
         prompter.run();
+
+        if (GamepadInput.justPressed(Button.B)) {
+            currentState = State.MENU;
+            prompter = null;
+        }
     }
 
     private enum State {
