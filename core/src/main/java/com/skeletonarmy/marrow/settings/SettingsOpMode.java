@@ -34,14 +34,14 @@ public abstract class SettingsOpMode extends OpMode {
         return getClass().getSimpleName() + ".json";
     }
 
-    public String getFileDir() {
+    public String getFileDirectory() {
         return "FIRST/Settings";
     }
 
     @Override
     public void init() {
         fileName = getFileName();
-        fileDir = getFileDir();
+        fileDir = getFileDirectory();
 
         if (!loaded) {
             FileHandler.loadFromFile(RESULTS, fileDir, fileName);
