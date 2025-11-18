@@ -16,23 +16,26 @@ import java.util.Map;
 
 public class FileHandler {
     private static final Gson GSON = new Gson();
-    private static final Type RESULTS_MAP_TYPE = new TypeToken<Map<String, Object>>() {}.getType();
+
+    public static class Entry {
+        public String type;
+        public Object value;
+    }
 
     /**
-     * Saves the provided map to a JSON file.
-     * @param map The map containing key-value pairs.
+     * Saves a map of Settings.Entry to JSON.
+     *
+     * @param map The map containing key-entry pairs.
      * @param directoryName The directory name (e.g., "FIRST").
-     * @param fileName The file name (e.g., "marrow_settings.json").
+     * @param fileName The file name (e.g., "settings.json").
      */
-    public static void saveToFile(Map<String, Object> map, String directoryName, String fileName) {
+    public static void saveToFile(Map<String, Entry> map, String directoryName, String fileName) {
         File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
         File file = new File(directory, fileName);
 
-        if (!directory.exists()) {
-            if (!directory.mkdirs()) {
-                RobotLog.addGlobalWarningMessage("Error: Could not create directory: " + directory.getAbsolutePath());
-                return;
-            }
+        if (!directory.exists() && !directory.mkdirs()) {
+            RobotLog.addGlobalWarningMessage("Error: Could not create directory: " + directory.getAbsolutePath());
+            return;
         }
 
         try (FileWriter fw = new FileWriter(file)) {
@@ -44,21 +47,21 @@ public class FileHandler {
     }
 
     /**
-     * Loads a JSON file into the provided map.
-     * @param map The map to load the data into (it will be cleared first).
+     * Loads a JSON file into a map of Settings.Entry.
+     *
+     * @param map The map to load data into.
      * @param directoryName The directory name (e.g., "FIRST").
-     * @param fileName The file name (e.g., "marrow_settings.json").
+     * @param fileName The file name (e.g., "settings.json").
      */
-    public static void loadFromFile(Map<String, Object> map, String directoryName, String fileName) {
+    public static void loadFromFile(Map<String, Entry> map, String directoryName, String fileName) {
         File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
         File file = new File(directory, fileName);
 
-        if (!file.exists()) {
-            return;
-        }
+        if (!file.exists()) return;
 
         try (FileReader fr = new FileReader(file)) {
-            Map<String, Object> loadedMap = GSON.fromJson(fr, RESULTS_MAP_TYPE);
+            Type type = new TypeToken<Map<String, Entry>>() {}.getType();
+            Map<String, Entry> loadedMap = GSON.fromJson(fr, type);
 
             if (loadedMap != null) {
                 map.putAll(loadedMap);
