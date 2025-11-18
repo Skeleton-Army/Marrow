@@ -47,7 +47,6 @@ public final class Settings {
      * Retrieves a typed setting.
      *
      * @param key          the case-insensitive key
-     * @param type         expected type
      * @param defaultValue value to return if missing
      * @param <T>          generic type
      * @return the parsed and converted value, or {@code defaultValue}
