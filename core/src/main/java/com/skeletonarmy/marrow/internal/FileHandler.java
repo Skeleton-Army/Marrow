@@ -2,34 +2,55 @@ package com.skeletonarmy.marrow.internal;
 
 import android.os.Environment;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
+import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Type;
+import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Handles JSON files I/O.
+ *
+ * <p><b>Internal API - Not Documented:</b> This class is public for
+ * internal framework use. No formal documentation is provided
+ * beyond these Javadoc comments. Contact the team in case you need support.
+ *
+ * <p><b>Warning:</b> Subject to change without notice.
+ */
 public class FileHandler {
-    private static final Gson GSON = new Gson();
+    private static final ObjectMapper MAPPER = createMapper();
 
-    public static class Entry {
-        public String type;
-        public Object value;
+    private static ObjectMapper createMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Pretty print for human-readable JSON
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
+
+        // Allow Jackson to serialize the type into the JSON.
+        PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
+                .allowIfBaseType(Object.class)
+                .build();
+
+        mapper.activateDefaultTyping(ptv, ObjectMapper.DefaultTyping.NON_FINAL);
+
+        return mapper;
     }
 
     /**
-     * Saves a map of Settings.Entry to JSON.
+     * Saves a map of Objects to JSON.
+     * Jackson will automatically include type info for complex objects.
      *
-     * @param map The map containing key-entry pairs.
+     * @param map The map containing key-object pairs.
      * @param directoryName The directory name (e.g., "FIRST").
      * @param fileName The file name (e.g., "settings.json").
      */
-    public static void saveToFile(Map<String, Entry> map, String directoryName, String fileName) {
+    public static void saveToFile(Map<String, Object> map, String directoryName, String fileName) {
         File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
         File file = new File(directory, fileName);
 
@@ -38,38 +59,36 @@ public class FileHandler {
             return;
         }
 
-        try (FileWriter fw = new FileWriter(file)) {
-            String json = GSON.toJson(map);
-            fw.write(json);
+        try {
+            // Write the map directly. Jackson handles the types.
+            MAPPER.writeValue(file, map);
         } catch (IOException e) {
             RobotLog.addGlobalWarningMessage("Error saving file: " + file.getAbsolutePath() + "\n" + e.getMessage());
         }
     }
 
     /**
-     * Loads a JSON file into a map of Settings.Entry.
+     * Loads a JSON file into the provided map.
      *
      * @param map The map to load data into.
      * @param directoryName The directory name (e.g., "FIRST").
      * @param fileName The file name (e.g., "settings.json").
      */
-    public static void loadFromFile(Map<String, Entry> map, String directoryName, String fileName) {
+    public static void loadFromFile(Map<String, Object> map, String directoryName, String fileName) {
         File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
         File file = new File(directory, fileName);
 
         if (!file.exists()) return;
 
-        try (FileReader fr = new FileReader(file)) {
-            Type type = new TypeToken<Map<String, Entry>>() {}.getType();
-            Map<String, Entry> loadedMap = GSON.fromJson(fr, type);
+        try {
+            // We use TypeReference to tell Jackson we are expecting a Map with String keys and Object values
+            Map<String, Object> loadedMap = MAPPER.readValue(file, new TypeReference<HashMap<String, Object>>() {});
 
             if (loadedMap != null) {
                 map.putAll(loadedMap);
             }
         } catch (IOException e) {
             RobotLog.addGlobalWarningMessage("Error loading file: " + file.getAbsolutePath() + "\n" + e.getMessage());
-        } catch (JsonSyntaxException e) {
-            RobotLog.addGlobalWarningMessage("Error parsing file (corrupted JSON): " + file.getAbsolutePath() + "\n" + e.getMessage());
         }
     }
 }
