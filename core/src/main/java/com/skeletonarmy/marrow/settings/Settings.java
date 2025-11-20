@@ -8,7 +8,7 @@ import java.util.Map;
 public final class Settings {
     private static final Map<String, Object> DATA = new HashMap<>();
 
-    private static final String FILE_DIR = "FIRST/Settings";
+    private static final String FILE_DIR = "FIRST/marrow";
     private static final String FILE_NAME = "settings.json";
 
     private static boolean loaded = false;
