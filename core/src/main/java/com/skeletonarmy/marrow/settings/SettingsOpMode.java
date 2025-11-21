@@ -49,13 +49,13 @@ public abstract class SettingsOpMode extends OpMode {
         Settings.save();
     }
 
-    protected <T> void add(String key, String name, Prompt<T> prompt) {
+    protected <T> void add(String key, String displayName, Prompt<T> prompt) {
         String normalizedKey = key.toLowerCase();
 
         if (key.isEmpty()) throw new IllegalArgumentException("Key cannot be empty.");
         if (options.stream().anyMatch(p -> p.getKey().equals(normalizedKey))) throw new IllegalArgumentException("Duplicate key found: " + key);
 
-        options.add(new Setting<>(key, name, prompt));
+        options.add(new Setting<>(key, displayName, prompt));
     }
 
     private void drawMenu() {
