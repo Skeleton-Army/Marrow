@@ -33,5 +33,7 @@ dependencies {
     compileOnly("org.firstinspires.ftc:Vision:11.0.0")
     compileOnly("androidx.appcompat:appcompat:1.2.0")
 
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.15.0")
+    //Do not update FasterXML Jackson
+    //2.10.0 is the latest known good version that doesn't break our code and works with the Android API of the Control Hub
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.10.0")
 }
