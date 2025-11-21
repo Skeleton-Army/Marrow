@@ -32,7 +32,13 @@ public final class Settings {
     public static void set(String key, Object value) {
         ensureLoaded();
         String normalized = key.toLowerCase();
-        DATA.put(normalized, value);
+
+        // Store enums as their name
+        if (value instanceof Enum<?>) {
+            DATA.put(normalized, ((Enum<?>) value).name());
+        } else {
+            DATA.put(normalized, value);
+        }
     }
 
     /**
@@ -43,7 +49,7 @@ public final class Settings {
      * @param <T>          generic type
      * @return the value cast to T, or defaultValue
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static <T> T get(String key, T defaultValue) {
         ensureLoaded();
 
@@ -52,11 +58,14 @@ public final class Settings {
         if (raw == null) return defaultValue;
 
         try {
-            // Because Jackson already deserialized the object into its specific class
-            // (e.g. Integer, Double, CustomObject), we only need a direct cast.
+            // If defaultValue is an enum, convert the stored string back to the enum
+            if (defaultValue instanceof Enum<?> && raw instanceof String) {
+                Class<? extends Enum> enumClass = defaultValue.getClass().asSubclass(Enum.class);
+                return (T) Enum.valueOf(enumClass, (String) raw);
+            }
+
             return (T) raw;
         } catch (ClassCastException e) {
-            // Fallback if the type in the file doesn't match T
             return defaultValue;
         }
     }

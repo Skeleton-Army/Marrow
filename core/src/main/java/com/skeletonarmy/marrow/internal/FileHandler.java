@@ -91,4 +91,22 @@ public class FileHandler {
             RobotLog.addGlobalWarningMessage("Error loading file: " + file.getAbsolutePath() + "\n" + e.getMessage());
         }
     }
+
+    /**
+     * Deletes the specified JSON file if it exists.
+     *
+     * @param directoryName The directory name (e.g., "FIRST").
+     * @param fileName      The file name (e.g., "settings.json").
+     * @return true if the file was deleted, false otherwise
+     */
+    public static boolean deleteFile(String directoryName, String fileName) {
+        File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
+        File file = new File(directory, fileName);
+
+        if (file.exists()) {
+            return file.delete();
+        }
+
+        return false;
+    }
 }
