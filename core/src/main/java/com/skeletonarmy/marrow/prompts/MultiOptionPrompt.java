@@ -9,14 +9,17 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
     private final String header;
     private final T[] options;
     private final boolean requireSelection;
+    private final boolean ordered;
     private final List<T> chosenOptions;
+
     private int cursorIndex = 0;
     private boolean showError = false;
 
     @SafeVarargs
-    public MultiOptionPrompt(String header, boolean requireSelection, T... options) {
+    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, T... options) {
         this.header = header;
         this.requireSelection = requireSelection;
+        this.ordered = ordered;
         this.options = options;
         this.chosenOptions = new ArrayList<>();
     }
@@ -28,7 +31,19 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
 
         for (int i = 0; i < options.length; i++) {
             T currentOption = options[i];
-            String marker = chosenOptions.contains(currentOption) ? "[x]" : "[ ]";
+
+            String marker;
+            if (chosenOptions.contains(currentOption)) {
+                if (ordered) {
+                    int index = chosenOptions.indexOf(currentOption) + 1;
+                    marker = "[" + index + "]";
+                } else {
+                    marker = "[x]";
+                }
+            } else {
+                marker = "[ ]";
+            }
+
             String cursor = (i == cursorIndex) ? " <" : "";
             addLine(marker + " " + options[i] + cursor);
         }
