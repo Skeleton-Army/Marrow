@@ -24,12 +24,24 @@ public final class Settings {
     }
 
     /**
-     * Stores a value under the specified key.
+     * Stores a value under the specified key and immediately saves to file.
      *
      * @param key   the case-insensitive key
      * @param value the value to store
      */
     public static void set(String key, Object value) {
+        set(key, value, true);
+    }
+
+    /**
+     * Stores a value under the specified key.
+     * Saves the settings to file if {@code save} is true.
+     *
+     * @param key   case-insensitive key
+     * @param value value to store
+     * @param save  whether to save to file immediately
+     */
+    public static void set(String key, Object value, boolean save) {
         ensureLoaded();
         String normalized = key.toLowerCase();
 
@@ -39,6 +51,8 @@ public final class Settings {
         } else {
             DATA.put(normalized, value);
         }
+
+        if (save) save();
     }
 
     /**
