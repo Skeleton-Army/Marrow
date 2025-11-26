@@ -6,6 +6,9 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import java.util.List;
 
 public class LynxUtil {
+    private static List<LynxModule> cachedHubs = null;
+    private static HardwareMap cachedHardwareMap = null;
+
     /**
      * Sets the bulk caching mode for all Lynx modules in the hardware map.
      * <p>
@@ -19,8 +22,7 @@ public class LynxUtil {
      * @param mode The desired bulk caching mode to be set.
      */
     public static void setBulkCachingMode(HardwareMap hardwareMap, LynxModule.BulkCachingMode mode) {
-        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
-        for (LynxModule hub : hubs) {
+        for (LynxModule hub : getHubs(hardwareMap)) {
             hub.setBulkCachingMode(mode);
         }
     }
@@ -35,9 +37,16 @@ public class LynxUtil {
      * @param hardwareMap The hardware map.
      */
     public static void clearBulkCache(HardwareMap hardwareMap) {
-        List<LynxModule> hubs = hardwareMap.getAll(LynxModule.class);
-        for (LynxModule hub : hubs) {
+        for (LynxModule hub : getHubs(hardwareMap)) {
             hub.clearBulkCache();
         }
+    }
+
+    private static List<LynxModule> getHubs(HardwareMap hardwareMap) {
+        if (cachedHubs == null || cachedHardwareMap != hardwareMap) {
+            cachedHubs = hardwareMap.getAll(LynxModule.class);
+            cachedHardwareMap = hardwareMap;
+        }
+        return cachedHubs;
     }
 }
