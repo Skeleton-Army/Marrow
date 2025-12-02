@@ -11,7 +11,10 @@ import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.robot.RobotState;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
+
+import java.util.Objects;
 
 public class OpModeManager {
     /**
@@ -71,6 +74,17 @@ public class OpModeManager {
      */
     public static HardwareMap getHardwareMap() {
         return getManager().getHardwareMap();
+    }
+
+    /**
+     * Retrieves the current Telemetry.
+     *
+     * @return The active Telemetry object.
+     */
+    public static @Nullable Telemetry getTelemetry() {
+        OpMode opMode = getActiveOpMode();
+        if (opMode == null) throw new IllegalStateException("No active OpMode.");
+        return opMode.telemetry;
     }
 
     /**
