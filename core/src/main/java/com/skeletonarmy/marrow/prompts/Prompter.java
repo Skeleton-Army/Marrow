@@ -75,12 +75,14 @@ public class Prompter {
         GamepadInput.update(opMode.gamepad1, opMode.gamepad2);
 
         boolean finished = processPrompts();
-        opMode.telemetry.update();
 
         if (finished) {
             isCompleted = true;
+            opMode.telemetry.clear(); // Clear the telemetry from the previous prompt
             if (completeFunc != null) completeFunc.run();
         }
+
+        opMode.telemetry.update();
     }
 
     /**
