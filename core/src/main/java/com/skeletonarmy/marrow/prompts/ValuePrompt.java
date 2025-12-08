@@ -30,6 +30,7 @@ public class ValuePrompt extends Prompt<Number> {
     }
 
     public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
+        if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
         if (minValue >= maxValue) throw new IllegalArgumentException("Max value must be greater than min value.");
         if (defaultValue < minValue || defaultValue > maxValue) throw new IllegalArgumentException("Default value must be between min and max value.");
         if (increment <= 0) throw new IllegalArgumentException("Increment must be greater than zero.");

@@ -9,8 +9,11 @@ public class OptionPrompt<T> extends Prompt<T> {
 
     @SafeVarargs
     public OptionPrompt(String header, T... options) {
+        if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
+        if (options == null || options.length == 0) throw new IllegalArgumentException("Options cannot be null or empty.");
+
         this.header = header;
-        this.options = options;
+        this.options = options.clone();
     }
 
     @Override

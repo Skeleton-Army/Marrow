@@ -7,6 +7,8 @@ public class BooleanPrompt extends Prompt<Boolean> {
     private boolean selectedValue;
 
     public BooleanPrompt(String header, boolean defaultValue) {
+        if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
+
         this.header = header;
         this.selectedValue = defaultValue;
     }
