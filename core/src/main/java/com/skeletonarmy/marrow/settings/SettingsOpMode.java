@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public abstract class SettingsOpMode extends OpMode {
-    private static final Gson GSON = new Gson();
-
     private final List<Setting<?>> options = new ArrayList<>();
 
     private enum State { MENU, PROMPT }
@@ -96,18 +94,7 @@ public abstract class SettingsOpMode extends OpMode {
 
     private String formatValue(Object value) {
         if (value == null) return "N/A";
-        Class<?> clazz = value.getClass();
-
-        if (clazz.isPrimitive() || value instanceof Number || value instanceof Boolean || value instanceof String) {
-            return value.toString();
-        }
-
-        // JSON pretty-print
-        try {
-            return GSON.toJson(value);
-        } catch (Exception e) {
-            return value.toString();
-        }
+        return value.toString();
     }
 
     private static class Setting<T> {
