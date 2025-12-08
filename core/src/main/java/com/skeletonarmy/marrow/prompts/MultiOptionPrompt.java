@@ -10,17 +10,20 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
     private final T[] options;
     private final boolean requireSelection;
     private final boolean ordered;
+    private final int maxSelections;
     private final List<T> chosenOptions;
 
     private int cursorIndex = 0;
     private boolean showError = false;
+    private String errorMessage = "";
 
     @SafeVarargs
-    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, T... options) {
+    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, int maxSelections, T... options) {
         this.header = header;
         this.requireSelection = requireSelection;
         this.ordered = ordered;
         this.options = options;
+        this.maxSelections = maxSelections;
         this.chosenOptions = new ArrayList<>();
     }
 
@@ -45,7 +48,7 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
             }
 
             String cursor = (i == cursorIndex) ? " <" : "";
-            addLine(marker + " " + options[i] + cursor);
+            addLine(marker + " " + currentOption + cursor);
         }
 
         addLine("");
@@ -55,9 +58,10 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
         String doneCursor = (cursorIndex == doneIndex) ? " <" : "";
         addLine("       DONE" + doneCursor);
 
+        // Show error message, if any
         if (showError) {
             addLine("");
-            addLine("! You must select at least one option !");
+            addLine("! " + errorMessage + " !");
         }
 
         if (justPressed(Button.DPAD_UP)) {
@@ -70,17 +74,25 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
             if (cursorIndex < options.length) {
                 T selectedOption = options[cursorIndex];
 
-                // If it's in the list, remove it; otherwise, add it.
                 if (chosenOptions.contains(selectedOption)) {
+                    // Remove selection
                     chosenOptions.remove(selectedOption);
+                    showError = false;
                 } else {
-                    chosenOptions.add(selectedOption);
+                    // Enforce limit
+                    if (maxSelections > 0 && chosenOptions.size() >= maxSelections) {
+                        showError = true;
+                        errorMessage = "You may only select up to " + maxSelections + " option(s)";
+                    } else {
+                        chosenOptions.add(selectedOption);
+                        showError = false;
+                    }
                 }
 
-                showError = false;
-            } else { // DONE selected
+            } else { // DONE
                 if (requireSelection && chosenOptions.isEmpty()) {
                     showError = true;
+                    errorMessage = "You must select at least one option";
                 } else {
                     return chosenOptions;
                 }
