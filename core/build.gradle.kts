@@ -19,6 +19,15 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        // Force Gradle to use version 2.10.0 even if there is a newer version inside your TeamCode
+        force("com.fasterxml.jackson.core:jackson-core:2.10.0")
+        force("com.fasterxml.jackson.core:jackson-annotations:2.10.0")
+        force("com.fasterxml.jackson.core:jackson-databind:2.10.0")
+    }
+}
+
 dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("junit:junit:4.13.2")
