@@ -287,6 +287,10 @@ public class PolygonZone implements Zone {
             return minDistance;
         }
 
+        if (zone instanceof CompositeZone) {
+            return zone.distanceTo(this);
+        }
+
         return Double.NaN;
     }
 

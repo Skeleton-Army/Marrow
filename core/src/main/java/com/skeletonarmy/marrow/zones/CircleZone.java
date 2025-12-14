@@ -130,6 +130,10 @@ public class CircleZone implements Zone {
             return Math.max(0, distanceToPolygonCenter - this.radius);
         }
 
+        if (zone instanceof CompositeZone) {
+            return zone.distanceTo(this);
+        }
+
         return Double.NaN;
     }
 
