@@ -6,7 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class Settings {
-    private static final Map<String, Object> DATA = new HashMap<>();
+    private static final Map<String, Object> DATA = new HashMap<>(); // Saved to file
+    private static final Map<String, Object> SESSION_DATA = new HashMap<>(); // Not saved
 
     private static final String FILE_DIR = "FIRST/marrow";
     private static final String FILE_NAME = "settings.json";
@@ -44,15 +45,14 @@ public final class Settings {
     public static void set(String key, Object value, boolean save) {
         ensureLoaded();
         String normalized = key.toLowerCase();
+        Object valueToStore = (value instanceof Enum<?>) ? ((Enum<?>) value).name() : value;
 
-        // Store enums as their name
-        if (value instanceof Enum<?>) {
-            DATA.put(normalized, ((Enum<?>) value).name());
+        if (save) {
+            DATA.put(normalized, valueToStore);
+            save();
         } else {
-            DATA.put(normalized, value);
+            SESSION_DATA.put(normalized, valueToStore);
         }
-
-        if (save) save();
     }
 
     /**
@@ -68,7 +68,8 @@ public final class Settings {
         ensureLoaded();
 
         String normalized = key.toLowerCase();
-        Object raw = DATA.get(normalized);
+
+        Object raw = SESSION_DATA.containsKey(normalized) ? SESSION_DATA.get(normalized) : DATA.get(normalized);
         if (raw == null) return defaultValue;
 
         try {
@@ -79,7 +80,7 @@ public final class Settings {
             }
 
             return (T) raw;
-        } catch (ClassCastException e) {
+        } catch (ClassCastException | IllegalArgumentException e) {
             return defaultValue;
         }
     }
