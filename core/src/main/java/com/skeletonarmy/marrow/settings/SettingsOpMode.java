@@ -1,9 +1,9 @@
 package com.skeletonarmy.marrow.settings;
 
-import com.google.gson.Gson;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
+import com.skeletonarmy.marrow.prompts.BooleanPrompt;
 import com.skeletonarmy.marrow.prompts.Prompt;
 import com.skeletonarmy.marrow.prompts.Prompter;
 
@@ -57,29 +57,47 @@ public abstract class SettingsOpMode extends OpMode {
     }
 
     private void drawMenu() {
+        int totalItems = options.size() + 1;
+
         for (int i = 0; i < options.size(); i++) {
             Setting<?> s = options.get(i);
             Object value = Settings.get(s.getKey(), null);
             telemetry.addLine(s.getName() + ": " + formatValue(value) + (i == cursor ? " <" : ""));
         }
 
+        telemetry.addLine();
+        telemetry.addLine("FACTORY RESET (CLEARS ALL SETTINGS)" + (cursor == totalItems - 1 ? " <" : ""));
+
         if (GamepadInput.justPressed(Button.DPAD_UP))
-            cursor = (cursor - 1 + options.size()) % options.size();
+            cursor = (cursor - 1 + totalItems) % totalItems;
 
         if (GamepadInput.justPressed(Button.DPAD_DOWN))
-            cursor = (cursor + 1) % options.size();
+            cursor = (cursor + 1) % totalItems;
 
         if (GamepadInput.justPressed(Button.A)) {
-            Setting<?> s = options.get(cursor);
-            prompter = new Prompter(this);
-            state = State.PROMPT;
+            if (cursor < options.size()) { // Settings
+                Setting<?> s = options.get(cursor);
+                prompter = new Prompter(this);
+                state = State.PROMPT;
 
-            prompter.prompt("_", s.getPrompt())
-                    .onComplete(() -> {
-                        Object v = prompter.get("_");
-                        Settings.set(s.getKey(), v);
-                        state = State.MENU;
-                    });
+                prompter.prompt("_", s.getPrompt())
+                        .onComplete(() -> {
+                            Object v = prompter.get("_");
+                            Settings.set(s.getKey(), v);
+                            state = State.MENU;
+                        });
+            } else { // Factory reset
+                prompter = new Prompter(this);
+                state = State.PROMPT;
+
+                prompter.prompt("confirm", new BooleanPrompt("ARE YOU SURE?", false))
+                        .onComplete(() -> {
+                            if (prompter.get("confirm")) {
+                                Settings.clear();
+                            }
+                            state = State.MENU;
+                        });
+            }
         }
     }
 

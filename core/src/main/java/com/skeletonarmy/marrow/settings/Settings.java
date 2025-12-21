@@ -17,6 +17,16 @@ public final class Settings {
     private Settings() {}
 
     /**
+     * Wipes all saved settings from memory and deletes the content of the file.
+     */
+    public static void clear() {
+        ensureLoaded();
+        DATA.clear();
+        SESSION_DATA.clear();
+        save();
+    }
+
+    /**
      * Saves all currently loaded settings to file.
      */
     public static void save() {
