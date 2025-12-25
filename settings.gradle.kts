@@ -13,11 +13,4 @@ plugins {
 
 rootProject.name = "Marrow"
 
-include(
-	":core",
-	":nextftc",
-	":ftclib",
-)
-
-project(":nextftc").projectDir = file("customLibraries/nextftc")
-project(":ftclib").projectDir = file("customLibraries/ftclib")
+include(":core")

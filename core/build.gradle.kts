@@ -42,6 +42,9 @@ dependencies {
     compileOnly("org.firstinspires.ftc:Vision:11.0.0")
     compileOnly("androidx.appcompat:appcompat:1.2.0")
 
+    compileOnly("org.ftclib.ftclib:core:2.1.1")
+    compileOnly("dev.nextftc:ftc:1.0.1")
+
     // WARNING: DO NOT UPDATE FASTERXML JACKSON
     // 2.10.0 is the latest known good version that doesn't break our code and works with the Android API of the Control Hub
     implementation("com.fasterxml.jackson.core:jackson-core:2.10.0")
