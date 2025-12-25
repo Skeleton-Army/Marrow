@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.function.Supplier;
 
 public class Prompter {
@@ -29,6 +30,7 @@ public class Prompter {
      * Add a prompt to the queue.
      */
     public <T> Prompter prompt(String key, Prompt<T> prompt) {
+        requireValidKey(key);
         prompts.add(new KeyPromptPair<>(key, () -> prompt));
         return this; // For method chaining
     }
@@ -37,6 +39,7 @@ public class Prompter {
      * Add a prompt to the queue.
      */
     public <T> Prompter prompt(String key, Supplier<Prompt<T>> promptSupplier) {
+        requireValidKey(key);
         prompts.add(new KeyPromptPair<>(key, promptSupplier));
         return this; // For method chaining
     }
@@ -50,6 +53,8 @@ public class Prompter {
      */
     @SuppressWarnings("unchecked")
     public <T> T get(String key) {
+        requireValidKey(key);
+        if (!results.containsKey(key)) throw new NoSuchElementException("No result found for key '" + key + "'. Ensure prompts have been executed, or use getOrDefault() if the result may be absent.");
         return (T) results.get(key);
     }
 
@@ -57,11 +62,12 @@ public class Prompter {
      * Gets the chosen value of a prompt from its key.
      *
      * @param key The prompt's key
-     * @param defaultValue A default value if the value doesn't exist
+     * @param defaultValue The value to return if no result exists for the key
      * @return The value of the prompt result
      */
     @SuppressWarnings("unchecked")
     public <T> T getOrDefault(String key, T defaultValue) {
+        requireValidKey(key);
         return (T) results.getOrDefault(key, defaultValue);
     }
 
@@ -132,6 +138,11 @@ public class Prompter {
             prompts.get(currentIndex).reset(); // Reset prompt so it will get a fresh prompt every time
             currentIndex--;
         } while (prompts.get(currentIndex).getPrompt() == null && currentIndex > 0); // Skip all null prompts
+    }
+
+    private static void requireValidKey(String key) {
+        if (key == null) throw new IllegalArgumentException("Key cannot be null.");
+        if (key.isEmpty()) throw new IllegalArgumentException("Key cannot be empty.");
     }
 
     private class KeyPromptPair<T> {
