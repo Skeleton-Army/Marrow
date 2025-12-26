@@ -18,7 +18,7 @@ subprojects {
         projectInfo {
             name.set("Marrow")
             description.set("A lightweight library for building advanced robot behaviors.")
-            url.set("https://marrow.skeletonarmyftc.com/")
+            url.set("https://skeleton-army.gitbook.io/marrow")
             scm.fromGithub("Skeleton-Army", "Marrow")
             developer("Skeleton Army", "skeleton.army23644@gmail.com")
             license(MIT)
