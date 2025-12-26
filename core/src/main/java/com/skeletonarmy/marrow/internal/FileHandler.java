@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow.internal;
 
 import android.os.Environment;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
@@ -32,7 +33,10 @@ public class FileHandler {
         // Pretty print for human-readable JSON
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
 
-        // Allow Jackson to serialize the type into the JSON.
+        // Ignore unknown fields to prevent crashes when loading objects with extra or read-only properties
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+        // Allow Jackson to serialize the type into the JSON
         PolymorphicTypeValidator ptv = BasicPolymorphicTypeValidator.builder()
                 .allowIfBaseType(Object.class)
                 .build();
