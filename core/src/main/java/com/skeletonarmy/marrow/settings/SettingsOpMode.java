@@ -92,7 +92,7 @@ public abstract class SettingsOpMode extends OpMode {
 
                 prompter.prompt("confirm", new BooleanPrompt("ARE YOU SURE?", false))
                         .onComplete(() -> {
-                            if (prompter.get("confirm")) {
+                            if (prompter.<Boolean>get("confirm")) {
                                 Settings.clear();
                             }
                             state = State.MENU;
