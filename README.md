@@ -1,7 +1,8 @@
 # Marrow
 
-**Marrow** is a lightweight library that focuses on two main goals:
-1. **Automation -** allowing robots to act intelligently and respond to changing conditions on the field.
-2. **Developer tools -** making code easier to write, adjust, and maintain.
+**Marrow is an open-source library built to turn your robot from a deterministic machine into an intelligent powerhouse.**
 
-Read [the documentation](https://skeleton-army.gitbook.io/marrow) for more info.
+With Marrow, instead of simply following pre-programmed instructions, your robot can react and adapt in real-time to what's happening on the field.
+Marrow also provides powerful developer tools that simplify setup, testing, and managing complex robot logic - so you can focus on building intelligent behaviors.
+
+Read [the documentation](https://marrow.skeletonarmyftc.com/) for more info.
