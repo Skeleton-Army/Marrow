@@ -14,8 +14,6 @@ import com.qualcomm.robotcore.robot.RobotState;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
-import java.util.Objects;
-
 public class OpModeManager {
     /**
      * Retrieves the internal OpModeManagerImpl instance.
