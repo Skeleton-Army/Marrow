@@ -9,8 +9,7 @@ public final class Settings {
     private static final Map<String, Object> DATA = new HashMap<>(); // Saved to file
     private static final Map<String, Object> SESSION_DATA = new HashMap<>(); // Not saved
 
-    private static final String FILE_DIR = "FIRST/marrow";
-    private static final String FILE_NAME = "settings.json";
+    private static final String FILE_PATH = "FIRST/marrow/settings.json";
 
     private static boolean loaded = false;
 
@@ -31,7 +30,7 @@ public final class Settings {
      */
     public static void save() {
         ensureLoaded();
-        FileHandler.saveToFile(DATA, FILE_DIR, FILE_NAME);
+        FileHandler.saveToFile(DATA, FILE_PATH);
     }
 
     /**
@@ -97,7 +96,7 @@ public final class Settings {
 
     private static void ensureLoaded() {
         if (!loaded) {
-            FileHandler.loadFromFile(DATA, FILE_DIR, FILE_NAME);
+            FileHandler.loadFromFile(DATA, FILE_PATH);
             loaded = true;
         }
     }

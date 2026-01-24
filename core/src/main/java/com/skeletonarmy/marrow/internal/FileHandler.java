@@ -14,6 +14,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Handles JSON files I/O.
@@ -51,15 +52,13 @@ public class FileHandler {
      * Jackson will automatically include type info for complex objects.
      *
      * @param map The map containing key-object pairs.
-     * @param directoryName The directory name (e.g., "FIRST").
-     * @param fileName The file name (e.g., "settings.json").
+     * @param filePath      The file path. Can be absolute or relative to external storage directory.
      */
-    public static void saveToFile(Map<String, Object> map, String directoryName, String fileName) {
-        File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
-        File file = new File(directory, fileName);
+    public static void saveToFile(Map<String, Object> map, String filePath) {
+        File file = handleFilePath(filePath);
 
-        if (!directory.exists() && !directory.mkdirs()) {
-            RobotLog.addGlobalWarningMessage("Error: Could not create directory: " + directory.getAbsolutePath());
+        if (!Objects.requireNonNull(file.getParentFile()).exists() && !file.getParentFile().mkdirs()) {
+            RobotLog.addGlobalWarningMessage("Error: Could not create directory: " + file.getParentFile().getAbsolutePath());
             return;
         }
 
@@ -74,13 +73,10 @@ public class FileHandler {
     /**
      * Loads a JSON file into the provided map.
      *
-     * @param map The map to load data into.
-     * @param directoryName The directory name (e.g., "FIRST").
-     * @param fileName The file name (e.g., "settings.json").
+     * @param filePath      The file path. Can be absolute or relative to external storage directory.
      */
-    public static void loadFromFile(Map<String, Object> map, String directoryName, String fileName) {
-        File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
-        File file = new File(directory, fileName);
+    public static void loadFromFile(Map<String, Object> map, String filePath) {
+        File file = handleFilePath(filePath);
 
         if (!file.exists()) return;
 
@@ -99,18 +95,27 @@ public class FileHandler {
     /**
      * Deletes the specified JSON file if it exists.
      *
-     * @param directoryName The directory name (e.g., "FIRST").
-     * @param fileName      The file name (e.g., "settings.json").
+     * @param filePath      The file path. Can be absolute or relative to external storage directory.
      * @return true if the file was deleted, false otherwise
      */
-    public static boolean deleteFile(String directoryName, String fileName) {
-        File directory = new File(Environment.getExternalStorageDirectory().getPath(), directoryName);
-        File file = new File(directory, fileName);
+    public static boolean deleteFile(String filePath) {
+        File file = handleFilePath(filePath);
 
         if (file.exists()) {
             return file.delete();
         }
 
         return false;
+    }
+
+    private static File handleFilePath(String filePath) {
+        if (filePath.startsWith(Environment.getExternalStorageDirectory().getPath())) {
+            return new File(filePath);
+        }
+
+        if (!filePath.startsWith("/")) {
+            filePath = "/" + filePath;
+        }
+        return new File(Environment.getExternalStorageDirectory().getPath() + filePath);
     }
 }
