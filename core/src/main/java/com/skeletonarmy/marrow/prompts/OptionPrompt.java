@@ -9,13 +9,19 @@ public class OptionPrompt<T> extends Prompt<T> {
 
     @SafeVarargs
     public OptionPrompt(String header, T... options) {
-        if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
-        if (options == null || options.length == 0) throw new IllegalArgumentException("Options cannot be null or empty.");
+        if (header == null || header.isEmpty())
+            throw new IllegalArgumentException("Header cannot be empty.");
+        if (options == null || options.length == 0)
+            throw new IllegalArgumentException("Options cannot be null or empty.");
 
         this.header = header;
         this.options = options.clone();
     }
 
+    @SuppressWarnings("unchecked")
+    public OptionPrompt(String header, Class<? extends Enum<?>> options) {
+        this(header, (T[]) options.getEnumConstants());
+    }
     @Override
     public T process() {
         addLine("=== " + header + " ===");
