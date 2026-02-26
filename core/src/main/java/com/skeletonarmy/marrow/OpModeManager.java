@@ -3,7 +3,6 @@ package com.skeletonarmy.marrow;
 import android.app.Activity;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
@@ -21,8 +20,7 @@ public class OpModeManager {
      * @return The active OpModeManagerImpl instance
      * @throws IllegalStateException if the activity or the OpModeManagerImpl are not yet available.
      */
-    @NonNull
-    public static OpModeManagerImpl getManager() {
+    public static @NonNull OpModeManagerImpl getManager() {
         Activity activity = AppUtil.getInstance().getActivity();
 
         if (activity == null) {
@@ -43,7 +41,7 @@ public class OpModeManager {
      *
      * @return The active OpMode, or null if no OpMode is running.
      */
-    public static @Nullable OpMode getActiveOpMode() {
+    public static @NonNull OpMode getActiveOpMode() {
         return getManager().getActiveOpMode();
     }
 
@@ -52,7 +50,7 @@ public class OpModeManager {
      *
      * @return The name of the active OpMode.
      */
-    public static String getActiveOpModeName() {
+    public static @NonNull String getActiveOpModeName() {
         return getManager().getActiveOpModeName();
     }
 
@@ -61,7 +59,7 @@ public class OpModeManager {
      *
      * @return The current RobotState enum (e.g., INIT, RUNNING).
      */
-    public static RobotState getRobotState() {
+    public static @NonNull RobotState getRobotState() {
         return getManager().getRobotState();
     }
 
@@ -70,7 +68,7 @@ public class OpModeManager {
      *
      * @return The active HardwareMap object.
      */
-    public static HardwareMap getHardwareMap() {
+    public static @NonNull HardwareMap getHardwareMap() {
         return getManager().getHardwareMap();
     }
 
@@ -79,10 +77,8 @@ public class OpModeManager {
      *
      * @return The active Telemetry object.
      */
-    public static @Nullable Telemetry getTelemetry() {
-        OpMode opMode = getActiveOpMode();
-        if (opMode == null) throw new IllegalStateException("No active OpMode.");
-        return opMode.telemetry;
+    public static @NonNull Telemetry getTelemetry() {
+        return getActiveOpMode().telemetry;
     }
 
     /**
@@ -91,8 +87,12 @@ public class OpModeManager {
      * @param listener The listener implementing OpModeManagerNotifier.Notifications
      * @return The active OpMode at the time of registration, or null
      */
-    public static @Nullable OpMode registerListener(OpModeManagerNotifier.Notifications listener) {
-        return getManager().registerListener(listener);
+    public static @NonNull OpMode registerListener(OpModeManagerNotifier.Notifications listener) {
+        OpMode opMode = getManager().registerListener(listener);
+        if (opMode == null) {
+            throw new IllegalStateException("OpMode is not initialized!");
+        }
+        return opMode;
     }
 
     /**
