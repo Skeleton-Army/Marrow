@@ -72,7 +72,7 @@ public class ValuePrompt extends Prompt<Number> {
 
         if (justPressed(Button.A)) {
             if (isInteger) {
-                return selectedValue.intValue();
+                return (selectedValue > Integer.MAX_VALUE) ? selectedValue.intValue() : selectedValue.longValue();
             } else {
                 return selectedValue;
             }
@@ -85,7 +85,7 @@ public class ValuePrompt extends Prompt<Number> {
      * Checks whether a double value is a whole number (integer).
      */
     private static boolean isIntegerLike(double value) {
-        return Double.isInfinite(value) || value == (int)value;
+        return Double.isInfinite(value) || value == (int) value;
     }
 
     /**
