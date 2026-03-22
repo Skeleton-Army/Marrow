@@ -28,8 +28,8 @@ public class RetryAction implements Action {
      * Creates a new RetryAction.
      *
      * @param initialAction    Supplies the action to run on the first attempt.
-     * @param retryAction      A function that takes the retry count (starting at 1) and returns the action for that attempt.
-     * @param successCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the action should finish without retrying.
+     * @param retryAction      Supplies the action to run on retry.
+     * @param successCondition A condition that returns {@code false} if a retry should be attempted, or {@code true} if the action should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
     public RetryAction(
@@ -48,7 +48,7 @@ public class RetryAction implements Action {
      * Creates a new RetryAction where the retry action is the same as the initial one.
      *
      * @param action           A supplier that creates a new instance of the action to run.
-     * @param successCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the action should finish without retrying.
+     * @param successCondition A condition that returns {@code false} if a retry should be attempted, or {@code true} if the action should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
     public RetryAction(

@@ -24,10 +24,10 @@ public class RetryCommand extends Command {
     /**
      * Creates a new RetryCommand.
      *
-     * @param command        Supplies the command to run on the first attempt.
-     * @param retryCommand   A function that takes the retry count (starting at 1) and returns the command for that attempt.
-     * @param successCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
-     * @param maxRetries     The maximum number of retries allowed.
+     * @param command          The command to run on the first attempt.
+     * @param retryCommand     The command to run on retry.
+     * @param successCondition A condition that returns {@code false} if a retry should be attempted, or {@code true} if the command should finish without retrying.
+     * @param maxRetries       The maximum number of retries allowed.
      */
     public RetryCommand(
             Command command,
@@ -47,9 +47,9 @@ public class RetryCommand extends Command {
     /**
      * Creates a new RetryCommand where the retry command is the same as the initial one.
      *
-     * @param command        A supplier that creates a new instance of the command to run.
+     * @param command          The command to run on the first attempt.
      * @param successCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
-     * @param maxRetries     The maximum number of retries allowed.
+     * @param maxRetries       The maximum number of retries allowed.
      */
     public RetryCommand(
             Command command,
