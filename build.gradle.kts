@@ -12,6 +12,7 @@ subprojects {
     repositories {
         mavenCentral()
         google()
+        maven("https://maven.brott.dev")
     }
 
     extensions.configure<io.deepmedia.tools.deployer.DeployerExtension> {
