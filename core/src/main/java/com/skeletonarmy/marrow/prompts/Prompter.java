@@ -92,7 +92,7 @@ public class Prompter {
      * Shows a summary screen after all prompts are complete.
      * The driver must confirm before {@link #onComplete} fires.
      */
-    public Prompter withSummary() {
+    public Prompter showSummary() {
         showSummary = true;
         return this;
     }
@@ -130,12 +130,21 @@ public class Prompter {
     }
 
     private void runSummary() {
-        opMode.telemetry.addLine("=== CONFIRM SETTINGS ===");
+        opMode.telemetry.addLine("=== SUMMARY ===");
         opMode.telemetry.addLine("");
 
         for (PromptEntry<?> entry : entries) {
             if (!results.containsKey(entry.key)) continue;
-            opMode.telemetry.addData(entry.label != null ? entry.label : entry.key, results.get(entry.key));
+            if (entry.promptInstance instanceof MessagePrompt) continue;
+
+            Object value = results.get(entry.key);
+            String display = value instanceof List
+                    ? ((List<?>) value).stream()
+                    .map(o -> o != null ? o.toString() : "null")
+                    .collect(java.util.stream.Collectors.joining(", "))
+                    : value != null ? value.toString() : "null";
+
+            opMode.telemetry.addData(entry.label != null ? entry.label : entry.key, display);
         }
 
         opMode.telemetry.addLine("");
@@ -315,8 +324,8 @@ public class Prompter {
             return Prompter.this.onComplete(func);
         }
 
-        public Prompter withSummary() {
-            return Prompter.this.withSummary();
+        public Prompter showSummary() {
+            return Prompter.this.showSummary();
         }
     }
 
