@@ -19,6 +19,7 @@ public class Prompter {
     private final OpMode opMode;
     private final List<PromptEntry<?>> entries = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
+    private final Map<String, Integer> resultEntryIndex = new HashMap<>();
 
     private Runnable completeFunc = null;
     private int currentIndex = 0;
@@ -156,13 +157,13 @@ public class Prompter {
             complete();
         } else if (GamepadInput.justPressed(Button.B)) {
             inSummary = false;
-            // Reset currentIndex to last valid index before going back
             currentIndex = entries.size() - 1;
-            while (currentIndex > 0 && !results.containsKey(entries.get(currentIndex).key)) {
+            while (currentIndex > 0 && !resultEntryIndex.containsValue(currentIndex)) {
                 currentIndex--;
             }
             PromptEntry<?> landed = entries.get(currentIndex);
             landed.reset();
+            resultEntryIndex.values().remove(currentIndex);
             results.remove(landed.key);
         }
     }
@@ -172,9 +173,8 @@ public class Prompter {
      */
     private boolean processPrompts() {
         if (GamepadInput.justPressed(Button.B) && currentIndex > 0) {
-            // Find the last answered entry rather than just currentIndex - 1
             int target = currentIndex - 1;
-            while (target > 0 && !results.containsKey(entries.get(target).key)) {
+            while (target > 0 && !resultEntryIndex.containsValue(target)) {
                 target--;
             }
             goBackTo(target);
@@ -199,6 +199,7 @@ public class Prompter {
         Object result = prompt.process();
         if (result != null) {
             results.put(entry.key, result);
+            resultEntryIndex.put(entry.key, currentIndex);
             if (entry.onAnswer != null) entry.onAnswer.accept(result);
             currentIndex++;
         }
@@ -210,18 +211,21 @@ public class Prompter {
         while (currentIndex > index) {
             PromptEntry<?> e = entries.get(currentIndex);
             e.reset();
+            resultEntryIndex.values().remove(currentIndex);
             results.remove(e.key);
             currentIndex--;
         }
 
         while (currentIndex > 0 && entries.get(currentIndex).getPrompt(opMode.telemetry) == null) {
             entries.get(currentIndex).reset();
+            resultEntryIndex.values().remove(currentIndex);
             results.remove(entries.get(currentIndex).key);
             currentIndex--;
         }
 
         PromptEntry<?> landed = entries.get(currentIndex);
         landed.reset();
+        resultEntryIndex.values().remove(currentIndex);
         results.remove(landed.key);
     }
 
