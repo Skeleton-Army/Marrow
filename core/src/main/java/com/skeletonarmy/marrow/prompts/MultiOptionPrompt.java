@@ -21,7 +21,7 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
     public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, int maxSelections, T... options) {
         if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
         if (options == null || options.length == 0) throw new IllegalArgumentException("Options cannot be null or empty.");
-        if (maxSelections < 0 ) throw new IllegalArgumentException("Max selections cannot be negative.");
+        if (maxSelections < 0) throw new IllegalArgumentException("Max selections cannot be negative.");
 
         this.header = header;
         this.requireSelection = requireSelection;
@@ -29,11 +29,6 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
         this.options = options.clone();
         this.maxSelections = maxSelections;
         this.chosenOptions = new ArrayList<>();
-    }
-
-    @SafeVarargs
-    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, T... options) {
-        this(header, requireSelection, ordered, options.length, options);
     }
 
     @Override
