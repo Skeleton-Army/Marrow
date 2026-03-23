@@ -156,7 +156,14 @@ public class Prompter {
             complete();
         } else if (GamepadInput.justPressed(Button.B)) {
             inSummary = false;
-            goBackTo(entries.size() - 1);
+            // Reset currentIndex to last valid index before going back
+            currentIndex = entries.size() - 1;
+            while (currentIndex > 0 && !results.containsKey(entries.get(currentIndex).key)) {
+                currentIndex--;
+            }
+            PromptEntry<?> landed = entries.get(currentIndex);
+            landed.reset();
+            results.remove(landed.key);
         }
     }
 
