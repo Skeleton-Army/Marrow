@@ -5,55 +5,51 @@ import com.skeletonarmy.marrow.internal.Button;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-public class ValuePrompt extends Prompt<Number> {
+public class ValuePrompt<T extends Number> extends Prompt<T> {
     private final String header;
     private final double minValue;
     private final double maxValue;
     private final double increment;
-    private Double selectedValue;
+    private double selectedValue;
+    private final Class<T> type;
 
-    // Flag that tells us whether this ValuePrompt should be treated as an integer prompt.
-    // If true → values are displayed/returned as integers (no decimals).
-    // If false → values are treated as doubles (can have decimals).
-    private final boolean isInteger;
-
-    public ValuePrompt(String header) {
-        this(header, 0, Double.POSITIVE_INFINITY, 0, 1);
+    public ValuePrompt(String header, Class<T> type) {
+        this(header, type, 0, getMaxForType(type), 0, 1);
     }
 
-    public ValuePrompt(String header, double defaultValue) {
-        this(header, 0, Double.POSITIVE_INFINITY, defaultValue, 1);
+    public ValuePrompt(String header, Class<T> type, T defaultValue) {
+        this(header, type, 0, getMaxForType(type), defaultValue.doubleValue(), 1);
     }
 
-    public ValuePrompt(String header, double defaultValue, double increment) {
-        this(header, 0, Double.POSITIVE_INFINITY, defaultValue, increment);
+    public ValuePrompt(String header, Class<T> type, T defaultValue, T increment) {
+        this(header, type, 0, getMaxForType(type), defaultValue.doubleValue(), increment.doubleValue());
     }
 
-    public ValuePrompt(String header, double minValue, double maxValue, double defaultValue, double increment) {
+    public ValuePrompt(String header, Class<T> type, T minValue, T maxValue, T defaultValue, T increment) {
+        this(header, type, minValue.doubleValue(), maxValue.doubleValue(), defaultValue.doubleValue(), increment.doubleValue());
+    }
+
+    private ValuePrompt(String header, Class<T> type, double minValue, double maxValue, double defaultValue, double increment) {
         if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
         if (minValue >= maxValue) throw new IllegalArgumentException("Max value must be greater than min value.");
         if (defaultValue < minValue || defaultValue > maxValue) throw new IllegalArgumentException("Default value must be between min and max value.");
         if (increment <= 0) throw new IllegalArgumentException("Increment must be greater than zero.");
 
         this.header = header;
+        this.type = type;
         this.minValue = minValue;
         this.maxValue = maxValue;
         this.increment = increment;
         this.selectedValue = defaultValue;
-
-        this.isInteger = isIntegerLike(minValue) &&
-                         isIntegerLike(maxValue) &&
-                         isIntegerLike(defaultValue) &&
-                         isIntegerLike(increment);
     }
 
     @Override
-    public Number process() {
+    public T process() {
         addLine("=== " + header + " ===");
         addLine("");
 
-        if (isInteger) {
-            addLine("< " + selectedValue.intValue() + " >");
+        if (isIntegerType()) {
+            addLine("< " + (long) selectedValue + " >");
         } else {
             addLine("< " + round(selectedValue, 2) + " >");
         }
@@ -71,26 +67,36 @@ public class ValuePrompt extends Prompt<Number> {
         }
 
         if (justPressed(Button.A)) {
-            if (isInteger) {
-                return (selectedValue <= Integer.MAX_VALUE) ? selectedValue.intValue() : selectedValue.longValue();
-            } else {
-                return selectedValue;
-            }
+            return cast(selectedValue);
         }
 
         return null;
     }
 
-    /**
-     * Checks whether a double value is a whole number (integer).
-     */
-    private static boolean isIntegerLike(double value) {
-        return Double.isInfinite(value) || value == (int) value;
+    @SuppressWarnings("unchecked")
+    private T cast(double value) {
+        if (type == Integer.class) return (T) Integer.valueOf((int) value);
+        if (type == Long.class)    return (T) Long.valueOf((long) value);
+        if (type == Double.class)  return (T) Double.valueOf(value);
+        if (type == Float.class)   return (T) Float.valueOf((float) value);
+        if (type == Short.class)   return (T) Short.valueOf((short) value);
+        if (type == Byte.class)    return (T) Byte.valueOf((byte) value);
+        throw new IllegalStateException("Unsupported number type: " + type.getSimpleName());
     }
 
-    /**
-     * Rounds a double to the specified number of decimal {@code places}.
-     */
+    private boolean isIntegerType() {
+        return type == Integer.class || type == Long.class || type == Short.class || type == Byte.class;
+    }
+
+    private static double getMaxForType(Class<?> type) {
+        if (type == Integer.class) return Integer.MAX_VALUE;
+        if (type == Long.class)    return Long.MAX_VALUE;
+        if (type == Short.class)   return Short.MAX_VALUE;
+        if (type == Byte.class)    return Byte.MAX_VALUE;
+        if (type == Float.class)   return Float.MAX_VALUE;
+        return Double.MAX_VALUE;
+    }
+
     private static double round(double value, int places) {
         if (places < 0) throw new IllegalArgumentException();
 
