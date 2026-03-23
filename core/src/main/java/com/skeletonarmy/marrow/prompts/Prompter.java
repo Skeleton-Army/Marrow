@@ -8,9 +8,11 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -134,18 +136,31 @@ public class Prompter {
         opMode.telemetry.addLine("=== SUMMARY ===");
         opMode.telemetry.addLine("");
 
+        Set<String> displayedKeys = new HashSet<>();
+
         for (PromptEntry<?> entry : entries) {
-            if (!results.containsKey(entry.key)) continue;
+            if (displayedKeys.contains(entry.key) || !results.containsKey(entry.key)) continue;
             if (entry.promptInstance instanceof MessagePrompt) continue;
 
             Object value = results.get(entry.key);
+
+            String finalLabel = entry.label;
+            if (finalLabel == null) {
+                finalLabel = entries.stream()
+                        .filter(e -> e.key.equals(entry.key) && e.label != null)
+                        .map(e -> e.label)
+                        .findFirst()
+                        .orElse(entry.key);
+            }
+
             String display = value instanceof List
                     ? ((List<?>) value).stream()
                     .map(o -> o != null ? o.toString() : "null")
                     .collect(java.util.stream.Collectors.joining(", "))
                     : value != null ? value.toString() : "null";
 
-            opMode.telemetry.addData(entry.label != null ? entry.label : entry.key, display);
+            opMode.telemetry.addData(finalLabel, display);
+            displayedKeys.add(entry.key);
         }
 
         opMode.telemetry.addLine("");
