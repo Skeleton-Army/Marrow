@@ -72,7 +72,7 @@ public class ValuePrompt extends Prompt<Number> {
 
         if (justPressed(Button.A)) {
             if (isInteger) {
-                return (selectedValue > Integer.MAX_VALUE) ? selectedValue.intValue() : selectedValue.longValue();
+                return (selectedValue <= Integer.MAX_VALUE) ? selectedValue.intValue() : selectedValue.longValue();
             } else {
                 return selectedValue;
             }
