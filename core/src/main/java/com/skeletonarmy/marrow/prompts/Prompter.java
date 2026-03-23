@@ -47,10 +47,11 @@ public class Prompter {
      * @deprecated Use {@link #prompt(String, Prompt)} with {@link PromptHandle#showIf} instead.
      */
     @Deprecated
-    public <T> Prompter prompt(String key, Supplier<Prompt<T>> promptSupplier) {
+    public <T> PromptHandle prompt(String key, Supplier<Prompt<T>> promptSupplier) {
         requireValidKey(key);
-        entries.add(new PromptEntry<>(key, promptSupplier));
-        return this;
+        PromptEntry<T> entry = new PromptEntry<>(key, promptSupplier);
+        entries.add(entry);
+        return new PromptHandle(entry);
     }
 
     /**
@@ -296,6 +297,11 @@ public class Prompter {
 
         public <T> PromptHandle prompt(String key, Prompt<T> prompt) {
             return Prompter.this.prompt(key, prompt);
+        }
+
+        @Deprecated
+        public <T> PromptHandle prompt(String key, Supplier<Prompt<T>> promptSupplier) {
+            return Prompter.this.prompt(key, promptSupplier);
         }
 
         public Prompter onComplete(Runnable func) {
