@@ -155,8 +155,15 @@ public class Prompter {
      * @return true if all prompts are finished
      */
     private boolean processPrompts() {
-        if (GamepadInput.justPressed(Button.B) && currentIndex > 0)
-            goBackTo(currentIndex - 1);
+        if (GamepadInput.justPressed(Button.B) && currentIndex > 0) {
+            // Find the last answered entry rather than just currentIndex - 1
+            int target = currentIndex - 1;
+            while (target > 0 && !results.containsKey(entries.get(target).key)) {
+                target--;
+            }
+            goBackTo(target);
+            return false;
+        }
 
         if (currentIndex >= entries.size()) return true;
 
@@ -184,7 +191,6 @@ public class Prompter {
     }
 
     private void goBackTo(int index) {
-        // Clear forward from current down to target
         while (currentIndex > index) {
             PromptEntry<?> e = entries.get(currentIndex);
             e.reset();
@@ -192,12 +198,12 @@ public class Prompter {
             currentIndex--;
         }
 
-        // Skip over entries that have no prompt (null supplier result) going backwards
         while (currentIndex > 0 && entries.get(currentIndex).getPrompt(opMode.telemetry) == null) {
+            entries.get(currentIndex).reset();
+            results.remove(entries.get(currentIndex).key);
             currentIndex--;
         }
 
-        // Clear the entry we land on so it can be re-answered
         PromptEntry<?> landed = entries.get(currentIndex);
         landed.reset();
         results.remove(landed.key);
