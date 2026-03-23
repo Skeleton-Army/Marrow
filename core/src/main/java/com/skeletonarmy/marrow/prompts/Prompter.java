@@ -101,30 +101,6 @@ public class Prompter {
         return isCompleted;
     }
 
-    // ---- CONDITION HELPERS ----
-
-    /**
-     * Returns a {@link BooleanSupplier} that is true if ALL of the given keys have a truthy result.
-     */
-    public BooleanSupplier all(String... keys) {
-        return () -> {
-            for (String key : keys)
-                if (!Boolean.TRUE.equals(getOrDefault(key, false))) return false;
-            return true;
-        };
-    }
-
-    /**
-     * Returns a {@link BooleanSupplier} that is true if ANY of the given keys have a truthy result.
-     */
-    public BooleanSupplier any(String... keys) {
-        return () -> {
-            for (String key : keys)
-                if (Boolean.TRUE.equals(getOrDefault(key, false))) return true;
-            return false;
-        };
-    }
-
     // ---- LIFECYCLE ----
 
     /**
@@ -255,10 +231,35 @@ public class Prompter {
         /**
          * Show this prompt only if the given supplier returns true.
          * Multiple calls are AND-ed together.
-         * Useful with {@link Prompter#any(String...)} and {@link Prompter#all(String...)}.
          */
         public PromptHandle showIf(BooleanSupplier condition) {
             entry.addCondition(condition);
+            return this;
+        }
+
+        /**
+         * Show this prompt only if ANY of the given keys have been answered.
+         * Multiple calls are AND-ed with other showIf conditions.
+         */
+        public PromptHandle showIfAny(String... keys) {
+            entry.addCondition(() -> {
+                for (String key : keys)
+                    if (results.containsKey(key)) return true;
+                return false;
+            });
+            return this;
+        }
+
+        /**
+         * Show this prompt only if ALL of the given keys have been answered.
+         * Multiple calls are AND-ed with other showIf conditions.
+         */
+        public PromptHandle showIfAll(String... keys) {
+            entry.addCondition(() -> {
+                for (String key : keys)
+                    if (!results.containsKey(key)) return false;
+                return true;
+            });
             return this;
         }
 
