@@ -208,7 +208,7 @@ public class Prompter {
     }
 
     private void goBackTo(int index) {
-        // Clear forward from current
+        // Clear forward from current down to target
         while (currentIndex > index) {
             PromptEntry<?> e = entries.get(currentIndex);
             e.reset();
@@ -216,8 +216,8 @@ public class Prompter {
             currentIndex--;
         }
 
-        // Skip over invisible entries going backwards
-        while (currentIndex > 0 && shouldSkip(entries.get(currentIndex))) {
+        // Skip over entries that have no prompt (null supplier result) going backwards
+        while (currentIndex > 0 && entries.get(currentIndex).getPrompt(opMode.telemetry) == null) {
             currentIndex--;
         }
 
