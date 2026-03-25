@@ -7,10 +7,14 @@ public class PolygonZone implements Zone {
     private final Point[] corners;
     private double rotation;
 
+    private Point cachedCentroid;
+    private boolean centroidDirty;
+
     public PolygonZone(Point... points) {
         if (points.length < 3) throw new IllegalArgumentException("Not enough points to create a polygon. Minimum is 3.");
         this.corners = points;
         this.rotation = 0.0;
+        this.centroidDirty = true;
     }
 
     public PolygonZone(double width, double height) {
@@ -24,6 +28,7 @@ public class PolygonZone implements Zone {
                 new Point(-halfWidth, halfHeight)
         };
         this.rotation = 0.0;
+        this.centroidDirty = true;
     }
 
     public PolygonZone(Point center, double width, double height) {
@@ -33,13 +38,14 @@ public class PolygonZone implements Zone {
         double centerY = center.getY();
 
         this.corners = new Point[] {
-                // Initialize the corners centered at (0,0) and then translate
                 new Point(-halfWidth + centerX, -halfHeight + centerY),
                 new Point(halfWidth + centerX, -halfHeight + centerY),
                 new Point(halfWidth + centerX, halfHeight + centerY),
                 new Point(-halfWidth + centerX, halfHeight + centerY)
         };
         this.rotation = 0.0;
+        this.cachedCentroid = center;
+        this.centroidDirty = false;
     }
 
     public PolygonZone(Point center, double width, double height, double angle) {
@@ -48,7 +54,6 @@ public class PolygonZone implements Zone {
         double centerX = center.getX();
         double centerY = center.getY();
 
-        // Initialize the corners centered at (0,0)
         Point[] baseCorners = new Point[] {
                 new Point(-halfWidth, -halfHeight),
                 new Point(halfWidth, -halfHeight),
@@ -56,10 +61,7 @@ public class PolygonZone implements Zone {
                 new Point(-halfWidth, halfHeight)
         };
 
-        // 1. Rotate the corners (around origin)
         Point[] rotatedCorners = rotatePolygon(baseCorners, angle);
-
-        // 2. Translate the rotated corners
         Point[] finalCorners = new Point[rotatedCorners.length];
         for (int i = 0; i < rotatedCorners.length; i++) {
             finalCorners[i] = new Point(
@@ -70,6 +72,8 @@ public class PolygonZone implements Zone {
 
         this.corners = finalCorners;
         this.rotation = angle;
+        this.cachedCentroid = center;
+        this.centroidDirty = false;
     }
 
     public PolygonZone(Point point1, Point point2, double thickness) {
@@ -82,7 +86,6 @@ public class PolygonZone implements Zone {
         double px = -dy * (thickness / 2) / length;
         double py = dx * (thickness / 2) / length;
 
-        // Use getters and construct new immutable Points
         this.corners = new Point[] {
                 new Point(point1.getX() + px, point1.getY() + py),
                 new Point(point1.getX() - px, point1.getY() - py),
@@ -90,49 +93,36 @@ public class PolygonZone implements Zone {
                 new Point(point2.getX() + px, point2.getY() + py)
         };
         this.rotation = 0.0;
+        this.centroidDirty = true;
     }
 
-    /**
-     * Gets the geometric center (centroid) of the polygon.
-     *
-     * @return The center point of the polygon
-     */
-    @Override
-    public Point getPosition() {
+    private void recalculateCentroid() {
+        if (!centroidDirty) return;
+
         double sumX = 0.0;
         double sumY = 0.0;
-
         for (Point corner : corners) {
             sumX += corner.getX();
             sumY += corner.getY();
         }
-
-        return new Point(sumX / corners.length, sumY / corners.length);
+        cachedCentroid = new Point(sumX / corners.length, sumY / corners.length);
+        centroidDirty = false;
     }
 
-    /**
-     * Gets the corners of the polygon.
-     *
-     * @return Array of corner points
-     */
+    @Override
+    public Point getPosition() {
+        recalculateCentroid();
+        return cachedCentroid;
+    }
+
     public Point[] getCorners() {
-        return corners.clone(); // Return a copy to maintain immutability
+        return corners.clone();
     }
 
-    /**
-     * Gets the current rotation of the polygon in radians.
-     *
-     * @return Current rotation angle in radians
-     */
     public double getRotation() {
         return rotation;
     }
 
-    /**
-     * Gets the current rotation of the polygon in degrees.
-     *
-     * @return Current rotation angle in degrees
-     */
     public double getRotationDegrees() {
         return Math.toDegrees(rotation);
     }
@@ -145,57 +135,52 @@ public class PolygonZone implements Zone {
      */
     @Override
     public boolean contains(Point point) {
-        // Treat points on the boundary (edges or vertices) as inside
-        if (distanceToBoundary(point) <= 1e-9) {
+        // Early exit: check if exactly on boundary
+        double distSqToBoundary = distanceToBoundarySq(point);
+        final double BOUNDARY_EPSILON_SQ = 1e-18; // 1e-9 squared
+
+        if (distSqToBoundary <= BOUNDARY_EPSILON_SQ) {
             return true;
         }
 
+        // Ray casting algorithm
         int crossings = 0;
         int numVertices = corners.length;
-        Point currentVertex, nextVertex;
 
         for (int i = 0; i < numVertices; i++) {
-            currentVertex = corners[i];
-            nextVertex = corners[(i + 1) % numVertices];
+            Point currentVertex = corners[i];
+            Point nextVertex = corners[(i + 1) % numVertices];
 
-            // Ray casting algorithm: checks if a horizontal ray cast from the point intersects the edge an odd number of times.
-            if (((currentVertex.getY() > point.getY()) != (nextVertex.getY() > point.getY())) &&
-                    (point.getX() < (nextVertex.getX() - currentVertex.getX()) * (point.getY() - currentVertex.getY()) / (nextVertex.getY() - currentVertex.getY()) + currentVertex.getX())) {
-                crossings++;
+            double currY = currentVertex.getY();
+            double nextY = nextVertex.getY();
+            double pointY = point.getY();
+
+            if (((currY > pointY) != (nextY > pointY))) {
+                double currX = currentVertex.getX();
+                double nextX = nextVertex.getX();
+                double pointX = point.getX();
+
+                if (pointX < (nextX - currX) * (pointY - currY) / (nextY - currY) + currX) {
+                    crossings++;
+                }
             }
         }
 
         return (crossings % 2 == 1);
     }
 
-    /**
-     * Checks if this polygon partially overlaps or is fully inside another zone.
-     *
-     * @param zone The zone to check against
-     * @return True if this polygon is partially or fully inside the other zone
-     */
     @Override
     public boolean isInside(Zone zone) {
         return this.distanceTo(zone) == 0.0;
     }
 
-    /**
-     * Checks if this polygon is fully contained within another zone.
-     *
-     * @param zone The zone to check against
-     * @return True if this zone is fully contained within the other zone
-     */
     @Override
     public boolean isFullyInside(Zone zone) {
-        // Polygon A is fully inside Zone B if ALL vertices of A are inside B.
-        // NOTE: This is sufficient for convex polygons inside another convex polygon/circle,
-        // but can fail for complex or concave shapes. This is fine for our case.
         for (Point corner : this.corners) {
             if (!zone.contains(corner)) {
                 return false;
             }
         }
-
         return true;
     }
 
@@ -214,15 +199,16 @@ public class PolygonZone implements Zone {
 
         double minDistanceSq = Double.MAX_VALUE;
         int numVertices = corners.length;
-        Point currentVertex, nextVertex;
 
-        // Find the shortest distance from the point to any edge segment
         for (int i = 0; i < numVertices; i++) {
-            currentVertex = corners[i];
-            nextVertex = corners[(i + 1) % numVertices];
+            Point currentVertex = corners[i];
+            Point nextVertex = corners[(i + 1) % numVertices];
 
-            double distance = distancePointToSegment(point, currentVertex, nextVertex);
-            minDistanceSq = Math.min(minDistanceSq, distance * distance);
+            double distSq = distancePointToSegmentSq(point, currentVertex, nextVertex);
+            minDistanceSq = Math.min(minDistanceSq, distSq);
+
+            // Early exit if we find a very close point
+            if (minDistanceSq < 1e-12) break;
         }
 
         return Math.sqrt(minDistanceSq);
@@ -239,21 +225,24 @@ public class PolygonZone implements Zone {
     public double distanceTo(Zone zone) {
         if (zone instanceof CircleZone) {
             CircleZone other = (CircleZone) zone;
-
-            // Find the closest point of the circle's center to the polygon.
             double polygonDistanceToCenter = this.distanceTo(other.getPosition());
-
-            // The distance is the distance to the center minus the circle's radius.
             return Math.max(0, polygonDistanceToCenter - other.getRadius());
         }
 
         if (zone instanceof PolygonZone) {
             PolygonZone other = (PolygonZone) zone;
-            double minDistance = Double.MAX_VALUE;
 
-            // If any edges intersect, polygons overlap → distance is 0
+            // Quick bounding box check first
+            if (!boundingBoxesOverlap(this, other)) {
+                // Non-overlapping bounding boxes - use simpler distance calc
+                return distanceBetweenPolygonsSimple(this, other);
+            }
+
+            // Full collision check for potentially overlapping boxes
             int n1 = this.corners.length;
             int n2 = other.corners.length;
+
+            // Check edge intersections (only needed if bounding boxes overlap)
             for (int i = 0; i < n1; i++) {
                 Point a1 = this.corners[i];
                 Point a2 = this.corners[(i + 1) % n1];
@@ -266,20 +255,25 @@ public class PolygonZone implements Zone {
                 }
             }
 
-            // Check distance from this polygon's vertices to the other polygon's edges
+            // Check containment
             for (Point vertex : this.corners) {
                 if (other.contains(vertex)) {
                     return 0.0;
                 }
-                double dist = other.distanceTo(vertex);
-                minDistance = Math.min(minDistance, dist);
             }
-
-            // Check distance from other polygon's vertices to this polygon's edges
             for (Point vertex : other.corners) {
                 if (this.contains(vertex)) {
                     return 0.0;
                 }
+            }
+
+            // Calculate minimum distance
+            double minDistance = Double.MAX_VALUE;
+            for (Point vertex : this.corners) {
+                double dist = other.distanceTo(vertex);
+                minDistance = Math.min(minDistance, dist);
+            }
+            for (Point vertex : other.corners) {
                 double dist = this.distanceTo(vertex);
                 minDistance = Math.min(minDistance, dist);
             }
@@ -300,20 +294,24 @@ public class PolygonZone implements Zone {
      * @param point The point to measure to
      * @return The minimum distance to the boundary
      */
+    @Override
     public double distanceToBoundary(Point point) {
+        return Math.sqrt(distanceToBoundarySq(point));
+    }
+
+    private double distanceToBoundarySq(Point point) {
         double minDistanceSq = Double.MAX_VALUE;
         int numVertices = corners.length;
-        Point currentVertex, nextVertex;
 
         for (int i = 0; i < numVertices; i++) {
-            currentVertex = corners[i];
-            nextVertex = corners[(i + 1) % numVertices];
+            Point currentVertex = corners[i];
+            Point nextVertex = corners[(i + 1) % numVertices];
 
-            double distance = distancePointToSegment(point, currentVertex, nextVertex);
-            minDistanceSq = Math.min(minDistanceSq, distance * distance);
+            double distSq = distancePointToSegmentSq(point, currentVertex, nextVertex);
+            minDistanceSq = Math.min(minDistanceSq, distSq);
         }
 
-        return Math.sqrt(minDistanceSq);
+        return minDistanceSq;
     }
 
     /**
@@ -324,9 +322,12 @@ public class PolygonZone implements Zone {
      */
     @Override
     public void moveBy(double deltaX, double deltaY) {
+        // Modify in-place instead of creating new Point objects
         for (int i = 0; i < corners.length; i++) {
-            corners[i] = new Point(corners[i].getX() + deltaX, corners[i].getY() + deltaY);
+            Point old = corners[i];
+            corners[i] = new Point(old.getX() + deltaX, old.getY() + deltaY);
         }
+        centroidDirty = true;
     }
 
     /**
@@ -337,21 +338,20 @@ public class PolygonZone implements Zone {
      */
     @Override
     public void setPosition(double posX, double posY) {
-        // Calculate current center
-        double centerX = 0, centerY = 0;
-        for (Point corner : corners) {
-            centerX += corner.getX();
-            centerY += corner.getY();
+        recalculateCentroid();
+        Point center = cachedCentroid;
+
+        double deltaX = posX - center.getX();
+        double deltaY = posY - center.getY();
+
+        for (int i = 0; i < corners.length; i++) {
+            Point old = corners[i];
+            corners[i] = new Point(old.getX() + deltaX, old.getY() + deltaY);
         }
-        centerX /= corners.length;
-        centerY /= corners.length;
 
-        // Calculate offset needed to move center to new position
-        double deltaX = posX - centerX;
-        double deltaY = posY - centerY;
-
-        // Apply the offset to all corners
-        moveBy(deltaX, deltaY);
+        // Update cached centroid directly
+        cachedCentroid = new Point(posX, posY);
+        centroidDirty = false;
     }
 
     /**
@@ -360,33 +360,27 @@ public class PolygonZone implements Zone {
      * @param angleRadians The angle to rotate by in radians
      */
     public void rotateBy(double angleRadians) {
-        if (Math.abs(angleRadians) < 1e-12) return; // No rotation needed
+        if (Math.abs(angleRadians) < 1e-12) return;
 
-        // Calculate current center
-        double centerX = 0, centerY = 0;
-        for (Point corner : corners) {
-            centerX += corner.getX();
-            centerY += corner.getY();
-        }
-        centerX /= corners.length;
-        centerY /= corners.length;
+        recalculateCentroid();
+        Point center = cachedCentroid;
+        double centerX = center.getX();
+        double centerY = center.getY();
 
-        // Translate corners to origin, rotate, then translate back
+        // Precompute trig values once
+        double cos = Math.cos(angleRadians);
+        double sin = Math.sin(angleRadians);
+
         for (int i = 0; i < corners.length; i++) {
             double x = corners[i].getX() - centerX;
             double y = corners[i].getY() - centerY;
 
-            // Apply rotation
-            double cos = Math.cos(angleRadians);
-            double sin = Math.sin(angleRadians);
             double newX = x * cos - y * sin;
             double newY = x * sin + y * cos;
 
-            // Translate back and update corner
             corners[i] = new Point(newX + centerX, newY + centerY);
         }
 
-        // Update rotation tracking
         rotation += angleRadians;
     }
 
@@ -418,15 +412,79 @@ public class PolygonZone implements Zone {
         setRotation(Math.toRadians(angleDegrees));
     }
 
-    // ----- HELPERS -----
+    /**
+     * Quick bounding box overlap check.
+     */
+    private static boolean boundingBoxesOverlap(PolygonZone p1, PolygonZone p2) {
+        double minX1 = Double.MAX_VALUE, maxX1 = -Double.MAX_VALUE;
+        double minY1 = Double.MAX_VALUE, maxY1 = -Double.MAX_VALUE;
+        double minX2 = Double.MAX_VALUE, maxX2 = -Double.MAX_VALUE;
+        double minY2 = Double.MAX_VALUE, maxY2 = -Double.MAX_VALUE;
+
+        for (Point p : p1.corners) {
+            minX1 = Math.min(minX1, p.getX());
+            maxX1 = Math.max(maxX1, p.getX());
+            minY1 = Math.min(minY1, p.getY());
+            maxY1 = Math.max(maxY1, p.getY());
+        }
+
+        for (Point p : p2.corners) {
+            minX2 = Math.min(minX2, p.getX());
+            maxX2 = Math.max(maxX2, p.getX());
+            minY2 = Math.min(minY2, p.getY());
+            maxY2 = Math.max(maxY2, p.getY());
+        }
+
+        return !(maxX1 < minX2 || maxX2 < minX1 || maxY1 < minY2 || maxY2 < minY1);
+    }
 
     /**
-     * Rotates a polygon (an array of points) around the origin.
-     *
-     * @param points The polygon to rotate
-     * @param angleRad The angle in radians to rotate by
-     * @return The new array of rotated Point objects
+     * Simple distance calc for non-overlapping polygons.
      */
+    private static double distanceBetweenPolygonsSimple(PolygonZone p1, PolygonZone p2) {
+        double minDistance = Double.MAX_VALUE;
+        for (Point v : p1.corners) {
+            minDistance = Math.min(minDistance, p2.distanceTo(v));
+        }
+        for (Point v : p2.corners) {
+            minDistance = Math.min(minDistance, p1.distanceTo(v));
+        }
+        return minDistance;
+    }
+
+    /**
+     * Returns squared distance to avoid sqrt in hot loops.
+     */
+    private static double distancePointToSegmentSq(Point p, Point a, Point b) {
+        double segmentLengthSq = a.distanceTo(b);
+        segmentLengthSq = segmentLengthSq * segmentLengthSq;
+
+        if (segmentLengthSq == 0.0) {
+            double dx = p.getX() - a.getX();
+            double dy = p.getY() - a.getY();
+            return dx * dx + dy * dy;
+        }
+
+        double t = ((p.getX() - a.getX()) * (b.getX() - a.getX()) +
+                (p.getY() - a.getY()) * (b.getY() - a.getY())) / segmentLengthSq;
+
+        Point closest;
+        if (t < 0.0) {
+            closest = a;
+        } else if (t > 1.0) {
+            closest = b;
+        } else {
+            closest = new Point(
+                    a.getX() + t * (b.getX() - a.getX()),
+                    a.getY() + t * (b.getY() - a.getY())
+            );
+        }
+
+        double dx = p.getX() - closest.getX();
+        double dy = p.getY() - closest.getY();
+        return dx * dx + dy * dy;
+    }
+
     private static Point[] rotatePolygon(Point[] points, double angleRad) {
         double cos = Math.cos(angleRad);
         double sin = Math.sin(angleRad);
@@ -499,8 +557,8 @@ public class PolygonZone implements Zone {
     private static int orientation(Point a, Point b, Point c) {
         double val = (b.getY() - a.getY()) * (c.getX() - b.getX()) -
                 (b.getX() - a.getX()) * (c.getY() - b.getY());
-        if (Math.abs(val) <= 1e-12) return 0; // colinear
-        return (val > 0) ? 1 : 2; // 1: clockwise, 2: counterclockwise
+        if (Math.abs(val) <= 1e-12) return 0;
+        return (val > 0) ? 1 : 2;
     }
 
     private static boolean onSegment(Point a, Point b, Point c) {
