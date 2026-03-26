@@ -18,7 +18,7 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
     private String errorMessage = "";
 
     @SafeVarargs
-    public MultiOptionPrompt(String header, boolean requireSelection, int maxSelections, boolean ordered, T... options) {
+    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, int maxSelections, T... options) {
         if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
         if (options == null || options.length == 0) throw new IllegalArgumentException("Options cannot be null or empty.");
 
