@@ -22,6 +22,7 @@ public class OptionPrompt<T> extends Prompt<T> {
     public OptionPrompt(String header, Class<? extends Enum<?>> options) {
         this(header, (T[]) options.getEnumConstants());
     }
+
     @Override
     public T process() {
         addLine("=== " + header + " ===");
