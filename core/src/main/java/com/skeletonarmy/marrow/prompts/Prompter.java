@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.skeletonarmy.marrow.OpModeManager;
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
 
@@ -29,10 +28,6 @@ public class Prompter {
     private boolean isCompleted = false;
     private boolean showSummary = false;
     private boolean inSummary = false;
-
-    public Prompter() {
-        this(OpModeManager.getActiveOpMode());
-    }
 
     public Prompter(OpMode opMode) {
         this.opMode = opMode;
