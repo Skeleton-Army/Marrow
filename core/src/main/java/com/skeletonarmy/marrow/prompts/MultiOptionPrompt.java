@@ -32,6 +32,11 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
         this.chosenOptions = new ArrayList<>();
     }
 
+    @SuppressWarnings("unchecked")
+    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, int maxSelections, Class<? extends Enum<?>> options) {
+        this(header, requireSelection, ordered, maxSelections, (T[]) options.getEnumConstants());
+    }
+
     @Override
     public List<T> process() {
         addLine("=== " + header + " ===");
