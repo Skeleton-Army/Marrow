@@ -312,6 +312,15 @@ public class Prompter {
         }
 
         /**
+         * Show this prompt only if NONE of the given keys have a true value.
+         * Equivalent to showIfAny(...).not().
+         * Multiple calls are AND-ed with other showIf conditions.
+         */
+        public PromptHandle showIfNone(String... keys) {
+            return showIfAny(keys).not();
+        }
+
+        /**
          * OR the previous condition with a new one based on key equality.
          */
         public PromptHandle or(String key, Object value) {
@@ -326,6 +335,16 @@ public class Prompter {
         public PromptHandle or(BooleanSupplier condition) {
             BooleanSupplier last = entry.removeLastCondition();
             entry.addCondition(() -> last.getAsBoolean() || condition.getAsBoolean());
+            return this;
+        }
+
+        /**
+         * Negates the previous condition.
+         * Can be chained with showIf(), or(), etc.
+         */
+        public PromptHandle not() {
+            BooleanSupplier last = entry.removeLastCondition();
+            entry.addCondition(() -> !last.getAsBoolean());
             return this;
         }
 
