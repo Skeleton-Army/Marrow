@@ -284,26 +284,28 @@ public class Prompter {
         }
 
         /**
-         * Show this prompt only if ANY of the given keys have been answered.
+         * Show this prompt only if ANY of the given keys have a true value.
+         * Use .not() to invert: show if none are true.
          * Multiple calls are AND-ed with other showIf conditions.
          */
         public PromptHandle showIfAny(String... keys) {
             entry.addCondition(() -> {
                 for (String key : keys)
-                    if (results.containsKey(key)) return true;
+                    if (Boolean.TRUE.equals(getOrDefault(key, null))) return true;
                 return false;
             });
             return this;
         }
 
         /**
-         * Show this prompt only if ALL of the given keys have been answered.
+         * Show this prompt only if ALL of the given keys have a true value.
+         * Use .not() to invert: show if not all are true.
          * Multiple calls are AND-ed with other showIf conditions.
          */
         public PromptHandle showIfAll(String... keys) {
             entry.addCondition(() -> {
                 for (String key : keys)
-                    if (!results.containsKey(key)) return false;
+                    if (!Boolean.TRUE.equals(getOrDefault(key, null))) return false;
                 return true;
             });
             return this;
