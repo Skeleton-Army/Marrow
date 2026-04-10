@@ -2,13 +2,13 @@ package com.skeletonarmy.marrow.phases;
 
 import androidx.annotation.NonNull;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
-import com.qualcomm.robotcore.robot.RobotState;
+import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
+import com.qualcomm.robotcore.util.RobotLog;
 import com.skeletonarmy.marrow.OpModeManager;
 import com.skeletonarmy.marrow.TimerEx;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -20,7 +20,11 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * Typical usage:
  * <pre>
- * PhaseManager manager = new PhaseManager(this, new Phase("Auto", 30), new Phase("Park", 3));
+ *     PhaseManager phaseManager = new PhaseManager.Builder()
+ *             .addPhase("Auto", 30)
+ *             .addPhase("TeleOp", 2, TimeUnit.MINUTES)
+ *             .build();
+ *
  * while (opModeIsActive()) {
  *     manager.update();
  *     if (manager.isCurrentPhase("Park")) { ... }
@@ -30,7 +34,6 @@ import java.util.concurrent.TimeUnit;
  * @see Phase
  */
 public class PhaseManager {
-    private final OpMode opMode;
     private final TimerEx matchTimer;
 
     // Configured phases in order
@@ -43,26 +46,34 @@ public class PhaseManager {
     // Listeners
     private final List<PhaseListener> phaseListeners;
 
+    private final PrintStream printStream;
+
     /**
      * Creates a phase manager with phases in order.
      * <p>
      * Call once before {@code waitForStart()}.
      *
-     * @param opMode the OpMode instance
-     * @param phasesToRun phases to transition through in order
+     * @param phases phases to transition through in order
      * @throws IllegalArgumentException if no phases are provided
      */
-    public PhaseManager(@NonNull OpMode opMode, @NonNull Phase... phasesToRun) {
-        if (phasesToRun.length == 0) {
+    private PhaseManager(PrintStream printStream, @NonNull List<Phase> phases) {
+        if (phases.isEmpty()) {
             throw new IllegalArgumentException("At least one phase must be provided");
         }
-
-        this.opMode = opMode;
-        this.phases = new ArrayList<>(Arrays.asList(phasesToRun));
-        this.matchTimer = new TimerEx(getTotalDuration(phasesToRun), TimeUnit.SECONDS);
-        this.currentPhase = phases.get(0);
+        this.phases = new ArrayList<>();
+        this.phases.addAll(phases);
+        this.matchTimer = new TimerEx(getTotalDuration(phases.toArray(new Phase[0])), TimeUnit.SECONDS);
+        this.currentPhase = this.phases.get(0);
         this.previousPhase = null;
         this.phaseListeners = new ArrayList<>();
+        OpModeManager.getManager().registerListener(timerPhasesListener);
+
+        if (printStream != null) {
+            this.printStream = printStream;
+        } else {
+            this.printStream = System.out;
+        }
+
     }
 
     /**
@@ -84,21 +95,6 @@ public class PhaseManager {
             return;
         }
 
-        // Start the timer on first update (when match starts)
-        if (!matchTimer.isOn()) {
-            try {
-                OpModeManagerImpl manager = OpModeManager.getManager();
-                RobotState state = manager.getRobotState();
-                if (state == RobotState.RUNNING) {
-                    matchTimer.start();
-                }
-            } catch (Exception e) {
-                // OpModeManager not available, match hasn't started yet
-                return;
-            }
-        }
-
-        // Calculate elapsed time from match start
         double elapsedSeconds = matchTimer.getElapsed();
 
         // Find which phase we're in based on elapsed time
@@ -136,17 +132,7 @@ public class PhaseManager {
         return currentPhase != null ? currentPhase : phases.get(0);
     }
 
-    /**
-     * Checks if the current phase matches the given phase (by reference).
-     */
-    public boolean isCurrentPhase(@NonNull Phase phase) {
-        return getCurrentPhase().equals(phase);
-    }
-
-    /**
-     * Checks if the current phase name matches the given name.
-     */
-    public boolean isCurrentPhase(@NonNull String phaseName) {
+    public boolean isCurrentPhase(String phaseName) {
         return getCurrentPhase().getName().equals(phaseName);
     }
 
@@ -203,9 +189,6 @@ public class PhaseManager {
         return total;
     }
 
-    /**
-     * Registers a listener to be notified on phase changes.
-     */
     public void addPhaseListener(@NonNull PhaseListener listener) {
         phaseListeners.add(listener);
     }
@@ -229,22 +212,51 @@ public class PhaseManager {
             try {
                 listener.onPhaseEntered(currentPhase);
             } catch (Exception e) {
-                // Prevent listener exceptions from breaking the match
-                opMode.telemetry.addLine("ERROR in phase listener: " + e.getMessage());
+                RobotLog.addGlobalWarningMessage("[ERROR]: Failed to call listener: %s", e.getMessage());
+                printStream.printf("[ERROR]: Failed to call listener: %s\n", e.getMessage());
             }
         }
     }
 
-    /**
-     * Callback for phase transitions.
-     * <p>
-     * Example: {@code addPhaseListener(phase -> { if ("Endgame".equals(phase.getName())) {...} })}
-     */
-    @FunctionalInterface
-    public interface PhaseListener {
-        /**
-         * Called when entering a new phase.
-         */
-        void onPhaseEntered(@NonNull Phase newPhase);
+    private final OpModeManagerNotifier.Notifications timerPhasesListener = new OpModeManagerNotifier.Notifications() {
+        @Override
+        public void onOpModePreInit(OpMode opMode) {
+
+        }
+
+        @Override
+        public void onOpModePreStart(OpMode opMode) {
+            //While this listener isn't the most optimal, its the best one the SDK provides.
+            matchTimer.start();
+        }
+
+        @Override
+        public void onOpModePostStop(OpMode opMode) {
+            OpModeManager.getManager().unregisterListener(timerPhasesListener);
+        }
+    };
+
+    public static class Builder {
+        private final List<Phase> phaseList = new ArrayList<>();
+        private PrintStream printStream = null;
+
+        public Builder addPhase(String name, double duration) {
+            phaseList.add(new Phase(name, duration));
+            return this;
+        }
+
+        public Builder addPhase(String name, double duration, TimeUnit timeUnit) {
+            phaseList.add(new Phase(name, duration, timeUnit));
+            return this;
+        }
+
+        public Builder setPrintStream(PrintStream printStream) {
+            this.printStream = printStream;
+            return this;
+        }
+
+        public PhaseManager build() {
+            return new PhaseManager(printStream, phaseList);
+        }
     }
 }
