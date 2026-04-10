@@ -292,43 +292,6 @@ public class Prompter {
         }
 
         /**
-         * Show this prompt only if ANY of the given keys have a true value.
-         * Use .not() to invert: show if none are true.
-         * Multiple calls are AND-ed with other showIf conditions.
-         */
-        public PromptHandle showIfAny(String... keys) {
-            entry.addCondition(() -> {
-                for (String key : keys)
-                    if (Boolean.TRUE.equals(getOrDefault(key, null))) return true;
-                return false;
-            });
-            return this;
-        }
-
-        /**
-         * Show this prompt only if ALL of the given keys have a true value.
-         * Use .not() to invert: show if not all are true.
-         * Multiple calls are AND-ed with other showIf conditions.
-         */
-        public PromptHandle showIfAll(String... keys) {
-            entry.addCondition(() -> {
-                for (String key : keys)
-                    if (!Boolean.TRUE.equals(getOrDefault(key, null))) return false;
-                return true;
-            });
-            return this;
-        }
-
-        /**
-         * Show this prompt only if NONE of the given keys have a true value.
-         * Equivalent to showIfAny(...).not().
-         * Multiple calls are AND-ed with other showIf conditions.
-         */
-        public PromptHandle showIfNone(String... keys) {
-            return showIfAny(keys).not();
-        }
-
-        /**
          * OR the previous condition with a new one based on key equality.
          */
         public PromptHandle or(String key, Object value) {
