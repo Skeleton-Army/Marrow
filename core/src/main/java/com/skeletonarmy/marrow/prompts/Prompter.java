@@ -278,8 +278,7 @@ public class Prompter {
          * Multiple calls are AND-ed together.
          */
         public PromptHandle showIf(String key, Object value) {
-            entry.addCondition(() -> value.equals(getOrDefault(key, null)));
-            return this;
+            return showIf(() -> value.equals(getOrDefault(key, null)));
         }
 
         /**
@@ -295,9 +294,7 @@ public class Prompter {
          * OR the previous condition with a new one based on key equality.
          */
         public PromptHandle or(String key, Object value) {
-            BooleanSupplier last = entry.removeLastCondition();
-            entry.addCondition(() -> last.getAsBoolean() || value.equals(getOrDefault(key, null)));
-            return this;
+            return or(() -> value.equals(getOrDefault(key, null)));
         }
 
         /**
