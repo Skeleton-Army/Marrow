@@ -28,6 +28,7 @@ public class Prompter {
     private boolean isCompleted = false;
     private boolean showSummary = false;
     private boolean inSummary = false;
+    private int keylessPromptCounter = 0;
 
     public Prompter(OpMode opMode) {
         this.opMode = opMode;
@@ -42,6 +43,18 @@ public class Prompter {
     public <T> PromptHandle prompt(String key, Prompt<T> prompt) {
         requireValidKey(key);
         PromptEntry<T> entry = new PromptEntry<>(key, prompt);
+        entries.add(entry);
+        return new PromptHandle(entry);
+    }
+
+    /**
+     * Adds a prompt to the queue without a key (e.g., for {@link MessagePrompt}).
+     * An internal unique key is generated automatically.
+     * Returns a {@link PromptHandle} for chaining conditions and callbacks.
+     */
+    public <T> PromptHandle prompt(Prompt<T> prompt) {
+        String internalKey = "__keyless_" + keylessPromptCounter++;
+        PromptEntry<T> entry = new PromptEntry<>(internalKey, prompt);
         entries.add(entry);
         return new PromptHandle(entry);
     }
@@ -360,6 +373,10 @@ public class Prompter {
 
         public <T> PromptHandle prompt(String key, Prompt<T> prompt) {
             return Prompter.this.prompt(key, prompt);
+        }
+
+        public <T> PromptHandle prompt(Prompt<T> prompt) {
+            return Prompter.this.prompt(prompt);
         }
 
         @Deprecated
