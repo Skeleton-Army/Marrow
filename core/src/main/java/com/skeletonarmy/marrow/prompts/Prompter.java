@@ -134,7 +134,7 @@ public class Prompter {
             else complete();
         }
 
-        opMode.telemetry.update();
+        if (!isCompleted) opMode.telemetry.update();
     }
 
     // ---- INTERNALS ----
