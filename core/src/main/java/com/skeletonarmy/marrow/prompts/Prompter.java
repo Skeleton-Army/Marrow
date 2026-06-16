@@ -1,6 +1,9 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
+import com.qualcomm.robotcore.robot.RobotState;
+import com.skeletonarmy.marrow.OpModeManager;
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
 
@@ -30,8 +33,40 @@ public class Prompter {
     private boolean inSummary = false;
     private int keylessPromptCounter = 0;
 
+    private boolean startGuardRegistered = false;
+
     public Prompter(OpMode opMode) {
         this.opMode = opMode;
+    }
+
+    /**
+     * Registers a listener that throws an exception if the OpMode starts before this Prompter completes.
+     * Does nothing if already registered, or if run() was first called after the OpMode started -
+     * in which case there is no expectation that the Prompter completes during init.
+     */
+    private void registerStartGuard() {
+        if (startGuardRegistered || OpModeManager.getRobotState() == RobotState.RUNNING) return;
+        startGuardRegistered = true;
+
+        OpModeManagerNotifier.Notifications listener = new OpModeManagerNotifier.Notifications() {
+            @Override
+            public void onOpModePreInit(OpMode opMode) {}
+
+            @Override
+            public void onOpModePreStart(OpMode opMode) {
+                if (opMode == Prompter.this.opMode && !isCompleted) {
+                    throw new IllegalStateException("OpMode started before Prompter completed. Ensure all prompts are answered during the init phase.");
+                }
+                OpModeManager.unregisterListener(this);
+            }
+
+            @Override
+            public void onOpModePostStop(OpMode opMode) {
+                OpModeManager.unregisterListener(this);
+            }
+        };
+
+        OpModeManager.registerListener(listener);
     }
 
     // ---- API ----
@@ -127,6 +162,8 @@ public class Prompter {
         opMode.telemetry.update();
 
         if (isCompleted) return;
+
+        registerStartGuard();
 
         GamepadInput.update(opMode.gamepad1, opMode.gamepad2);
 
