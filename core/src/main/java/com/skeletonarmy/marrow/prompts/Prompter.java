@@ -123,6 +123,8 @@ public class Prompter {
      * Runs the prompt queue. Should be called in a loop.
      */
     public void run() {
+        opMode.telemetry.update();
+
         if (isCompleted) return;
 
         GamepadInput.update(opMode.gamepad1, opMode.gamepad2);
@@ -133,8 +135,6 @@ public class Prompter {
             if (showSummary) inSummary = true;
             else complete();
         }
-
-        if (!isCompleted) opMode.telemetry.update();
     }
 
     // ---- INTERNALS ----
