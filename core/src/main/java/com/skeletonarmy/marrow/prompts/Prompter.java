@@ -3,6 +3,7 @@ package com.skeletonarmy.marrow.prompts;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.robot.RobotState;
+import com.qualcomm.robotcore.util.RobotLog;
 import com.skeletonarmy.marrow.OpModeManager;
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
@@ -55,7 +56,7 @@ public class Prompter {
             @Override
             public void onOpModePreStart(OpMode opMode) {
                 if (opMode == Prompter.this.opMode && !isCompleted) {
-                    throw new IllegalStateException("OpMode started before Prompter completed. Ensure all prompts are answered during the init phase.");
+                    RobotLog.addGlobalWarningMessage("OpMode started before Prompter completed. Ensure all prompts are answered during the init phase.");
                 }
                 OpModeManager.unregisterListener(this);
             }
