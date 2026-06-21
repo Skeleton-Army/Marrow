@@ -123,6 +123,9 @@ public class Prompter {
      * Runs the prompt queue. Should be called in a loop.
      */
     public void run() {
+        // Must be called every loop, even after completion, so the display clears properly once the transmission interval elapses
+        opMode.telemetry.update();
+
         if (isCompleted) return;
 
         GamepadInput.update(opMode.gamepad1, opMode.gamepad2);
@@ -133,15 +136,19 @@ public class Prompter {
             if (showSummary) inSummary = true;
             else complete();
         }
-
-        opMode.telemetry.update();
     }
 
     // ---- INTERNALS ----
 
     private void complete() {
         isCompleted = true;
+
+        // Telemetry won't transmit an empty screen - at least one item must be
+        // present for the Driver Station display to update and show the cleared state.
+        // The telemetry is updated in run().
         opMode.telemetry.clear();
+        opMode.telemetry.addLine("Ready.");
+
         if (completeFunc != null) completeFunc.run();
     }
 
