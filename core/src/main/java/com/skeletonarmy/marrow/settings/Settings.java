@@ -1,18 +1,15 @@
 package com.skeletonarmy.marrow.settings;
 
-import com.skeletonarmy.marrow.internal.FileHandler;
+import com.skeletonarmy.marrow.internal.JsonUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public final class Settings {
+public class Settings {
     private static final Map<String, Object> DATA = new HashMap<>(); // Saved to file
     private static final Map<String, Object> SESSION_DATA = new HashMap<>(); // Not saved
-
-    private static final String FILE_PATH = "FIRST/marrow/settings.json";
-
     private static boolean loaded = false;
-
+    private static final JsonUtils jsonUtils = new JsonUtils("settings.json");
     private Settings() {}
 
     /**
@@ -30,7 +27,7 @@ public final class Settings {
      */
     public static void save() {
         ensureLoaded();
-        FileHandler.saveToFile(DATA, FILE_PATH);
+        jsonUtils.save(SESSION_DATA);
     }
 
     /**
@@ -96,8 +93,8 @@ public final class Settings {
 
     private static void ensureLoaded() {
         if (!loaded) {
-            FileHandler.loadFromFile(DATA, FILE_PATH);
-            loaded = true;
+            DATA.putAll(jsonUtils.load());
+            loaded = !DATA.isEmpty();
         }
     }
 }
