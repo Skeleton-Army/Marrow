@@ -7,7 +7,7 @@ subprojects {
     apply(plugin = "io.deepmedia.tools.deployer")
 
     group = "com.skeletonarmyftc.marrow"
-    version = "1.1.2"
+    version = "1.1.3-SNAPSHOT"
 
     repositories {
         mavenCentral()
