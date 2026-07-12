@@ -79,6 +79,7 @@ public class Prompter {
     @SuppressWarnings("unchecked")
     public <T> T get(String key) {
         requireValidKey(key);
+        ensureCompleted();
         if (!results.containsKey(key)) throw new NoSuchElementException("No result found for key '" + key + "'. Ensure prompts have been executed, or use getOrDefault() if the result may be absent.");
         return (T) results.get(key);
     }
@@ -93,6 +94,7 @@ public class Prompter {
     @SuppressWarnings("unchecked")
     public <T> T getOrDefault(String key, T defaultValue) {
         requireValidKey(key);
+        ensureCompleted();
         return (T) results.getOrDefault(key, defaultValue);
     }
 
@@ -150,6 +152,13 @@ public class Prompter {
         opMode.telemetry.addLine("Ready.");
 
         if (completeFunc != null) completeFunc.run();
+    }
+
+    private void ensureCompleted() {
+        if (inSummary && !isCompleted) {
+            inSummary = false;
+            complete();
+        }
     }
 
     private void runSummary() {
