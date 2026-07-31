@@ -1,0 +1,48 @@
+[
+  {
+    "id": 20,
+    "name": "BlueTarget",
+    "size": 6.5,
+    "position": {
+      "x": -82.372696,
+      "y": -78.6425,
+      "z": 29.5
+    },
+    "unit": "inch",
+    "orientation": {
+      "w": 0.6725937,
+      "x": -0.6725937,
+      "y": -0.2182149,
+      "z": 0.2182149,
+      "acquisitionTime": 0
+    }
+  },
+  {
+    "id": 24,
+    "name": "RedTarget",
+    "size": 6.5,
+    "position": [-82.372696, 79.6425, 29.5],
+    "unit": 3,
+    "orientation": [0.6725937, -0.6725937, -0.2182149, 0.2182149, 0]
+  },
+  {
+    "id": 21,
+    "name": "Obelisk_GPP",
+    "size": 6.5,
+    "position": null,
+    "unit": 3,
+    "orientation": null
+  },
+  {
+    "id": 22,
+    "name": "Obelisk_PGP",
+    "size": 6.5,
+    "unit": 3
+  },
+  {
+    "id": 23,
+    "name": "Obelisk_PPG",
+    "size": 6.5,
+    "unit": "inch"
+  }
+]
