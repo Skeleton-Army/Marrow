@@ -32,6 +32,12 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("junit:junit:4.13.2")
 
+
+    //To make JsonAprilTag tests work
+    testImplementation("org.firstinspires.ftc:RobotCore:11.0.0")
+    testImplementation("org.firstinspires.ftc:Vision:11.0.0")
+
+
     compileOnly("org.firstinspires.ftc:Inspection:11.0.0")
     compileOnly("org.firstinspires.ftc:Blocks:11.0.0")
     compileOnly("org.firstinspires.ftc:RobotCore:11.0.0")
