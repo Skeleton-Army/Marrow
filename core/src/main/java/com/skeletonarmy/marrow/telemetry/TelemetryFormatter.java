@@ -25,6 +25,10 @@ public class TelemetryFormatter {
         this(base, new ArrayList<>());
     }
 
+    public TelemetryFormatter(FormatBuilder builder) {
+        this(builder.getBase(), builder.getModifiers());
+    }
+
     public String getBase() {
         return base;
     }
