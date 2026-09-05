@@ -64,7 +64,7 @@ public class FormatBuilder {
     }
 
     public TelemetryFormatter build() {
-        return new TelemetryFormatter(base, modifiers);
+        return new TelemetryFormatter(this);
     }
 
     public String format() {
