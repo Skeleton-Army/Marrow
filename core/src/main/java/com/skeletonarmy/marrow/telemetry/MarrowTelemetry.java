@@ -13,6 +13,7 @@ import java.util.List;
 public class MarrowTelemetry implements Telemetry {
     Telemetry telemetry;
 
+    //NOTE: I don't think any other implementation except the official one implements HTML, so be careful with MultipleTelemetry
     public MarrowTelemetry(Telemetry telemetry) {
         this.telemetry = telemetry;
         setDisplayFormat(DisplayFormat.HTML);
@@ -29,9 +30,9 @@ public class MarrowTelemetry implements Telemetry {
      */
 
     @Override
-    @SuppressWarnings("unchecked") //All castes are checked before, but type checker doesn't know
+    // maybe a add a way to also do data AND HTML. maybe have args[0] be an instance of List<TelemetryModifier>
+    // do note that instanceof doesn't work with generic types at runtime, so maybe check the first element, but that seems risky.
     public Item addData(String caption, String message, Object... args) {
-        setDisplayFormat(DisplayFormat.HTML);
         boolean isHTML = true;
 
         for (Object o : args) {
@@ -44,9 +45,9 @@ public class MarrowTelemetry implements Telemetry {
         String formattedStr = "";
 
         if (isHTML) {
-            List<TelemetryModifier<Object>> origList = new ArrayList<>();
+            List<TelemetryModifier<?>> origList = new ArrayList<>();
             for (Object o : args) {
-                origList.add((TelemetryModifier<Object>) o);
+                origList.add((TelemetryModifier<?>) o);
             }
 
             formattedStr = new TelemetryFormatter(message, new ArrayList<>(origList)).format();
