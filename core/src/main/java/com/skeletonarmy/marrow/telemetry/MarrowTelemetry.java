@@ -29,7 +29,7 @@ public class MarrowTelemetry implements Telemetry {
      *                           if the first element is a {@link List<TelemetryModifier>} it will be used,
      *                           and the rest of the args will be used
      *
-     * @return the {@link Item} which is printed to the telemetry stream
+     * @return the {@link Item} which is printed to the telemetry stream, or {@code null} when {@code caption} is {@code null}
      */
 
     @Override
@@ -62,7 +62,8 @@ public class MarrowTelemetry implements Telemetry {
         String msg = new TelemetryFormatter(message, modifiers).format();
 
         if (caption == null) {
-            return (Item) addLine(msg);
+            addLine(msg);
+            return null; //TODO: return an actual value, though I don't think it's actually needed
         }
 
         // when using the List method, the rest of the args should be used for formatting
