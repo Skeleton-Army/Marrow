@@ -63,7 +63,7 @@ public class MarrowTelemetry implements Telemetry {
             return (Item) addLine(msg);
         }
 
-        // when using the List method, the rest of the args can be used for formatting
+        // when using the List method, the rest of the args should be used for formatting
         if (formatArgs.length > 0) {
             return telemetry.addData(caption, msg, formatArgs);
         }

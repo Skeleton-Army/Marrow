@@ -5,13 +5,6 @@ import androidx.annotation.NonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/*
- * maybe refactor to abstract class?
- *
- * i want toString to always return an empty string but due to the way overloads work it will always pick the Object impl.
- * making it abstract class will make the API a bit goofy, but also im scared that addData will write "random" memory addresses to the telemetry screen.
- */
-
 public abstract class TelemetryModifier<T> {
     /**
      * Returns the value of the modifier, if modifier has a value.
@@ -31,7 +24,7 @@ public abstract class TelemetryModifier<T> {
     public abstract String format(String s);
 
     /**
-     * a toString impl so addData won't print the memory addresses
+     * a toString impl so standard addData won't print the memory addresses
      *
      * @return an empty string
      */
