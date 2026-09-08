@@ -4,5 +4,4 @@ enum HtmlArgType {
     ALL_ARGS,
     LIST,
     NONE;
-
 }

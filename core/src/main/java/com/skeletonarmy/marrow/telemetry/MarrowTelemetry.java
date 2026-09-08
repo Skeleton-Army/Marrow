@@ -1,7 +1,8 @@
 package com.skeletonarmy.marrow.telemetry;
 
-import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import static com.skeletonarmy.marrow.telemetry.HtmlArgType.ALL_ARGS;
+import static com.skeletonarmy.marrow.telemetry.HtmlArgType.LIST;
+import static com.skeletonarmy.marrow.telemetry.HtmlArgType.NONE;
 
 import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
@@ -24,44 +25,76 @@ public class MarrowTelemetry implements Telemetry {
      *
      * @param caption            the caption to use or {@code null} for no caption
      * @param message            the string by which the arguments are to be formatted
-     * @param args               the arguments to format or {@link TelemetryModifier}s to apply to s1
+     * @param args               the arguments to format or {@link TelemetryModifier}s to apply to the message
+     *                           if the first element is a {@link List<TelemetryModifier>} it will be used,
+     *                           and the rest of the args will be used
      *
      * @return the {@link Item} which is printed to the telemetry stream
      */
 
     @Override
-    // maybe a add a way to also do data AND HTML. maybe have args[0] be an instance of List<TelemetryModifier>
-    // do note that instanceof doesn't work with generic types at runtime, so maybe check the first element, but that seems risky.
+    @SuppressWarnings("unchecked")
     public Item addData(String caption, String message, Object... args) {
-        boolean isHTML = true;
+        HtmlArgType argType = isHtml(args);
 
+        List<TelemetryModifier<?>> modifiers = new ArrayList<>();
+        Object[] formatArgs = new Object[args.length -1];
+
+        switch (argType) {
+            case LIST: {
+                modifiers = (List<TelemetryModifier<?>>) args[0];
+                System.arraycopy(args, 1, formatArgs, 0, args.length - 1);
+            }
+
+            case ALL_ARGS: {
+                for (Object obj : args) {
+                    modifiers.add((TelemetryModifier<?>) obj);
+                }
+            }
+
+            case NONE: {
+                return telemetry.addData(caption, message, args);
+            }
+        }
+
+        String msg = new TelemetryFormatter(message, modifiers).format();
+
+        if (caption == null) {
+            return (Item) addLine(msg);
+        }
+
+        // when using the List method, the rest of the args can be used for formatting
+        if (formatArgs.length > 0) {
+            return telemetry.addData(caption, msg, formatArgs);
+        }
+
+        return telemetry.addData(caption, msg);
+    }
+
+    /**
+     * validate and check the addData valist
+     *
+     * @param args addData args
+     * @return the type of args given
+     */
+
+    private HtmlArgType isHtml(Object[] args) {
+        if (args.length > 0 && args[0] instanceof List) {
+            List<?> arg0 = (List<?>) args[0];
+            if (!arg0.isEmpty() && arg0.get(0) instanceof TelemetryModifier) {
+               return LIST;
+            }
+        }
+
+        HtmlArgType result = ALL_ARGS;
         for (Object o : args) {
-            if (!(o instanceof TelemetryModifier))  {
-                isHTML = false;
+            if (!(o instanceof TelemetryModifier)) {
+                result = NONE;
                 break;
             }
         }
 
-        String formattedStr = "";
-
-        if (isHTML) {
-            List<TelemetryModifier<?>> origList = new ArrayList<>();
-            for (Object o : args) {
-                origList.add((TelemetryModifier<?>) o);
-            }
-
-            formattedStr = new TelemetryFormatter(message, new ArrayList<>(origList)).format();
-        }
-
-        if (isHTML && !formattedStr.isEmpty()) {
-            if (caption == null) {
-                return (Item) addLine(formattedStr);
-            } else {
-                return addData(caption, formattedStr);
-            }
-        }
-
-        return telemetry.addData(caption, message, args);
+        return result;
     }
 
     //------------------|
