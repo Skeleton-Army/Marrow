@@ -1,12 +1,14 @@
 package com.skeletonarmy.marrow.telemetry.modifiers;
 
 
+import android.graphics.Color;
+
 import androidx.annotation.NonNull;
 
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
 public class ColorModifier extends TelemetryModifier<String> {
-    private String color;
+    private final String color;
 
     public ColorModifier(String hex) {
         if (!hex.startsWith("#")) {
@@ -14,10 +16,6 @@ public class ColorModifier extends TelemetryModifier<String> {
         }
 
         color = hex.toUpperCase();
-
-        if (color.length() != 6) {
-            color = "#FFFFFF";
-        }
     }
 
     public ColorModifier(int r, int g, int b) {
@@ -32,9 +30,6 @@ public class ColorModifier extends TelemetryModifier<String> {
     @NonNull
     @Override
     public String format(String s) {
-        return String.format("<font color='%s'>\n", color) +
-                '\t' + s + '\n' +
-                "</font>";
+        return String.format("<font color='%s'> %s </font>", color, s);
     }
-
 }

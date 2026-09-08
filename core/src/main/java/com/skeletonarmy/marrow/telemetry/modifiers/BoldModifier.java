@@ -13,8 +13,6 @@ public class BoldModifier extends TelemetryModifier<Object> {
     @NonNull
     @Override
     public String format(String s) {
-        return "<b>\n" +
-                '\t' + s + '\n' +
-                "</b>";
+        return "<b>" + s + "</b>";
     }
 }

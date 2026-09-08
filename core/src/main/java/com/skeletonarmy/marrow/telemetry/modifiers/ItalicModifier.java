@@ -14,8 +14,6 @@ public class ItalicModifier extends TelemetryModifier<Object> {
     @NonNull
     @Override
     public String format(String s) {
-        return "<i>\n" +
-                '\t' + s + '\n' +
-                "</i>";
+        return "<i>" + s + "</i>";
     }
 }
