@@ -6,13 +6,16 @@ import com.skeletonarmy.marrow.telemetry.modifiers.ConditionalModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ItalicModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.MultiConditionalModifier;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 public class FormatBuilder {
-    private String base = ""; //to remove potential null pointers
+    private final String base;
+
     private final List<TelemetryModifier<?>> modifiers = new ArrayList<>();
 
     public String getBase() {
@@ -23,9 +26,8 @@ public class FormatBuilder {
         return modifiers;
     }
 
-    public FormatBuilder setBase(String base) {
+    public FormatBuilder(String base) {
         this.base = base;
-        return this;
     }
 
     public FormatBuilder setColor(String hex) {
@@ -69,5 +71,13 @@ public class FormatBuilder {
 
     public String format() {
         return build().format();
-    } 
+    }
+
+    public Telemetry.Item addData(Telemetry telemetry, String caption) {
+        return telemetry.addData(caption, format());
+    }
+
+    public Telemetry.Line addLine(Telemetry telemetry) {
+        return telemetry.addLine(format());
+    }
 }
