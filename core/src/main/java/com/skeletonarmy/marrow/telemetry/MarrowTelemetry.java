@@ -44,12 +44,14 @@ public class MarrowTelemetry implements Telemetry {
             case LIST: {
                 modifiers = (List<TelemetryModifier<?>>) args[0];
                 System.arraycopy(args, 1, formatArgs, 0, args.length - 1);
+                break;
             }
 
             case ALL_ARGS: {
                 for (Object obj : args) {
                     modifiers.add((TelemetryModifier<?>) obj);
                 }
+                break;
             }
 
             case NONE: {
