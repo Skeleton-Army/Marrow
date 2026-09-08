@@ -8,7 +8,7 @@ import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
 import java.util.function.BooleanSupplier;
 
-public class ConditionalModifier implements TelemetryModifier<BooleanSupplier> {
+public class ConditionalModifier extends TelemetryModifier<BooleanSupplier> {
     private final BooleanSupplier value;
     private final Pair <TelemetryModifier<?>, TelemetryModifier<?>> conditionalPair;
 

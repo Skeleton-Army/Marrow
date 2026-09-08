@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 
-public class MultiConditionalModifier implements TelemetryModifier<Supplier<Integer>> {
+public class MultiConditionalModifier extends TelemetryModifier<Supplier<Integer>> {
     private final Supplier<Integer> supplier;
     private final TelemetryModifier<?> defaultModifier;
     private final List<TelemetryModifier<?>> modifiers;

@@ -5,7 +5,7 @@ import androidx.annotation.NonNull;
 
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
-public class ColorModifier implements TelemetryModifier<String> {
+public class ColorModifier extends TelemetryModifier<String> {
     private String color;
 
     public ColorModifier(String hex) {

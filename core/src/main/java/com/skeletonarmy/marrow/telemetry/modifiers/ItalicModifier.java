@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
-public class ItalicModifier implements TelemetryModifier<Object> {
+public class ItalicModifier extends TelemetryModifier<Object> {
 
     @Override
     public Object getValue() {

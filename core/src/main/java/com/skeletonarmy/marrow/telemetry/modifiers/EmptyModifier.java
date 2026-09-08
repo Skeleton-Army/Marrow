@@ -7,7 +7,7 @@ import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 /**
  * An empty modifier that does nothing, useful for avoiding null checks for many branches.
  */
-public class EmptyModifier implements TelemetryModifier<Object> {
+public class EmptyModifier extends TelemetryModifier<Object> {
     @Override
     public Object getValue() {
         return null;
