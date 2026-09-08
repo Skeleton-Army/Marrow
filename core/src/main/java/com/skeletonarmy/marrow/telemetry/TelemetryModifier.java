@@ -18,7 +18,7 @@ public abstract class TelemetryModifier<T> {
      * Formats a string based on the modifier and it's value.
      *
      * @param s string to be formatted
-     * @return formatted string
+     * @return formatted string in a single line
      */
     @NotNull
     public abstract String format(String s);
