@@ -1,22 +1,16 @@
 package com.skeletonarmy.marrow.telemetry;
 
 
-import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
-import com.skeletonarmy.marrow.telemetry.modifiers.ColorModifier;
-import com.skeletonarmy.marrow.telemetry.modifiers.ConditionalModifier;
-import com.skeletonarmy.marrow.telemetry.modifiers.ItalicModifier;
-import com.skeletonarmy.marrow.telemetry.modifiers.MultiConditionalModifier;
+import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BooleanSupplier;
-import java.util.function.Supplier;
 
 public class TelemetryFormatter {
     private final String base;
     private final List<TelemetryModifier<?>> modifiers;
 
-    public TelemetryFormatter(String base, List<TelemetryModifier<?>> modifiers) {
+    public TelemetryFormatter(@NonNull String base, List<TelemetryModifier<?>> modifiers) {
         this.base = base;
         this.modifiers = new ArrayList<>(modifiers);
     }
