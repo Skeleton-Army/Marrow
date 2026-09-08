@@ -5,6 +5,7 @@ import android.graphics.Color;
 
 import androidx.annotation.NonNull;
 
+import com.skeletonarmy.marrow.telemetry.HtmlColors;
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
 public class ColorModifier extends TelemetryModifier<String> {
@@ -17,10 +18,13 @@ public class ColorModifier extends TelemetryModifier<String> {
 
         color = hex.toUpperCase();
     }
-
     public ColorModifier(int r, int g, int b) {
         this(String.format("#%02x%02x%02x", r, g, b));
     }
+    public ColorModifier(HtmlColors color) {
+        this(color.toHexString());
+    }
+
 
     @Override
     public String getValue() {

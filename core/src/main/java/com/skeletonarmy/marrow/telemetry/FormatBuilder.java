@@ -40,6 +40,11 @@ public class FormatBuilder {
         return this;
     }
 
+    public FormatBuilder setColor(HtmlColors color) {
+        modifiers.add(new ColorModifier(color));
+        return this;
+    }
+
     public FormatBuilder bold() {
         modifiers.add(new BoldModifier());
         return this;
