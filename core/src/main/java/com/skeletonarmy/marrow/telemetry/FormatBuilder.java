@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
+@SuppressWarnings("unused")
 public class FormatBuilder {
     private final String base;
 
@@ -40,7 +41,7 @@ public class FormatBuilder {
         return this;
     }
 
-    public FormatBuilder setColor(HtmlColors color) {
+    public FormatBuilder setColor(HtmlColor color) {
         modifiers.add(new ColorModifier(color));
         return this;
     }
