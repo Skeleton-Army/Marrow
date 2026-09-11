@@ -78,11 +78,11 @@ public class FormatBuilder {
         return build().format();
     }
 
-    public Telemetry.Item addData(Telemetry telemetry, String caption) {
+    public Telemetry.Item printData(Telemetry telemetry, String caption) {
         return telemetry.addData(caption, format());
     }
 
-    public Telemetry.Line addLine(Telemetry telemetry) {
+    public Telemetry.Line printLine(Telemetry telemetry) {
         return telemetry.addLine(format());
     }
 }
