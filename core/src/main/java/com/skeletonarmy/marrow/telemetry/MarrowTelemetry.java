@@ -1,12 +1,12 @@
 package com.skeletonarmy.marrow.telemetry;
 
 import static com.skeletonarmy.marrow.telemetry.HtmlArgType.ALL_ARGS;
+import static com.skeletonarmy.marrow.telemetry.HtmlArgType.BUILDER;
 import static com.skeletonarmy.marrow.telemetry.HtmlArgType.LIST;
 import static com.skeletonarmy.marrow.telemetry.HtmlArgType.NONE;
 
 import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.internal.opmode.TelemetryImpl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,13 +23,13 @@ public class MarrowTelemetry implements Telemetry {
     /**
      * add updating key-value pair data to telemetry stream
      *
-     * @param caption            the caption to use or {@code null} for no caption
-     * @param message            the string by which the arguments are to be formatted
+     * @param caption            the caption to use , can be {@code null} or empty for no caption
+     * @param message            the string which the modifiers and-or format args will be applied to
      * @param args               the arguments to format or {@link TelemetryModifier}s to apply to the message
      *                           if the first element is a {@link List<TelemetryModifier>} it will be used,
      *                           and the rest of the args will be used
      *
-     * @return the {@link Item} which is printed to the telemetry stream, or {@code null} when {@code caption} is {@code null}
+     * @return the {@link Item} which is printed to the telemetry stream, or {@code null} when {@code caption} is {@code null} or empty
      */
 
     @Override
@@ -54,6 +54,12 @@ public class MarrowTelemetry implements Telemetry {
                 break;
             }
 
+            case BUILDER: {
+                modifiers = ((FormatBuilder) args[0]).getModifiers();
+                System.arraycopy(args, 1, formatArgs, 0, args.length - 1);
+                break;
+            }
+
             case NONE: {
                 return telemetry.addData(caption, message, args);
             }
@@ -61,12 +67,12 @@ public class MarrowTelemetry implements Telemetry {
 
         String msg = new TelemetryFormatter(message, modifiers).format();
 
-        if (caption == null) {
+        if (caption == null || caption.isEmpty()) {
             addLine(msg);
             return null; //TODO: return an actual value, though I don't think it's actually needed
         }
 
-        // when using the List method, the rest of the args should be used for formatting
+        // when using the List or builder method, the rest of the args should be used for formatting
         if (formatArgs.length > 0) {
             return telemetry.addData(caption, msg, formatArgs);
         }
@@ -82,6 +88,10 @@ public class MarrowTelemetry implements Telemetry {
      */
 
     private HtmlArgType isHtml(Object[] args) {
+        if (args.length > 0 && args[0] instanceof FormatBuilder) {
+            return BUILDER;
+        }
+
         if (args.length > 0 && args[0] instanceof List) {
             List<?> arg0 = (List<?>) args[0];
             if (!arg0.isEmpty() && arg0.get(0) instanceof TelemetryModifier) {
@@ -89,20 +99,20 @@ public class MarrowTelemetry implements Telemetry {
             }
         }
 
-        HtmlArgType result = ALL_ARGS;
         for (Object o : args) {
             if (!(o instanceof TelemetryModifier)) {
-                result = NONE;
-                break;
+                return NONE;
             }
         }
 
-        return result;
+        return ALL_ARGS;
     }
 
-    //------------------|
-    // Telemetry Methods|
-    //------------------|
+    /*
+    |-------------------|
+    | Telemetry Methods |
+    |-------------------|
+     */
 
     @Override
     public Item addData(String caption, Object value) {
