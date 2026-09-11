@@ -16,13 +16,13 @@ import java.util.function.Supplier;
 public class FormatBuilder {
     private final String base;
 
-    private final List<TelemetryModifier<?>> modifiers = new ArrayList<>();
+    private final List<TelemetryModifier> modifiers = new ArrayList<>();
 
     public String getBase() {
         return base;
     }
 
-    public List<TelemetryModifier<?>> getModifiers() {
+    public List<TelemetryModifier> getModifiers() {
         return modifiers;
     }
 
@@ -55,17 +55,17 @@ public class FormatBuilder {
         return this;
     }
 
-    public FormatBuilder addConditional(BooleanSupplier condition, TelemetryModifier<?> onTrue, TelemetryModifier<?> onFalse) {
+    public FormatBuilder addConditional(BooleanSupplier condition, TelemetryModifier onTrue, TelemetryModifier onFalse) {
         modifiers.add(new ConditionalModifier(condition, onTrue, onFalse));
         return this;
     }
 
-    public FormatBuilder addMultiConditional(Supplier<Integer> supplier, TelemetryModifier<?> defaultModifier, TelemetryModifier<?>... modifiers) {
+    public FormatBuilder addMultiConditional(Supplier<Integer> supplier, TelemetryModifier defaultModifier, TelemetryModifier... modifiers) {
         this.modifiers.add(new MultiConditionalModifier(supplier, defaultModifier, modifiers));
         return this;
     }
 
-    public FormatBuilder addModifier(TelemetryModifier<?> modifier) {
+    public FormatBuilder addModifier(TelemetryModifier modifier) {
         modifiers.add(modifier);
         return this;
     }

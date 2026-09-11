@@ -8,7 +8,7 @@ import androidx.annotation.NonNull;
 import com.skeletonarmy.marrow.telemetry.HtmlColors;
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
-public class ColorModifier extends TelemetryModifier<String> {
+public class ColorModifier extends TelemetryModifier {
     private final String color;
 
     public ColorModifier(String hex) {
@@ -23,12 +23,6 @@ public class ColorModifier extends TelemetryModifier<String> {
     }
     public ColorModifier(HtmlColors color) {
         this(color.toHexString());
-    }
-
-
-    @Override
-    public String getValue() {
-       return color;
     }
 
     @NonNull

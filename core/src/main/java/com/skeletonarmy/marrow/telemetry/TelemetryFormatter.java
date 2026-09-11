@@ -8,9 +8,9 @@ import java.util.List;
 
 public class TelemetryFormatter {
     private final String base;
-    private final List<TelemetryModifier<?>> modifiers;
+    private final List<TelemetryModifier> modifiers;
 
-    public TelemetryFormatter(@NonNull String base, List<TelemetryModifier<?>> modifiers) {
+    public TelemetryFormatter(@NonNull String base, List<TelemetryModifier> modifiers) {
         this.base = base;
         this.modifiers = new ArrayList<>(modifiers);
     }
@@ -27,17 +27,17 @@ public class TelemetryFormatter {
         return base;
     }
 
-    public List<TelemetryModifier<?>> getModifiers() {
+    public List<TelemetryModifier> getModifiers() {
         return modifiers;
     }
 
-    public void addModifier(TelemetryModifier<?> modifier) {
+    public void addModifier(TelemetryModifier modifier) {
         modifiers.add(modifier);
     }
 
     public String format() {
         String result = base;
-        for (TelemetryModifier<?> modifier : modifiers) {
+        for (TelemetryModifier modifier : modifiers) {
             result = modifier.format(result);
         }
         return result;

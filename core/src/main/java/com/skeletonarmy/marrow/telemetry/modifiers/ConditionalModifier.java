@@ -8,18 +8,13 @@ import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
 import java.util.function.BooleanSupplier;
 
-public class ConditionalModifier extends TelemetryModifier<BooleanSupplier> {
+public class ConditionalModifier extends TelemetryModifier {
     private final BooleanSupplier value;
-    private final Pair <TelemetryModifier<?>, TelemetryModifier<?>> conditionalPair;
+    private final Pair <TelemetryModifier, TelemetryModifier> conditionalPair;
 
-    public ConditionalModifier(BooleanSupplier value, TelemetryModifier<?> onTure, TelemetryModifier<?> onFalse) {
+    public ConditionalModifier(BooleanSupplier value, TelemetryModifier onTure, TelemetryModifier onFalse) {
         this.value = value;
         conditionalPair = new Pair<>(onTure, onFalse);
-    }
-
-    @Override
-    public BooleanSupplier getValue() {
-        return value;
     }
 
     @NonNull

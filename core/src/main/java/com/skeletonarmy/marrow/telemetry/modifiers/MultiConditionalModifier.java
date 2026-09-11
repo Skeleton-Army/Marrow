@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.function.Supplier;
 
 
-public class MultiConditionalModifier extends TelemetryModifier<Supplier<Integer>> {
+public class MultiConditionalModifier extends TelemetryModifier {
     private final Supplier<Integer> supplier;
-    private final TelemetryModifier<?> defaultModifier;
-    private final List<TelemetryModifier<?>> modifiers;
+    private final TelemetryModifier defaultModifier;
+    private final List<TelemetryModifier> modifiers;
 
     /**
      * Gets a {@link Supplier<Integer>} whose value is the index of the desired modifier.
@@ -22,7 +22,7 @@ public class MultiConditionalModifier extends TelemetryModifier<Supplier<Integer
      * @param defaultModifier default modifier, can be {@code null} if nonexistent
      * @param modifiers the modifiers. if empty the default modifier will be used or returns a non-formated string if {@code defaultModifier} is {@code null}
      */
-    public MultiConditionalModifier(Supplier<Integer> supplier, TelemetryModifier<?> defaultModifier, TelemetryModifier<?>... modifiers) {
+    public MultiConditionalModifier(Supplier<Integer> supplier, TelemetryModifier defaultModifier, TelemetryModifier... modifiers) {
         this.supplier = supplier;
 
         if (defaultModifier == null) {
@@ -30,11 +30,6 @@ public class MultiConditionalModifier extends TelemetryModifier<Supplier<Integer
         }
         this.defaultModifier = defaultModifier;
         this.modifiers = new ArrayList<>(Arrays.asList(modifiers));
-    }
-
-    @Override
-    public Supplier<Integer> getValue() {
-        return supplier;
     }
 
     @NonNull
