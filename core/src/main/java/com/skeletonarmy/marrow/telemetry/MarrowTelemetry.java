@@ -25,17 +25,21 @@ public class MarrowTelemetry implements Telemetry {
     }
 
     /**
-     * add updating key-value pair data to telemetry stream
+     * Adds a piece of formatted telemetry data.
+     * <p>
      *
-     * @param caption            the caption to use , can be {@code null} or empty for no caption
-     * @param message            the string which the modifiers and-or format args will be applied to
-     * @param args               the arguments to format or {@link TelemetryModifier}s to apply to the message
-     *                           if the first element is a {@link List<TelemetryModifier>} it will be used,
-     *                           and the rest of the args will be used
+     * Passing a non-empty {@code caption} adds a caption/value pair, same as the
+     * standard {@code Telemetry.addData}. Passing {@code null} or an empty
+     * string for {@code caption} instead, adds {@code message} as a standalone
+     * telemetry line (see {@link #addLine(String)})  useful for formatted
+     * text, or data that shouldn't be paired with a caption.
      *
-     * @return the {@link Item} which is printed to the telemetry stream, or {@code null} when {@code caption} is {@code null} or empty
+     * @param caption     the caption to display, or {@code null}/empty to add {@code message} as a standalone line
+     * @param message     the message or value to format and display
+     * @param args        the modifiers and arguments to format {@code message} with
+     *
+     * @return            the created telemetry item, or {@code null} when added as a standalone line
      */
-
     @Override
     @SuppressWarnings("unchecked")
     public Item addData(String caption, String message, Object... args) {
