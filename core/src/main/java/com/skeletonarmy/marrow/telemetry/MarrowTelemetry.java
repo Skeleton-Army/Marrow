@@ -8,16 +8,20 @@ import static com.skeletonarmy.marrow.telemetry.HtmlArgType.NONE;
 import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 
 public class MarrowTelemetry implements Telemetry {
     Telemetry telemetry;
+    DecimalFormat decimalFormat;
 
     //NOTE: I don't think any other implementation except the official one implements HTML, so be careful with MultipleTelemetry
     public MarrowTelemetry(Telemetry telemetry) {
         this.telemetry = telemetry;
         setDisplayFormat(DisplayFormat.HTML);
+
+        decimalFormat = new DecimalFormat("0.####");
     }
 
     /**
@@ -40,6 +44,12 @@ public class MarrowTelemetry implements Telemetry {
         List<TelemetryModifier> modifiers = new ArrayList<>();
         Object[] formatArgs = new Object[args.length -1];
 
+        // format double like normal telemetry
+        if (isDouble(message)) {
+            message = decimalFormat.format(Double.parseDouble(message)); // this sucks
+        }
+
+        // setup modifiers and format args
         switch (argType) {
             case LIST: {
                 modifiers = (List<TelemetryModifier>) args[0];
@@ -65,8 +75,10 @@ public class MarrowTelemetry implements Telemetry {
             }
         }
 
+        // format the message
         String msg = new TelemetryFormatter(message, modifiers).format();
 
+        // pick display method
         if (caption == null || caption.isEmpty()) {
             addLine(msg);
             return null; //TODO: return an actual value, though I don't think it's actually needed
@@ -106,6 +118,15 @@ public class MarrowTelemetry implements Telemetry {
         }
 
         return ALL_ARGS;
+    }
+
+    private boolean isDouble(String s) {
+        try {
+            Double.parseDouble(s);
+            return true;
+        } catch (NumberFormatException e) {
+           return false;
+        }
     }
 
     /*
