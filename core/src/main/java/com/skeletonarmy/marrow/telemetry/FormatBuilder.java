@@ -27,8 +27,8 @@ public class FormatBuilder {
         return modifiers;
     }
 
-    public FormatBuilder(String base) {
-        this.base = base;
+    public FormatBuilder(Object base) {
+        this.base = String.valueOf(base);
     }
 
     public FormatBuilder setColor(String hex) {
