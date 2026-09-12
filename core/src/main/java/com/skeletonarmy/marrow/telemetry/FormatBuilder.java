@@ -8,7 +8,6 @@ import com.skeletonarmy.marrow.telemetry.modifiers.MultiConditionalModifier;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
-import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
@@ -28,17 +27,8 @@ public class FormatBuilder {
         return modifiers;
     }
 
-    public FormatBuilder(Object base) {
-        this(base, "0.####");
-    }
-
-    public FormatBuilder(Object base, String decimalFormat) {
-        if (base instanceof Double || base instanceof Float) {
-            this.base = new DecimalFormat(decimalFormat).format(base);
-        } else {
-            this.base = String.valueOf(base);
-        }
-
+    public FormatBuilder(String base) {
+        this.base = base;
     }
 
     public FormatBuilder setColor(String hex) {
