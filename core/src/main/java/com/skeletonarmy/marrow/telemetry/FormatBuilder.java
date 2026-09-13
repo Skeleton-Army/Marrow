@@ -3,8 +3,13 @@ package com.skeletonarmy.marrow.telemetry;
 import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ColorModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ConditionalModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.HtmlTextSize;
 import com.skeletonarmy.marrow.telemetry.modifiers.ItalicModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.MonospaceModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.MultiConditionalModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.NewlineModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.SizeModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.StrikethroughModifier;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -63,6 +68,27 @@ public class FormatBuilder {
 
     public FormatBuilder addMultiConditional(Supplier<Integer> supplier, TelemetryModifier defaultModifier, TelemetryModifier... modifiers) {
         this.modifiers.add(new MultiConditionalModifier(supplier, defaultModifier, modifiers));
+        return this;
+    }
+
+    public FormatBuilder addMonospaceModifier() {
+        modifiers.add(new MonospaceModifier());
+        return this;
+    }
+
+    // Kinda useless for a builder, but it's probably better it's here than not. it also helps shuts up Android Studio when commiting
+    public FormatBuilder addNewLineModifier() {
+        modifiers.add(new NewlineModifier());
+        return this;
+    }
+
+    public FormatBuilder addSizeModifier(HtmlTextSize size) {
+        modifiers.add(new SizeModifier(size));
+        return this;
+    }
+
+    public FormatBuilder addStrikethroughModifier() {
+        modifiers.add(new StrikethroughModifier());
         return this;
     }
 
