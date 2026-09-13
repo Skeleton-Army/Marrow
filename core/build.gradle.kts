@@ -32,21 +32,21 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter:5.8.1")
     testImplementation("junit:junit:4.13.2")
 
-    compileOnly("org.firstinspires.ftc:Inspection:11.0.0")
-    compileOnly("org.firstinspires.ftc:Blocks:11.0.0")
-    compileOnly("org.firstinspires.ftc:RobotCore:11.0.0")
-    compileOnly("org.firstinspires.ftc:RobotServer:11.0.0")
-    compileOnly("org.firstinspires.ftc:OnBotJava:11.0.0")
-    compileOnly("org.firstinspires.ftc:Hardware:11.0.0")
-    compileOnly("org.firstinspires.ftc:FtcCommon:11.0.0")
-    compileOnly("org.firstinspires.ftc:Vision:11.0.0")
+    compileOnly("org.firstinspires.ftc:Inspection:12.0.0")
+    compileOnly("org.firstinspires.ftc:Blocks:12.0.0")
+    compileOnly("org.firstinspires.ftc:RobotCore:12.0.0")
+    compileOnly("org.firstinspires.ftc:RobotServer:12.0.0")
+    compileOnly("org.firstinspires.ftc:OnBotJava:12.0.0")
+    compileOnly("org.firstinspires.ftc:Hardware:12.0.0")
+    compileOnly("org.firstinspires.ftc:FtcCommon:12.0.0")
+    compileOnly("org.firstinspires.ftc:Vision:12.0.0")
     compileOnly("androidx.appcompat:appcompat:1.2.0")
 
     compileOnly("org.ftclib.ftclib:core:2.1.1")
-    compileOnly("dev.nextftc:ftc:1.0.1")
+    compileOnly("dev.nextftc:ftc:1.1.0")
     compileOnly("com.acmerobotics.roadrunner:actions:1.0.1")
-    compileOnly("com.acmerobotics.dashboard:dashboard:0.5.1")
-    compileOnly("com.pedropathing:ivy:1.0.0")
+    compileOnly("com.acmerobotics.dashboard:dashboard:0.6.0")
+    compileOnly("com.pedropathing.ivy:pedro:1.1.1")
 
     // WARNING: DO NOT UPDATE FASTERXML JACKSON
     // 2.10.0 is the latest known good version that doesn't break our code and works with the Android API of the Control Hub
