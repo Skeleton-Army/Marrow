@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 
 @SuppressWarnings("unused")
 public class FormatBuilder {
-    private final String base;
+    private String base;
 
     private final List<TelemetryModifier> modifiers = new ArrayList<>();
 
@@ -33,10 +33,17 @@ public class FormatBuilder {
         return modifiers;
     }
 
+    public FormatBuilder() {
+        this.base = "";
+    }
     public FormatBuilder(Object base) {
         this.base = String.valueOf(base);
     }
 
+    public FormatBuilder setBase(Object base) {
+        this.base = String.valueOf(base);
+        return this;
+    }
     public FormatBuilder setColor(String hex) {
         modifiers.add(new ColorModifier(hex));
         return this;

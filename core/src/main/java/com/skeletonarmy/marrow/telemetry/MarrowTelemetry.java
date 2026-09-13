@@ -69,7 +69,7 @@ public class MarrowTelemetry implements Telemetry {
             }
 
             case BUILDER: {
-                modifiers = ((FormatBuilder) args[0]).getModifiers();
+                modifiers = ((FormatBuilder) args[0]).setBase(message).getModifiers();
                 System.arraycopy(args, 1, formatArgs, 0, args.length - 1);
                 break;
             }

@@ -9,6 +9,6 @@ public class MonospaceModifier extends TelemetryModifier {
     @NonNull
     @Override
     public String format(String s) {
-        return "<font face=\"monospace\">" + s + "</font>";
+        return "<font face=monospace>" + s + "</font>";
     }
 }
