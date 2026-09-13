@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow.telemetry;
 
 import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ColorModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.ConditionalColorModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ConditionalModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.HtmlTextSize;
 import com.skeletonarmy.marrow.telemetry.modifiers.ItalicModifier;
@@ -71,7 +72,7 @@ public class FormatBuilder {
         return this;
     }
 
-    public FormatBuilder addMonospaceModifier() {
+    public FormatBuilder monospace() {
         modifiers.add(new MonospaceModifier());
         return this;
     }
@@ -82,15 +83,21 @@ public class FormatBuilder {
         return this;
     }
 
-    public FormatBuilder addSizeModifier(HtmlTextSize size) {
+    public FormatBuilder setSize(HtmlTextSize size) {
         modifiers.add(new SizeModifier(size));
         return this;
     }
 
-    public FormatBuilder addStrikethroughModifier() {
+    public FormatBuilder strikethrough() {
         modifiers.add(new StrikethroughModifier());
         return this;
     }
+
+    public FormatBuilder addConditionalColorModifier(BooleanSupplier condition) {
+        modifiers.add(new ConditionalColorModifier(condition));
+        return this;
+    }
+
 
     public FormatBuilder addModifier(TelemetryModifier modifier) {
         modifiers.add(modifier);

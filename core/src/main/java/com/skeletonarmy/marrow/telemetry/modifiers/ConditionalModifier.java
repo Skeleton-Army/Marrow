@@ -12,9 +12,9 @@ public class ConditionalModifier extends TelemetryModifier {
     private final BooleanSupplier value;
     private final Pair <TelemetryModifier, TelemetryModifier> conditionalPair;
 
-    public ConditionalModifier(BooleanSupplier value, TelemetryModifier onTure, TelemetryModifier onFalse) {
+    public ConditionalModifier(BooleanSupplier value, TelemetryModifier onTrue, TelemetryModifier onFalse) {
         this.value = value;
-        conditionalPair = new Pair<>(onTure, onFalse);
+        conditionalPair = new Pair<>(onTrue, onFalse);
     }
 
     @NonNull
