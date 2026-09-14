@@ -26,6 +26,6 @@ public class ColorModifier extends TelemetryModifier {
     @NonNull
     @Override
     public String format(String s) {
-        return String.format("<font color='%s'> %s </font>", color, s);
+        return String.format("<font color='%s'>%s</font>", color, s);
     }
 }

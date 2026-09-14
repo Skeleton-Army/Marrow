@@ -85,7 +85,7 @@ public class FormatBuilder {
     }
 
     // Kinda useless for a builder, but it's probably better it's here than not. it also helps shuts up Android Studio when commiting
-    public FormatBuilder addNewLineModifier() {
+    public FormatBuilder addNewline() {
         modifiers.add(new NewlineModifier());
         return this;
     }
@@ -100,7 +100,7 @@ public class FormatBuilder {
         return this;
     }
 
-    public FormatBuilder addConditionalColorModifier(BooleanSupplier condition) {
+    public FormatBuilder addConditionalColor(BooleanSupplier condition) {
         modifiers.add(new ConditionalColorModifier(condition));
         return this;
     }
