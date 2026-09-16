@@ -45,6 +45,11 @@ public class MarrowTelemetry implements Telemetry {
     public Item addData(String caption, String message, Object... args) {
         HtmlArgType argType = isHtml(args);
 
+        // early return for default use, and resolve potential NegativeArraySizeException
+        if (argType == NONE) {
+            return telemetry.addData(caption, message, args);
+        }
+
         List<TelemetryModifier> modifiers = new ArrayList<>();
         Object[] formatArgs = new Object[args.length -1];
 
@@ -53,7 +58,6 @@ public class MarrowTelemetry implements Telemetry {
             message = decimalFormat.format(Double.parseDouble(message)); // this sucks
         }
 
-        // setup modifiers and format args
         switch (argType) {
             case LIST: {
                 modifiers = (List<TelemetryModifier>) args[0];
@@ -73,16 +77,10 @@ public class MarrowTelemetry implements Telemetry {
                 System.arraycopy(args, 1, formatArgs, 0, args.length - 1);
                 break;
             }
-
-            case NONE: {
-                return telemetry.addData(caption, message, args);
-            }
         }
 
-        // format the message
         String msg = new TelemetryFormatter(message, modifiers).format();
 
-        // pick display method
         if (caption == null || caption.isEmpty()) {
             addLine(msg);
             return null; //TODO: return an actual value, though I don't think it's actually needed
@@ -104,11 +102,15 @@ public class MarrowTelemetry implements Telemetry {
      */
 
     private HtmlArgType isHtml(Object[] args) {
-        if (args.length > 0 && args[0] instanceof FormatBuilder) {
+        if (args == null || args.length == 0) {
+            return NONE;
+        }
+
+        if (args[0] instanceof FormatBuilder) {
             return BUILDER;
         }
 
-        if (args.length > 0 && args[0] instanceof List) {
+        if (args[0] instanceof List) {
             List<?> arg0 = (List<?>) args[0];
             if (!arg0.isEmpty() && arg0.get(0) instanceof TelemetryModifier) {
                return LIST;
