@@ -22,6 +22,8 @@ import java.util.function.Supplier;
 @SuppressWarnings("unused")
 public class FormatBuilder {
     private String base;
+    private String prefix = "";
+    private String suffix = "";
 
     private final List<TelemetryModifier> modifiers = new ArrayList<>();
 
@@ -111,12 +113,34 @@ public class FormatBuilder {
         return this;
     }
 
+    /**
+     * Sets prefix to the final formatted string, not base string.
+     *
+     * @param prefix the prefix
+     * @return this
+     */
+    public FormatBuilder setPrefix(String prefix) {
+        this.prefix = prefix;
+        return this;
+    }
+
+    /**
+     * Sets suffix to the final formatted string, not base string.
+     *
+     * @param suffix the suffix
+     * @return this
+     */
+    public FormatBuilder setSuffix(String suffix) {
+        this.suffix = suffix;
+        return this;
+    }
+
     private TelemetryFormatter build() {
         return new TelemetryFormatter(this);
     }
 
     public String format() {
-        return build().format();
+        return prefix + build().format() + suffix;
     }
 
     public Telemetry.Item printData(Telemetry telemetry, String caption) {
