@@ -111,7 +111,7 @@ public class FormatBuilder {
         return this;
     }
 
-    public TelemetryFormatter build() {
+    private TelemetryFormatter build() {
         return new TelemetryFormatter(this);
     }
 
