@@ -38,6 +38,7 @@ public class FormatBuilder {
     public FormatBuilder() {
         this.base = "";
     }
+
     public FormatBuilder(Object base) {
         this.base = String.valueOf(base);
     }

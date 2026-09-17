@@ -24,5 +24,4 @@ public abstract class TelemetryModifier {
     public final String toString() {
         return "";
     }
-
 }

@@ -5,7 +5,6 @@ import androidx.annotation.NonNull;
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
 public class MonospaceModifier extends TelemetryModifier {
-
     @NonNull
     @Override
     public String format(String s) {

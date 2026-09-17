@@ -1,10 +1,5 @@
 package com.skeletonarmy.marrow.telemetry;
 
-import static com.skeletonarmy.marrow.telemetry.HtmlArgType.ALL_ARGS;
-import static com.skeletonarmy.marrow.telemetry.HtmlArgType.BUILDER;
-import static com.skeletonarmy.marrow.telemetry.HtmlArgType.LIST;
-import static com.skeletonarmy.marrow.telemetry.HtmlArgType.NONE;
-
 import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -45,15 +40,15 @@ public class MarrowTelemetry implements Telemetry {
     public Item addData(String caption, String message, Object... args) {
         HtmlArgType argType = isHtml(args);
 
-        // early return for default use, and resolve potential NegativeArraySizeException
-        if (argType == NONE) {
+        // Early return for default use, and resolve potential NegativeArraySizeException
+        if (argType == HtmlArgType.NONE) {
             return telemetry.addData(caption, message, args);
         }
 
         List<TelemetryModifier> modifiers = new ArrayList<>();
         Object[] formatArgs = new Object[args.length -1];
 
-        // format double like normal telemetry
+        // Format double like normal telemetry
         if (isDouble(message)) {
             message = decimalFormat.format(Double.parseDouble(message)); // this sucks
         }
@@ -83,10 +78,10 @@ public class MarrowTelemetry implements Telemetry {
 
         if (caption == null || caption.isEmpty()) {
             addLine(msg);
-            return null; //TODO: return an actual value, though I don't think it's actually needed
+            return null; //TODO: Return an actual value, though I don't think it's actually needed
         }
 
-        // when using the List or builder method, the rest of the args should be used for formatting
+        // When using the List or builder method, the rest of the args should be used for formatting
         if (formatArgs.length > 0) {
             return telemetry.addData(caption, msg, formatArgs);
         }
@@ -95,7 +90,7 @@ public class MarrowTelemetry implements Telemetry {
     }
 
     /**
-     * validate and check the addData valist
+     * Validate and check the addData valist
      *
      * @param args addData args
      * @return the type of args given
@@ -103,27 +98,27 @@ public class MarrowTelemetry implements Telemetry {
 
     private HtmlArgType isHtml(Object[] args) {
         if (args == null || args.length == 0) {
-            return NONE;
+            return HtmlArgType.NONE;
         }
 
         if (args[0] instanceof FormatBuilder) {
-            return BUILDER;
+            return HtmlArgType.BUILDER;
         }
 
         if (args[0] instanceof List) {
             List<?> arg0 = (List<?>) args[0];
             if (!arg0.isEmpty() && arg0.get(0) instanceof TelemetryModifier) {
-               return LIST;
+               return HtmlArgType.LIST;
             }
         }
 
         for (Object o : args) {
             if (!(o instanceof TelemetryModifier)) {
-                return NONE;
+                return HtmlArgType.NONE;
             }
         }
 
-        return ALL_ARGS;
+        return HtmlArgType.ALL_ARGS;
     }
 
     private boolean isDouble(String s) {
@@ -133,6 +128,13 @@ public class MarrowTelemetry implements Telemetry {
         } catch (NumberFormatException e) {
            return false;
         }
+    }
+
+    enum HtmlArgType {
+        ALL_ARGS,
+        LIST,
+        BUILDER,
+        NONE;
     }
 
     /*
