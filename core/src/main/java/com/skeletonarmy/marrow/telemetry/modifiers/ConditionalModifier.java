@@ -1,0 +1,29 @@
+package com.skeletonarmy.marrow.telemetry.modifiers;
+
+import android.util.Pair;
+
+import androidx.annotation.NonNull;
+
+import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
+
+import java.util.function.BooleanSupplier;
+
+public class ConditionalModifier extends TelemetryModifier {
+    private final BooleanSupplier value;
+    private final Pair <TelemetryModifier, TelemetryModifier> conditionalPair;
+
+    public ConditionalModifier(BooleanSupplier value, TelemetryModifier onTrue, TelemetryModifier onFalse) {
+        this.value = value;
+        conditionalPair = new Pair<>(onTrue, onFalse);
+    }
+
+    @NonNull
+    @Override
+    public String format(String s) {
+        if (value.getAsBoolean()) {
+            return conditionalPair.first.format(s);
+        } else {
+            return conditionalPair.second.format(s);
+        }
+    }
+}
