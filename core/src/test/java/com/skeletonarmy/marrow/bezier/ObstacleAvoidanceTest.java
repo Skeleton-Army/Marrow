@@ -87,6 +87,26 @@ public class ObstacleAvoidanceTest {
         assertEquals(START_X + 60 - 5.0, lastTargetCenter.getX(), 1e-6);
     }
 
+    @Test
+    public void pathClearsSecondOfTwoObstacles() {
+        List<Zone> obstacles = Arrays.asList(
+                new CircleZone(new Point(86, 86), 5),
+                new CircleZone(new Point(114, 86), 5)
+        );
+
+        BezierPath path = BezierPathGenerator.builder()
+                .start(new Pose(START_X, START_Y, 0))
+                .addWaypoint(new Waypoint(100, 100))
+                .addWaypoint(new Waypoint(128, 72))
+                .addObstacle(obstacles.get(0))
+                .addObstacle(obstacles.get(1))
+                .generate()
+                .getPath();
+
+        assertTrue("Path should not cut through either obstacle",
+                BezierPathGenerator.isPathClear(path, obstacles, BezierPathGenerator.getConfig().getClearance(), 400));
+    }
+
     private double maxDev(BezierCurve curve, double baselineY) {
         return curve.sample(100).stream()
                 .mapToDouble(p -> Math.abs(p.getY() - baselineY))

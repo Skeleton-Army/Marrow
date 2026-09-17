@@ -7,9 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CollisionAvoider {
-
-    private CollisionAvoider() {
-    }
+    private CollisionAvoider() {}
 
     public static BezierPath avoid(BezierPath path, List<Zone> obstacles, BezierConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
@@ -19,8 +17,14 @@ public class CollisionAvoider {
         List<BezierCurve> segments = new ArrayList<>(path.getSegments());
         double targetClearance = config.getClearance() * 1.05 + 0.05;
 
+        List<BezierCurve> best = new ArrayList<>(segments);
+        double bestViolation = Double.MAX_VALUE;
+
         for (int iter = 0; iter < config.getMaxIterations(); iter++) {
             boolean anyViolation = false;
+            double worstViolation = 0;
+
+            List<BezierCurve> snapshot = new ArrayList<>(segments);
 
             for (int s = 0; s < segments.size(); s++) {
                 BezierCurve curve = segments.get(s);
@@ -44,7 +48,9 @@ public class CollisionAvoider {
                             double dist = zone.distanceToBoundary(fp);
                             if (zone.contains(fp) || dist < targetClearance) {
                                 anyViolation = true;
-                                double vx = fp.getX() - zone.getPosition().getX(), vy = fp.getY() - zone.getPosition().getY();
+                                worstViolation = Math.max(worstViolation, targetClearance - dist);
+
+                                double vx = sample.getX() - zone.getPosition().getX(), vy = sample.getY() - zone.getPosition().getY();
                                 double norm = Math.hypot(vx, vy);
 
                                 if (norm < 1e-6) {
@@ -96,10 +102,17 @@ public class CollisionAvoider {
                 }
                 segments.set(s, new BezierCurve(cps));
             }
+
+            if (worstViolation < bestViolation) {
+                bestViolation = worstViolation;
+                best = snapshot;
+            }
+
             if (!anyViolation) {
                 break;
             }
         }
-        return new BezierPath(segments);
+
+        return new BezierPath(best);
     }
 }

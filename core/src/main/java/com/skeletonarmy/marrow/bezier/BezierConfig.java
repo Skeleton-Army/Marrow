@@ -8,7 +8,7 @@ public class BezierConfig {
     // Intake & Ordering
     private double turnCostWeight = 10.0;
     private double reach = 5.0;
-    private double width = 10.0;
+    private double width = 8.0;
     private double tension = 0.0;
     private int bruteForceOrderLimit = 8;
 

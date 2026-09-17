@@ -56,14 +56,14 @@ public class VisualExportTest {
     @Test
     public void exportIntakeWithAvoidance() throws IOException {
         BezierResult result = BezierPathGenerator.builder()
-                .start(new Pose(72, 72, 0))
-                .addWaypoint(new Waypoint(100, 100))
-                .addWaypoint(new Waypoint(128, 72))
-                .addObstacle(new CircleZone(new Point(86, 86), 5))
-                .addObstacle(new CircleZone(new Point(114, 86), 5))
+                .start(new Pose(20, 20, 0))
+                .addWaypoint(new Waypoint(70, 70))
+                .addWaypoint(new Waypoint(120, 20))
+                .addObstacle(new CircleZone(new Point(43, 43), 5))
+                .addObstacle(new CircleZone(new Point(91, 45), 5))
                 .generate();
 
-        export(new Pose(72, 72, 0), result, "intake_with_avoidance");
+        export(new Pose(20, 20, 0), result, "intake_with_avoidance");
     }
 
     private void export(Pose start, BezierResult result, String name) throws IOException {
