@@ -23,7 +23,7 @@ public class PathGeneratorTest {
 
         BezierResult result = BezierPathGenerator.builder()
                 .start(new Pose(0, 0, 0))
-                .addWaypoint(new Waypoint(10, 0))
+                .addTarget(new Pose(10, 0))
                 .generate();
 
         Point[] cps = result.getControlPointArray(0);
@@ -35,7 +35,7 @@ public class PathGeneratorTest {
     @Test(expected = IllegalStateException.class)
     public void builderThrowsIfStartMissing() {
         BezierPathGenerator.builder()
-                .addWaypoint(new Waypoint(30, 30))
+                .addTarget(new Pose(30, 30))
                 .generate();
     }
 
@@ -43,7 +43,7 @@ public class PathGeneratorTest {
     public void resultObjectProvidesEasyAccess() {
         BezierResult result = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .addWaypoint(new Waypoint(START_X + 20, START_Y))
+                .addTarget(new Pose(START_X + 20, START_Y))
                 .generate();
 
         assertEquals(1, result.getSegments().size());

@@ -19,14 +19,14 @@ public class StressTest {
     }
 
     @Test
-    public void handledDuplicateWaypoints() {
+    public void handledDuplicatePoses() {
         double px = START_X + 20, py = START_Y + 10;
-        Waypoint wp = new Waypoint(px, py);
+        Pose pose = new Pose(px, py);
 
         BezierPath path = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .addWaypoint(wp)
-                .addWaypoint(wp)
+                .addTarget(pose)
+                .addTarget(pose)
                 .generate()
                 .getPath();
 
@@ -38,12 +38,12 @@ public class StressTest {
     }
 
     @Test
-    public void handlesLargeWaypointCount() {
+    public void handlesLargePoseCount() {
         Random rng = new Random(42);
         BezierPathGenerator.Builder builder = BezierPathGenerator.builder().start(new Pose(START_X, START_Y, 0));
         
         for (int i = 0; i < 15; i++) {
-            builder.addWaypoint(new Waypoint(START_X + rng.nextDouble() * 50, START_Y + rng.nextDouble() * 50));
+            builder.addTarget(new Pose(START_X + rng.nextDouble() * 50, START_Y + rng.nextDouble() * 50));
         }
 
         BezierPath path = builder.generate().getPath();
@@ -58,9 +58,9 @@ public class StressTest {
     public void extremeCoordinateSpread() {
         BezierPath path = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .addWaypoint(new Waypoint(START_X + 0.1, START_Y + 0.1))
-                .addWaypoint(new Waypoint(START_X - 1000, START_Y + 1000))
-                .addWaypoint(new Waypoint(START_X + 2000, START_Y - 2000))
+                .addTarget(new Pose(START_X + 0.1, START_Y + 0.1))
+                .addTarget(new Pose(START_X - 1000, START_Y + 1000))
+                .addTarget(new Pose(START_X + 2000, START_Y - 2000))
                 .generate()
                 .getPath();
 

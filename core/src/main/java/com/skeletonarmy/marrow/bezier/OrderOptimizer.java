@@ -11,7 +11,7 @@ public class OrderOptimizer {
     private OrderOptimizer() {
     }
 
-    public static List<Waypoint> order(Point startPos, double startHeadingRad, List<Waypoint> targets, BezierConfig config) {
+    public static List<Pose> order(Point startPos, double startHeadingRad, List<Pose> targets, BezierConfig config) {
         if (targets.size() <= 1) {
             return new ArrayList<>(targets);
         }
@@ -20,26 +20,26 @@ public class OrderOptimizer {
                 : greedy(startPos, startHeadingRad, targets, config);
     }
 
-    public static double pathCost(Point startPos, double startHeadingRad, List<Waypoint> order, double turnCostWeight) {
+    public static double pathCost(Point startPos, double startHeadingRad, List<Pose> order, double turnCostWeight) {
         double cost = 0;
         Point currentPos = startPos;
         double currentHeading = startHeadingRad;
 
-        for (Waypoint wp : order) {
-            double travelBearing = wp.getHeading() != null ? wp.getHeading()
-                    : Math.atan2(wp.getY() - currentPos.getY(), wp.getX() - currentPos.getX());
+        for (Pose pose : order) {
+            double travelBearing = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
+                    : Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
 
-            cost += currentPos.distanceTo(new Point(wp.getX(), wp.getY())) + turnCostWeight * Math.abs(normalizeAngle(travelBearing - currentHeading));
+            cost += currentPos.distanceTo(new Point(pose.getX(), pose.getY())) + turnCostWeight * Math.abs(normalizeAngle(travelBearing - currentHeading));
 
             currentHeading = travelBearing;
-            currentPos = new Point(wp.getX(), wp.getY());
+            currentPos = new Point(pose.getX(), pose.getY());
         }
         return cost;
     }
 
-    private static List<Waypoint> bruteForce(Point startPos, double startHeading, List<Waypoint> targets, BezierConfig config) {
-        List<Waypoint> working = new ArrayList<>(targets);
-        final List<Waypoint> bestOrder = new ArrayList<>(targets);
+    private static List<Pose> bruteForce(Point startPos, double startHeading, List<Pose> targets, BezierConfig config) {
+        List<Pose> working = new ArrayList<>(targets);
+        final List<Pose> bestOrder = new ArrayList<>(targets);
         final double[] minCost = {pathCost(startPos, startHeading, working, config.getTurnCostWeight())};
 
         permute(working, 0, perm -> {
@@ -53,35 +53,35 @@ public class OrderOptimizer {
         return bestOrder;
     }
 
-    private static List<Waypoint> greedy(Point startPos, double startHeading, List<Waypoint> targets, BezierConfig config) {
-        List<Waypoint> remaining = new ArrayList<>(targets);
-        List<Waypoint> result = new ArrayList<>();
+    private static List<Pose> greedy(Point startPos, double startHeading, List<Pose> targets, BezierConfig config) {
+        List<Pose> remaining = new ArrayList<>(targets);
+        List<Pose> result = new ArrayList<>();
         Point currentPos = startPos;
         double currentHeading = startHeading;
         double k = config.getTurnCostWeight();
 
         while (!remaining.isEmpty()) {
-            Waypoint bestWp = null;
+            Pose bestPose = null;
             double bestCost = Double.MAX_VALUE;
             double bestHeading = 0;
 
-            for (Waypoint wp : remaining) {
-                double travelBearing = wp.getHeading() != null ? wp.getHeading()
-                        : Math.atan2(wp.getY() - currentPos.getY(), wp.getX() - currentPos.getX());
+            for (Pose pose : remaining) {
+                double travelBearing = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
+                        : Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
 
-                double cost = currentPos.distanceTo(new Point(wp.getX(), wp.getY())) + k * Math.abs(normalizeAngle(travelBearing - currentHeading));
+                double cost = currentPos.distanceTo(new Point(pose.getX(), pose.getY())) + k * Math.abs(normalizeAngle(travelBearing - currentHeading));
 
                 if (cost < bestCost) {
                     bestCost = cost;
-                    bestWp = wp;
+                    bestPose = pose;
                     bestHeading = travelBearing;
                 }
             }
 
-            currentPos = new Point(bestWp.getX(), bestWp.getY());
+            currentPos = new Point(bestPose.getX(), bestPose.getY());
             currentHeading = bestHeading;
-            result.add(bestWp);
-            remaining.remove(bestWp);
+            result.add(bestPose);
+            remaining.remove(bestPose);
         }
         return result;
     }
@@ -97,10 +97,10 @@ public class OrderOptimizer {
     }
 
     private interface PermutationVisitor {
-        void visit(List<Waypoint> permutation);
+        void visit(List<Pose> permutation);
     }
 
-    private static void permute(List<Waypoint> arr, int k, PermutationVisitor visitor) {
+    private static void permute(List<Pose> arr, int k, PermutationVisitor visitor) {
         if (k == arr.size()) {
             visitor.visit(arr);
             return;

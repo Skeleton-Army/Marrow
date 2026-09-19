@@ -23,8 +23,8 @@ public class VisualExportTest {
     public void exportDefaultIntakePath() throws IOException {
         BezierResult result = BezierPathGenerator.builder()
                 .start(new Pose(72, 72, 0))
-                .addWaypoint(new Waypoint(100, 80))
-                .addWaypoint(new Waypoint(128, 60))
+                .addTarget(new Pose(100, 80))
+                .addTarget(new Pose(128, 60))
                 .generate();
 
         export(new Pose(72, 72, 0), result, "default_intake");
@@ -35,8 +35,8 @@ public class VisualExportTest {
         BezierPathGenerator.setConfig(new BezierConfig().reach(0).width(0));
         BezierResult result = BezierPathGenerator.builder()
                 .start(new Pose(72, 72, 0))
-                .addWaypoint(new Waypoint(100, 80))
-                .addWaypoint(new Waypoint(128, 60))
+                .addTarget(new Pose(100, 80))
+                .addTarget(new Pose(128, 60))
                 .generate();
 
         export(new Pose(72, 72, 0), result, "no_intake");
@@ -57,8 +57,8 @@ public class VisualExportTest {
     public void exportIntakeWithAvoidance() throws IOException {
         BezierResult result = BezierPathGenerator.builder()
                 .start(new Pose(20, 20, 0))
-                .addWaypoint(new Waypoint(70, 70))
-                .addWaypoint(new Waypoint(120, 20))
+                .addTarget(new Pose(70, 70))
+                .addTarget(new Pose(120, 20))
                 .addObstacle(new CircleZone(new Point(43, 43), 5))
                 .addObstacle(new CircleZone(new Point(91, 45), 5))
                 .generate();
@@ -67,49 +67,49 @@ public class VisualExportTest {
     }
 
     @Test
-    public void exportManyWaypoints() throws IOException {
+    public void exportManyPoses() throws IOException {
         Pose start = new Pose(24, 24, 0);
         BezierResult result = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(36, 48))
-                .addWaypoint(new Waypoint(60, 36))
-                .addWaypoint(new Waypoint(72, 72))
-                .addWaypoint(new Waypoint(96, 60))
-                .addWaypoint(new Waypoint(108, 96))
-                .addWaypoint(new Waypoint(132, 72))
+                .addTarget(new Pose(36, 48))
+                .addTarget(new Pose(60, 36))
+                .addTarget(new Pose(72, 72))
+                .addTarget(new Pose(96, 60))
+                .addTarget(new Pose(108, 96))
+                .addTarget(new Pose(132, 72))
                 .generate();
 
-        export(start, result, "many_waypoints");
+        export(start, result, "many_poses");
     }
 
     @Test
-    public void exportManyWaypointsWithObstacles() throws IOException {
+    public void exportManyPosesWithObstacles() throws IOException {
         Pose start = new Pose(24, 24, 0);
         BezierResult result = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(40, 50))
-                .addWaypoint(new Waypoint(70, 40))
-                .addWaypoint(new Waypoint(90, 80))
-                .addWaypoint(new Waypoint(120, 60))
+                .addTarget(new Pose(40, 50))
+                .addTarget(new Pose(70, 40))
+                .addTarget(new Pose(90, 80))
+                .addTarget(new Pose(120, 60))
                 .addObstacle(new CircleZone(new Point(56, 64), 6))
                 .addObstacle(new CircleZone(new Point(84, 36), 6))
                 .addObstacle(new CircleZone(new Point(108, 84), 6))
                 .generate();
 
-        export(start, result, "many_waypoints_with_obstacles");
+        export(start, result, "many_poses_with_obstacles");
     }
 
     @Test
-    public void exportWaypointsWithHeadings() throws IOException {
+    public void exportPosesWithHeadings() throws IOException {
         Pose start = new Pose(24, 24, 0);
         BezierResult result = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(60, 24, 0))
-                .addWaypoint(new Waypoint(84, 84, Math.PI / 2))
-                .addWaypoint(new Waypoint(120, 36, 0))
+                .addTarget(new Pose(60, 24, 0))
+                .addTarget(new Pose(84, 84, Math.PI / 2))
+                .addTarget(new Pose(120, 36, 0))
                 .generate();
 
-        export(start, result, "waypoints_with_headings");
+        export(start, result, "poses_with_headings");
     }
 
     @Test
@@ -118,19 +118,19 @@ public class VisualExportTest {
 
         BezierResult reordered = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(120, 60))
-                .addWaypoint(new Waypoint(40, 96))
-                .addWaypoint(new Waypoint(96, 24))
-                .addWaypoint(new Waypoint(60, 48))
+                .addTarget(new Pose(120, 60))
+                .addTarget(new Pose(40, 96))
+                .addTarget(new Pose(96, 24))
+                .addTarget(new Pose(60, 48))
                 .generate();
         export(start, reordered, "scatter_reordered");
 
         BezierResult ordered = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(120, 60))
-                .addWaypoint(new Waypoint(40, 96))
-                .addWaypoint(new Waypoint(96, 24))
-                .addWaypoint(new Waypoint(60, 48))
+                .addTarget(new Pose(120, 60))
+                .addTarget(new Pose(40, 96))
+                .addTarget(new Pose(96, 24))
+                .addTarget(new Pose(60, 48))
                 .ordered()
                 .generate();
         export(start, ordered, "scatter_ordered");
@@ -142,9 +142,9 @@ public class VisualExportTest {
         Pose start = new Pose(24, 24, 0);
         BezierResult result = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(60, 30))
-                .addWaypoint(new Waypoint(96, 24))
-                .addWaypoint(new Waypoint(132, 30))
+                .addTarget(new Pose(60, 30))
+                .addTarget(new Pose(96, 24))
+                .addTarget(new Pose(132, 30))
                 .generate();
 
         export(start, result, "wide_intake");
@@ -156,10 +156,10 @@ public class VisualExportTest {
         Pose start = new Pose(24, 72, 0);
         BezierResult result = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(48, 24))
-                .addWaypoint(new Waypoint(72, 96))
-                .addWaypoint(new Waypoint(96, 24))
-                .addWaypoint(new Waypoint(120, 96))
+                .addTarget(new Pose(48, 24))
+                .addTarget(new Pose(72, 96))
+                .addTarget(new Pose(96, 24))
+                .addTarget(new Pose(120, 96))
                 .generate();
 
         export(start, result, "sharp_zigzag");
@@ -171,24 +171,24 @@ public class VisualExportTest {
         Pose start = new Pose(24, 24, 0);
         BezierResult result = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(28, 28))
-                .addWaypoint(new Waypoint(120, 40))
-                .addWaypoint(new Waypoint(124, 108))
-                .addWaypoint(new Waypoint(60, 84))
+                .addTarget(new Pose(28, 28))
+                .addTarget(new Pose(120, 40))
+                .addTarget(new Pose(124, 108))
+                .addTarget(new Pose(60, 84))
                 .generate();
 
         export(start, result, "uneven_spacing");
     }
 
     @Test
-    public void exportSingleWaypoint() throws IOException {
+    public void exportSinglePose() throws IOException {
         Pose start = new Pose(24, 24, 0);
         BezierResult result = BezierPathGenerator.builder()
                 .start(start)
-                .addWaypoint(new Waypoint(100, 84, Math.PI / 2))
+                .addTarget(new Pose(100, 84, Math.PI / 2))
                 .generate();
 
-        export(start, result, "single_waypoint");
+        export(start, result, "single_pose");
     }
 
     private void export(Pose start, BezierResult result, String name) throws IOException {

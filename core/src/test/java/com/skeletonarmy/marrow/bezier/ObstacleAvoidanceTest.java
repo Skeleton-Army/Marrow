@@ -68,15 +68,15 @@ public class ObstacleAvoidanceTest {
 
     @Test
     public void combinedIntakeAndAvoidanceWorks() {
-        List<Waypoint> targets = Arrays.asList(
-                new Waypoint(START_X + 20, START_Y),
-                new Waypoint(START_X + 60, START_Y)
+        List<Pose> targets = Arrays.asList(
+                new Pose(START_X + 20, START_Y),
+                new Pose(START_X + 60, START_Y)
         );
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(START_X + 40, START_Y), 5));
 
         BezierPath path = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0)) // Intake needs start heading
-                .waypoints(targets)
+                .targets(targets)
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();
@@ -96,8 +96,8 @@ public class ObstacleAvoidanceTest {
 
         BezierPath path = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .addWaypoint(new Waypoint(100, 100))
-                .addWaypoint(new Waypoint(128, 72))
+                .addTarget(new Pose(100, 100))
+                .addTarget(new Pose(128, 72))
                 .addObstacle(obstacles.get(0))
                 .addObstacle(obstacles.get(1))
                 .generate()

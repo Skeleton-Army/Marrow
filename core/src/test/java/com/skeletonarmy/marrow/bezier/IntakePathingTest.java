@@ -24,21 +24,21 @@ public class IntakePathingTest {
 
     @Test
     public void optimizationFindsGlobalMinimum() {
-        List<Waypoint> targets = Arrays.asList(
-                new Waypoint(START_X + 4, START_Y + 1),
-                new Waypoint(START_X - 3, START_Y + 6),
-                new Waypoint(START_X + 2, START_Y - 5)
+        List<Pose> targets = Arrays.asList(
+                new Pose(START_X + 4, START_Y + 1),
+                new Pose(START_X - 3, START_Y + 6),
+                new Pose(START_X + 2, START_Y - 5)
         );
         double k = 10.0;
         BezierConfig config = new BezierConfig().turnCostWeight(k);
 
-        List<Waypoint> chosen = OrderOptimizer.order(new Point(START_X, START_Y), 0, targets, config);
+        List<Pose> chosen = OrderOptimizer.order(new Point(START_X, START_Y), 0, targets, config);
         double chosenCost = OrderOptimizer.pathCost(new Point(START_X, START_Y), 0, chosen, k);
 
         double trueMinCost = Double.MAX_VALUE;
-        List<List<Waypoint>> allPerms = new ArrayList<>();
+        List<List<Pose>> allPerms = new ArrayList<>();
         permute(new ArrayList<>(targets), 0, allPerms);
-        for (List<Waypoint> perm : allPerms) {
+        for (List<Pose> perm : allPerms) {
             trueMinCost = Math.min(trueMinCost, OrderOptimizer.pathCost(new Point(START_X, START_Y), 0, perm, k));
         }
 
@@ -47,11 +47,11 @@ public class IntakePathingTest {
 
     @Test
     public void offsetMathIsCorrect() {
-        List<Waypoint> targets = Collections.singletonList(new Waypoint(START_X + 20, START_Y));
+        List<Pose> targets = Collections.singletonList(new Pose(START_X + 20, START_Y));
         
         BezierPath path = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .waypoints(targets)
+                .targets(targets)
                 .generate()
                 .getPath();
 
@@ -61,20 +61,20 @@ public class IntakePathingTest {
 
     @Test
     public void wideIntakeStraightensPath() {
-        List<Waypoint> targets = Arrays.asList(
-                new Waypoint(START_X + 20, START_Y),
-                new Waypoint(START_X + 40, START_Y + 3),
-                new Waypoint(START_X + 60, START_Y)
+        List<Pose> targets = Arrays.asList(
+                new Pose(START_X + 20, START_Y),
+                new Pose(START_X + 40, START_Y + 3),
+                new Pose(START_X + 60, START_Y)
         );
 
         BezierConfig pointConfig = new BezierConfig().width(0).reach(0);
         BezierConfig wideConfig = new BezierConfig().width(18).reach(0);
 
         BezierPathGenerator.setConfig(pointConfig);
-        BezierPath pointPath = BezierPathGenerator.builder().start(new Pose(START_X, START_Y, 0)).waypoints(targets).generate().getPath();
+        BezierPath pointPath = BezierPathGenerator.builder().start(new Pose(START_X, START_Y, 0)).targets(targets).generate().getPath();
 
         BezierPathGenerator.setConfig(wideConfig);
-        BezierPath widePath = BezierPathGenerator.builder().start(new Pose(START_X, START_Y, 0)).waypoints(targets).generate().getPath();
+        BezierPath widePath = BezierPathGenerator.builder().start(new Pose(START_X, START_Y, 0)).targets(targets).generate().getPath();
 
         assertTrue("Wide intake should be straighter (shorter length)",
                 widePath.approxLength(50) < pointPath.approxLength(50) - 0.1);
@@ -82,13 +82,13 @@ public class IntakePathingTest {
 
     @Test
     public void reachMathIsCorrect() {
-        List<Waypoint> targets = Collections.singletonList(new Waypoint(START_X + 20, START_Y));
+        List<Pose> targets = Collections.singletonList(new Pose(START_X + 20, START_Y));
 
         BezierPathGenerator.setConfig(new BezierConfig().reach(7.0).width(0));
 
         BezierPath path = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .waypoints(targets)
+                .targets(targets)
                 .generate()
                 .getPath();
 
@@ -98,13 +98,13 @@ public class IntakePathingTest {
 
     @Test
     public void orderedBuilderHonorsProvidedSequence() {
-        Waypoint far = new Waypoint(START_X + 50, START_Y);
-        Waypoint near = new Waypoint(START_X + 10, START_Y);
+        Pose far = new Pose(START_X + 50, START_Y);
+        Pose near = new Pose(START_X + 10, START_Y);
         
         BezierPath reordered = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .addWaypoint(far)
-                .addWaypoint(near)
+                .addTarget(far)
+                .addTarget(near)
                 .generate()
                 .getPath();
         
@@ -112,8 +112,8 @@ public class IntakePathingTest {
 
         BezierPath forced = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .addWaypoint(far)
-                .addWaypoint(near)
+                .addTarget(far)
+                .addTarget(near)
                 .ordered()
                 .generate()
                 .getPath();
@@ -122,11 +122,11 @@ public class IntakePathingTest {
     }
 
     @Test
-    public void intakeTouchesEveryWaypoint() {
-        List<Waypoint> targets = Arrays.asList(
-                new Waypoint(START_X + 20, START_Y),
-                new Waypoint(START_X + 40, START_Y + 10),
-                new Waypoint(START_X + 60, START_Y - 5)
+    public void intakeTouchesEveryPose() {
+        List<Pose> targets = Arrays.asList(
+                new Pose(START_X + 20, START_Y),
+                new Pose(START_X + 40, START_Y + 10),
+                new Pose(START_X + 60, START_Y - 5)
         );
 
         BezierConfig config = new BezierConfig().reach(5).width(8);
@@ -134,24 +134,24 @@ public class IntakePathingTest {
 
         BezierPath path = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
-                .waypoints(targets)
+                .targets(targets)
                 .ordered()
                 .generate()
                 .getPath();
 
-        int waypointCount = targets.size();
-        for (int i = 0; i < waypointCount; i++) {
-            double t = (double) (i + 1) / waypointCount;
+        int poseCount = targets.size();
+        for (int i = 0; i < poseCount; i++) {
+            double t = (double) (i + 1) / poseCount;
             Point center = path.get(t);
             double heading = path.getHeading(t);
             Point target = new Point(targets.get(i).getX(), targets.get(i).getY());
 
-            assertTrue("waypoint " + i + " should be captured by the intake",
+            assertTrue("pose " + i + " should be captured by the intake",
                     BezierPathGenerator.isCapturedByIntake(center, heading, config.getReach(), config.getWidth(), target));
         }
     }
 
-    private static void permute(List<Waypoint> arr, int k, List<List<Waypoint>> out) {
+    private static void permute(List<Pose> arr, int k, List<List<Pose>> out) {
         if (k == arr.size()) {
             out.add(new ArrayList<>(arr));
             return;

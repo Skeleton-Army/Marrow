@@ -38,7 +38,7 @@ public class BezierPathGenerator {
     public static class Builder {
         private Pose startPose;
         private Pose destinationPose;
-        private final List<Waypoint> waypoints = new ArrayList<>();
+        private final List<Pose> targets = new ArrayList<>();
         private final List<Zone> obstacles = new ArrayList<>();
         private boolean reorder = true;
 
@@ -47,14 +47,14 @@ public class BezierPathGenerator {
             return this;
         }
 
-        public Builder waypoints(List<Waypoint> targets) {
-            this.waypoints.clear();
-            this.waypoints.addAll(targets);
+        public Builder targets(List<Pose> targets) {
+            this.targets.clear();
+            this.targets.addAll(targets);
             return this;
         }
 
-        public Builder addWaypoint(Waypoint target) {
-            this.waypoints.add(target);
+        public Builder addTarget(Pose target) {
+            this.targets.add(target);
             return this;
         }
 
@@ -84,8 +84,8 @@ public class BezierPathGenerator {
                 throw new IllegalStateException("Start Pose is required");
             }
 
-            if (!waypoints.isEmpty()) {
-                return generateIntakeResult(startPose, waypoints, obstacles, reorder);
+            if (!targets.isEmpty()) {
+                return generateIntakeResult(startPose, targets, obstacles, reorder);
             }
 
             if (destinationPose != null) {
@@ -96,13 +96,13 @@ public class BezierPathGenerator {
                 );
             }
 
-            throw new IllegalStateException("Either waypoints or a destination must be set");
+            throw new IllegalStateException("Either targets or a destination must be set");
         }
     }
 
-    private static BezierResult generateIntakeResult(Pose start, List<Waypoint> targets, List<Zone> obstacles, boolean reorder) {
+    private static BezierResult generateIntakeResult(Pose start, List<Pose> targets, List<Zone> obstacles, boolean reorder) {
         Point startPoint = new Point(start.getX(), start.getY());
-        List<Waypoint> ordered = reorder 
+        List<Pose> ordered = reorder 
                 ? OrderOptimizer.order(startPoint, start.getHeadingRad(), targets, config)
                 : new ArrayList<>(targets);
         
@@ -117,9 +117,9 @@ public class BezierPathGenerator {
         Point prevRaw = startPoint;
 
         for (int i = 0; i < ordered.size(); i++) {
-            Waypoint wp = ordered.get(i);
-            Point target = new Point(wp.getX(), wp.getY());
-            double heading = wp.getHeading() != null ? wp.getHeading()
+            Pose pose = ordered.get(i);
+            Point target = new Point(pose.getX(), pose.getY());
+            double heading = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
                     : Math.atan2(target.getY() - prevRaw.getY(), target.getX() - prevRaw.getX());
 
             Point robotCenter;
@@ -127,9 +127,9 @@ public class BezierPathGenerator {
                 robotCenter = new Point(target.getX() - reach * Math.cos(heading),
                         target.getY() - reach * Math.sin(heading));
             } else {
-                Waypoint nextWp = ordered.get(i + 1);
+                Pose nextPose = ordered.get(i + 1);
                 robotCenter = solveIntakeCapturePoint(target, heading, reach,
-                        effectiveHalfWidth, prevRaw, new Point(nextWp.getX(), nextWp.getY()));
+                        effectiveHalfWidth, prevRaw, new Point(nextPose.getX(), nextPose.getY()));
             }
 
             keyPoints.add(robotCenter);
