@@ -46,7 +46,7 @@ public class VisualExportTest {
     public void exportPureAvoidancePath() throws IOException {
         PathResult result = Weaver.builder()
                 .start(new PathPose(72, 72))
-                .to(new PathPose(120, 72))
+                .end(new PathPose(120, 72))
                 .addObstacle(new CircleZone(new Point(96, 72), 6))
                 .generate();
 

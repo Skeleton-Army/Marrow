@@ -28,7 +28,7 @@ public class ObstacleAvoidanceTest {
         
         PathRoute result = Weaver.builder()
                 .start(new PathPose(START_X, START_Y))
-                .to(new PathPose(START_X + 48, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();
@@ -48,7 +48,7 @@ public class ObstacleAvoidanceTest {
         Weaver.setConfig(pointConfig);
         PathRoute pointPath = Weaver.builder()
                 .start(new PathPose(START_X, START_Y))
-                .to(new PathPose(START_X + 48, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();
@@ -56,7 +56,7 @@ public class ObstacleAvoidanceTest {
         Weaver.setConfig(squareConfig);
         PathRoute squarePath = Weaver.builder()
                 .start(new PathPose(START_X, START_Y))
-                .to(new PathPose(START_X + 48, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();

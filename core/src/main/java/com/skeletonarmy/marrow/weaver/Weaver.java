@@ -63,7 +63,7 @@ public class Weaver {
             return this;
         }
 
-        public Builder to(PathPose destination) {
+        public Builder end(PathPose destination) {
             this.destinationPose = destination;
             return this;
         }
