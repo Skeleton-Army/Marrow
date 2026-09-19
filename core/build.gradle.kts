@@ -47,6 +47,7 @@ dependencies {
     compileOnly("com.acmerobotics.roadrunner:actions:1.0.1")
     compileOnly("com.acmerobotics.dashboard:dashboard:0.6.0")
     compileOnly("com.pedropathing.ivy:pedro:1.1.1")
+    compileOnly("com.pedropathing:core:3.0.1")
 
     // WARNING: DO NOT UPDATE FASTERXML JACKSON
     // 2.10.0 is the latest known good version that doesn't break our code and works with the Android API of the Control Hub
