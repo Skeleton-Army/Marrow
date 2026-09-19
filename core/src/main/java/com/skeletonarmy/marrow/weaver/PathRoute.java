@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 
@@ -6,18 +6,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class BezierPath {
+public class PathRoute {
 
-    private final List<BezierCurve> segments;
+    private final List<PathCurve> segments;
 
-    public BezierPath(List<BezierCurve> segments) {
+    public PathRoute(List<PathCurve> segments) {
         if (segments == null || segments.isEmpty()) {
             throw new IllegalArgumentException();
         }
         this.segments = new ArrayList<>(segments);
     }
 
-    public List<BezierCurve> getSegments() {
+    public List<PathCurve> getSegments() {
         return Collections.unmodifiableList(segments);
     }
 
@@ -62,7 +62,7 @@ public class BezierPath {
 
     public double approxLength(int samplesPerSegment) {
         double total = 0;
-        for (BezierCurve c : segments) {
+        for (PathCurve c : segments) {
             total += c.approxLength(samplesPerSegment);
         }
         return total;
@@ -70,7 +70,7 @@ public class BezierPath {
 
     public List<List<Point>> toControlPointArrays() {
         List<List<Point>> out = new ArrayList<>();
-        for (BezierCurve c : segments) {
+        for (PathCurve c : segments) {
             out.add(c.getControlPoints());
         }
         return out;

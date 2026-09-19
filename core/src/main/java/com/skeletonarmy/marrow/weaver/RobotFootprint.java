@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;

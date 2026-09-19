@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.pedropathing.math.Vector2D;
 import com.pedropathing.paths.AtomicPath;
@@ -18,15 +18,15 @@ import java.util.List;
 public final class PedroPathingConverter {
     private PedroPathingConverter() {}
 
-    public static Path toPath(BezierResult result) {
+    public static Path toPath(PathResult result) {
         return toPath(result.getPath());
     }
 
-    public static Path toPath(BezierPath path) {
+    public static Path toPath(PathRoute path) {
         List<Path> segments = new ArrayList<>();
 
-        for (BezierCurve segment : path.getSegments()) {
-            for (BezierCurve cubic : segment.toCubicSegments()) {
+        for (PathCurve segment : path.getSegments()) {
+            for (PathCurve cubic : segment.toCubicSegments()) {
                 segments.add(atomicPath(cubic));
             }
         }
@@ -37,15 +37,15 @@ public final class PedroPathingConverter {
         return new CompoundPath(segments.toArray(new Path[0]));
     }
 
-    public static Path toPath(BezierCurve curve) {
-        return toPath(new BezierPath(Collections.singletonList(curve)));
+    public static Path toPath(PathCurve curve) {
+        return toPath(new PathRoute(Collections.singletonList(curve)));
     }
 
-    private static Path atomicPath(BezierCurve curve) {
+    private static Path atomicPath(PathCurve curve) {
         return new AtomicPath(curve(curve)).tangent();
     }
 
-    private static Curve curve(BezierCurve curve) {
+    private static Curve curve(PathCurve curve) {
         List<Point> points = curve.getControlPoints();
         if (points.size() == 2) {
             return new Line(vector(points.get(0)), vector(points.get(1)));

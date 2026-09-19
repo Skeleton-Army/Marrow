@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.CircleZone;
 import com.skeletonarmy.marrow.zones.Point;
@@ -19,22 +19,22 @@ public class ObstacleAvoidanceTest {
 
     @Before
     public void setup() {
-        BezierPathGenerator.resetToDefaults();
+        Weaver.resetToDefaults();
     }
 
     @Test
     public void pathBowsAroundObstacle() {
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(START_X + 24, START_Y), 6));
         
-        BezierPath result = BezierPathGenerator.builder()
-                .start(new Pose(START_X, START_Y))
-                .to(new Pose(START_X + 48, START_Y))
+        PathRoute result = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .to(new PathPose(START_X + 48, START_Y))
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();
 
         assertTrue("Path should clear obstacle",
-                BezierPathGenerator.isPathClear(result, obstacles, BezierPathGenerator.getConfig().getClearance(), 200));
+                Weaver.isPathClear(result, obstacles, Weaver.getConfig().getClearance(), 200));
     }
 
     @Test
@@ -42,21 +42,21 @@ public class ObstacleAvoidanceTest {
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(START_X + 24, START_Y + 12), 4));
 
         double robotSize = 18.0;
-        BezierConfig pointConfig = new BezierConfig().clearance(2.0).robotSize(0.0);
-        BezierConfig squareConfig = new BezierConfig().clearance(2.0).robotSize(robotSize);
+        PathConfig pointConfig = new PathConfig().clearance(2.0).robotSize(0.0);
+        PathConfig squareConfig = new PathConfig().clearance(2.0).robotSize(robotSize);
 
-        BezierPathGenerator.setConfig(pointConfig);
-        BezierPath pointPath = BezierPathGenerator.builder()
-                .start(new Pose(START_X, START_Y))
-                .to(new Pose(START_X + 48, START_Y))
+        Weaver.setConfig(pointConfig);
+        PathRoute pointPath = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .to(new PathPose(START_X + 48, START_Y))
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();
 
-        BezierPathGenerator.setConfig(squareConfig);
-        BezierPath squarePath = BezierPathGenerator.builder()
-                .start(new Pose(START_X, START_Y))
-                .to(new Pose(START_X + 48, START_Y))
+        Weaver.setConfig(squareConfig);
+        PathRoute squarePath = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .to(new PathPose(START_X + 48, START_Y))
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();
@@ -68,20 +68,20 @@ public class ObstacleAvoidanceTest {
 
     @Test
     public void combinedIntakeAndAvoidanceWorks() {
-        List<Pose> targets = Arrays.asList(
-                new Pose(START_X + 20, START_Y),
-                new Pose(START_X + 60, START_Y)
+        List<PathPose> targets = Arrays.asList(
+                new PathPose(START_X + 20, START_Y),
+                new PathPose(START_X + 60, START_Y)
         );
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(START_X + 40, START_Y), 5));
 
-        BezierPath path = BezierPathGenerator.builder()
-                .start(new Pose(START_X, START_Y, 0)) // Intake needs start heading
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0)) // Intake needs start heading
                 .targets(targets)
                 .addObstacle(obstacles.get(0))
                 .generate()
                 .getPath();
 
-        assertTrue(BezierPathGenerator.isPathClear(path, obstacles, 1.0, 300));
+        assertTrue(Weaver.isPathClear(path, obstacles, 1.0, 300));
         
         Point lastTargetCenter = path.get(1.0);
         assertEquals(START_X + 60 - 5.0, lastTargetCenter.getX(), 1e-6);
@@ -94,20 +94,20 @@ public class ObstacleAvoidanceTest {
                 new CircleZone(new Point(114, 86), 5)
         );
 
-        BezierPath path = BezierPathGenerator.builder()
-                .start(new Pose(START_X, START_Y, 0))
-                .addTarget(new Pose(100, 100))
-                .addTarget(new Pose(128, 72))
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(100, 100))
+                .addTarget(new PathPose(128, 72))
                 .addObstacle(obstacles.get(0))
                 .addObstacle(obstacles.get(1))
                 .generate()
                 .getPath();
 
         assertTrue("Path should not cut through either obstacle",
-                BezierPathGenerator.isPathClear(path, obstacles, BezierPathGenerator.getConfig().getClearance(), 400));
+                Weaver.isPathClear(path, obstacles, Weaver.getConfig().getClearance(), 400));
     }
 
-    private double maxDev(BezierCurve curve, double baselineY) {
+    private double maxDev(PathCurve curve, double baselineY) {
         return curve.sample(100).stream()
                 .mapToDouble(p -> Math.abs(p.getY() - baselineY))
                 .max().orElse(0);

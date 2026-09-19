@@ -1,18 +1,18 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
-public class Pose {
+public class PathPose {
 
     private final double x;
     private final double y;
     private final double headingRad;
 
-    public Pose(double x, double y, double headingRad) {
+    public PathPose(double x, double y, double headingRad) {
         this.x = x;
         this.y = y;
         this.headingRad = headingRad;
     }
 
-    public Pose(double x, double y) {
+    public PathPose(double x, double y) {
         this(x, y, Double.NaN);
     }
 

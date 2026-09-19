@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 
@@ -7,12 +7,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class BezierCurve {
+public class PathCurve {
 
     private final List<Point> controlPoints;
     private final int cubicSegments;
 
-    public BezierCurve(List<Point> controlPoints) {
+    public PathCurve(List<Point> controlPoints) {
         if (controlPoints == null || controlPoints.size() < 2) {
             throw new IllegalArgumentException();
         }
@@ -33,19 +33,19 @@ public class BezierCurve {
         return cubicSegments > 0;
     }
 
-    public List<BezierCurve> toCubicSegments() {
+    public List<PathCurve> toCubicSegments() {
         if (!isComposite()) {
             return Collections.singletonList(this);
         }
-        List<BezierCurve> segments = new ArrayList<>();
+        List<PathCurve> segments = new ArrayList<>();
         for (int i = 0; i + 3 < controlPoints.size(); i += 3) {
-            segments.add(new BezierCurve(Arrays.asList(
+            segments.add(new PathCurve(Arrays.asList(
                     controlPoints.get(i), controlPoints.get(i + 1), controlPoints.get(i + 2), controlPoints.get(i + 3))));
         }
         return segments;
     }
 
-    public static BezierCurve fromCubicSegments(List<BezierCurve> segments) {
+    public static PathCurve fromCubicSegments(List<PathCurve> segments) {
         if (segments.size() == 1) {
             return segments.get(0);
         }
@@ -57,7 +57,7 @@ public class BezierCurve {
             flat.add(cps.get(2));
             flat.add(cps.get(3));
         }
-        return new BezierCurve(flat);
+        return new PathCurve(flat);
     }
 
     public int getDegree() {
@@ -157,6 +157,6 @@ public class BezierCurve {
         if (diffPoints.size() == 1) {
             return diffPoints.get(0);
         }
-        return new BezierCurve(diffPoints).get(t);
+        return new PathCurve(diffPoints).get(t);
     }
 }

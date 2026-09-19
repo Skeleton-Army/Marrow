@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 
@@ -15,17 +15,17 @@ public final class PedroPathingExport {
     private PedroPathingExport() {
     }
 
-    public static String toPpJson(Pose start, BezierPath path) {
+    public static String toPpJson(PathPose start, PathRoute path) {
         return toPpJson(start, path, null, null, null);
     }
 
-    public static String toPpJson(Pose start, BezierResult result) {
+    public static String toPpJson(PathPose start, PathResult result) {
         return toPpJson(start, result.getPath(), null, null, result.getSegmentEndHeadingsRad());
     }
 
-    public static String toPpJson(Pose start, BezierPath path, List<String> names, List<String> modes, List<Double> endHeadings) {
-        List<BezierCurve> segments = new ArrayList<>();
-        for (BezierCurve curve : path.getSegments()) segments.addAll(curve.toCubicSegments());
+    public static String toPpJson(PathPose start, PathRoute path, List<String> names, List<String> modes, List<Double> endHeadings) {
+        List<PathCurve> segments = new ArrayList<>();
+        for (PathCurve curve : path.getSegments()) segments.addAll(curve.toCubicSegments());
 
         StringBuilder json = new StringBuilder("{\n");
         appendPointBlock(json, "  ", "startPoint", new Point(start.getX(), start.getY()), "startDeg", Math.toDegrees(start.getHeadingRad()), null);
@@ -34,7 +34,7 @@ public final class PedroPathingExport {
         Double finalHeading = (endHeadings != null && !endHeadings.isEmpty()) ? endHeadings.get(endHeadings.size() - 1) : null;
 
         for (int i = 0; i < segments.size(); i++) {
-            BezierCurve seg = segments.get(i);
+            PathCurve seg = segments.get(i);
             List<Point> cps = seg.getControlPoints();
             double endRad = (finalHeading != null && i == segments.size() - 1) ? finalHeading : seg.getHeading(1.0);
 
@@ -51,9 +51,9 @@ public final class PedroPathingExport {
         return json.append("  ]\n}\n").toString();
     }
 
-    public static String toPpJson(BezierCurve curve, String name) {
+    public static String toPpJson(PathCurve curve, String name) {
         Point start = curve.get(0);
-        return toPpJson(new Pose(start.getX(), start.getY(), curve.getHeading(0)), new BezierPath(Collections.singletonList(curve)),
+        return toPpJson(new PathPose(start.getX(), start.getY(), curve.getHeading(0)), new PathRoute(Collections.singletonList(curve)),
                 Collections.singletonList(name != null ? name : "Segment_1"), null, null);
     }
 

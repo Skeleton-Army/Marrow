@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 
@@ -8,21 +8,21 @@ import java.util.List;
 /**
  * The output of a path generation, containing the geometry and execution metadata.
  */
-public final class BezierResult {
+public final class PathResult {
 
-    private final BezierPath path;
+    private final PathRoute path;
     private final List<Double> segmentEndHeadingsRad;
 
-    BezierResult(BezierPath path, List<Double> segmentEndHeadingsRad) {
+    PathResult(PathRoute path, List<Double> segmentEndHeadingsRad) {
         this.path = path;
         this.segmentEndHeadingsRad = segmentEndHeadingsRad;
     }
 
-    public BezierPath getPath() {
+    public PathRoute getPath() {
         return path;
     }
 
-    public List<BezierCurve> getSegments() {
+    public List<PathCurve> getSegments() {
         return path.getSegments();
     }
 

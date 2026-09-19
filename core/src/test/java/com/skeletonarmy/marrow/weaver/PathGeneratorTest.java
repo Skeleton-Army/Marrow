@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 import org.junit.Before;
@@ -13,37 +13,37 @@ public class PathGeneratorTest {
 
     @Before
     public void setup() {
-        BezierPathGenerator.resetToDefaults();
+        Weaver.resetToDefaults();
     }
 
     @Test
     public void globalConfigIsHonoredByBuilder() {
-        BezierConfig global = new BezierConfig().reach(99);
-        BezierPathGenerator.setConfig(global);
+        PathConfig global = new PathConfig().reach(99);
+        Weaver.setConfig(global);
 
-        BezierResult result = BezierPathGenerator.builder()
-                .start(new Pose(0, 0, 0))
-                .addTarget(new Pose(10, 0))
+        PathResult result = Weaver.builder()
+                .start(new PathPose(0, 0, 0))
+                .addTarget(new PathPose(10, 0))
                 .generate();
 
         Point[] cps = result.getControlPointArray(0);
         assertEquals(-89.0, cps[cps.length - 1].getX(), 1e-6);
 
-        BezierPathGenerator.resetToDefaults();
+        Weaver.resetToDefaults();
     }
 
     @Test(expected = IllegalStateException.class)
     public void builderThrowsIfStartMissing() {
-        BezierPathGenerator.builder()
-                .addTarget(new Pose(30, 30))
+        Weaver.builder()
+                .addTarget(new PathPose(30, 30))
                 .generate();
     }
 
     @Test
     public void resultObjectProvidesEasyAccess() {
-        BezierResult result = BezierPathGenerator.builder()
-                .start(new Pose(START_X, START_Y, 0))
-                .addTarget(new Pose(START_X + 20, START_Y))
+        PathResult result = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(START_X + 20, START_Y))
                 .generate();
 
         assertEquals(1, result.getSegments().size());

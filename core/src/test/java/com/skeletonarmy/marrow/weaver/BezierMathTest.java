@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 import org.junit.Before;
@@ -14,14 +14,14 @@ public class BezierMathTest {
 
     @Before
     public void setup() {
-        BezierPathGenerator.resetToDefaults();
+        Weaver.resetToDefaults();
     }
 
     private static final double EPS = 1e-9;
 
     @Test
     public void endpointsMatchControlPoints() {
-        BezierCurve curve = new BezierCurve(Arrays.asList(
+        PathCurve curve = new PathCurve(Arrays.asList(
                 new Point(0, 0), new Point(5, 10), new Point(15, 10), new Point(20, 0)
         ));
 
@@ -31,7 +31,7 @@ public class BezierMathTest {
 
     @Test
     public void linearCurveIsStraightLine() {
-        BezierCurve line = new BezierCurve(Arrays.asList(new Point(0, 0), new Point(10, 10)));
+        PathCurve line = new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 10)));
         Point mid = line.get(0.5);
 
         assertEquals(5.0, mid.getX(), EPS);
@@ -41,7 +41,7 @@ public class BezierMathTest {
 
     @Test
     public void derivativeMatchesTangent() {
-        BezierCurve curve = new BezierCurve(Arrays.asList(new Point(0, 0), new Point(10, 0), new Point(10, 10)));
+        PathCurve curve = new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0), new Point(10, 10)));
         // At start, tangent should be exactly along +x (towards second control point)
         assertEquals(0.0, curve.getHeading(0.0), 1e-6);
         // At end, tangent should be exactly along +y (from second to third control point)
@@ -50,7 +50,7 @@ public class BezierMathTest {
 
     @Test
     public void samplingCoversFullRange() {
-        BezierCurve curve = new BezierCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)));
+        PathCurve curve = new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)));
         List<Point> pts = curve.sample(11);
 
         assertEquals(11, pts.size());
@@ -60,12 +60,12 @@ public class BezierMathTest {
 
     @Test
     public void approxLengthOfStraightLineIsCorrect() {
-        BezierCurve line = new BezierCurve(Arrays.asList(new Point(0, 0), new Point(3, 4)));
+        PathCurve line = new PathCurve(Arrays.asList(new Point(0, 0), new Point(3, 4)));
         assertEquals(5.0, line.approxLength(50), 1e-3);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void tooFewControlPointsThrows() {
-        new BezierCurve(Collections.singletonList(new Point(0, 0)));
+        new PathCurve(Collections.singletonList(new Point(0, 0)));
     }
 }

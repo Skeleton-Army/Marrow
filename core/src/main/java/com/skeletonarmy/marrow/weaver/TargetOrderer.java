@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 
@@ -6,12 +6,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class OrderOptimizer {
+public class TargetOrderer {
 
-    private OrderOptimizer() {
+    private TargetOrderer() {
     }
 
-    public static List<Pose> order(Point startPos, double startHeadingRad, List<Pose> targets, BezierConfig config) {
+    public static List<PathPose> order(Point startPos, double startHeadingRad, List<PathPose> targets, PathConfig config) {
         if (targets.size() <= 1) {
             return new ArrayList<>(targets);
         }
@@ -20,12 +20,12 @@ public class OrderOptimizer {
                 : greedy(startPos, startHeadingRad, targets, config);
     }
 
-    public static double pathCost(Point startPos, double startHeadingRad, List<Pose> order, double turnCostWeight) {
+    public static double pathCost(Point startPos, double startHeadingRad, List<PathPose> order, double turnCostWeight) {
         double cost = 0;
         Point currentPos = startPos;
         double currentHeading = startHeadingRad;
 
-        for (Pose pose : order) {
+        for (PathPose pose : order) {
             double travelBearing = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
                     : Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
 
@@ -37,9 +37,9 @@ public class OrderOptimizer {
         return cost;
     }
 
-    private static List<Pose> bruteForce(Point startPos, double startHeading, List<Pose> targets, BezierConfig config) {
-        List<Pose> working = new ArrayList<>(targets);
-        final List<Pose> bestOrder = new ArrayList<>(targets);
+    private static List<PathPose> bruteForce(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
+        List<PathPose> working = new ArrayList<>(targets);
+        final List<PathPose> bestOrder = new ArrayList<>(targets);
         final double[] minCost = {pathCost(startPos, startHeading, working, config.getTurnCostWeight())};
 
         permute(working, 0, perm -> {
@@ -53,19 +53,19 @@ public class OrderOptimizer {
         return bestOrder;
     }
 
-    private static List<Pose> greedy(Point startPos, double startHeading, List<Pose> targets, BezierConfig config) {
-        List<Pose> remaining = new ArrayList<>(targets);
-        List<Pose> result = new ArrayList<>();
+    private static List<PathPose> greedy(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
+        List<PathPose> remaining = new ArrayList<>(targets);
+        List<PathPose> result = new ArrayList<>();
         Point currentPos = startPos;
         double currentHeading = startHeading;
         double k = config.getTurnCostWeight();
 
         while (!remaining.isEmpty()) {
-            Pose bestPose = null;
+            PathPose bestPose = null;
             double bestCost = Double.MAX_VALUE;
             double bestHeading = 0;
 
-            for (Pose pose : remaining) {
+            for (PathPose pose : remaining) {
                 double travelBearing = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
                         : Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
 
@@ -97,10 +97,10 @@ public class OrderOptimizer {
     }
 
     private interface PermutationVisitor {
-        void visit(List<Pose> permutation);
+        void visit(List<PathPose> permutation);
     }
 
-    private static void permute(List<Pose> arr, int k, PermutationVisitor visitor) {
+    private static void permute(List<PathPose> arr, int k, PermutationVisitor visitor) {
         if (k == arr.size()) {
             visitor.visit(arr);
             return;

@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.Zone;
@@ -7,30 +7,30 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class CollisionAvoider {
-    private CollisionAvoider() {}
+public class ObstacleAvoider {
+    private ObstacleAvoider() {}
 
-    public static BezierPath avoid(BezierPath path, List<Zone> obstacles, BezierConfig config) {
+    public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
             return path;
         }
 
         boolean single = path.getSegments().size() == 1;
-        List<BezierCurve> segments = new ArrayList<>();
-        for (BezierCurve curve : path.getSegments()) segments.addAll(curve.toCubicSegments());
+        List<PathCurve> segments = new ArrayList<>();
+        for (PathCurve curve : path.getSegments()) segments.addAll(curve.toCubicSegments());
         double targetClearance = config.getClearance() * 1.05 + 0.05;
 
-        List<BezierCurve> best = new ArrayList<>(segments);
+        List<PathCurve> best = new ArrayList<>(segments);
         double bestViolation = Double.MAX_VALUE;
 
         for (int iter = 0; iter < config.getMaxIterations(); iter++) {
             boolean anyViolation = false;
             double worstViolation = 0;
 
-            List<BezierCurve> snapshot = new ArrayList<>(segments);
+            List<PathCurve> snapshot = new ArrayList<>(segments);
 
             for (int s = 0; s < segments.size(); s++) {
-                BezierCurve curve = segments.get(s);
+                PathCurve curve = segments.get(s);
                 List<Point> cps = new ArrayList<>(curve.getControlPoints());
                 int cpCount = cps.size();
                 double[] dx = new double[cpCount], dy = new double[cpCount], weightSum = new double[cpCount];
@@ -103,7 +103,7 @@ public class CollisionAvoider {
                         cps.set(cpIdx, new Point(cps.get(cpIdx).getX() + mx, cps.get(cpIdx).getY() + my));
                     }
                 }
-                segments.set(s, new BezierCurve(cps));
+                segments.set(s, new PathCurve(cps));
             }
 
             if (worstViolation < bestViolation) {
@@ -117,7 +117,7 @@ public class CollisionAvoider {
         }
 
         return single
-                ? new BezierPath(Collections.singletonList(BezierCurve.fromCubicSegments(best)))
-                : new BezierPath(best);
+                ? new PathRoute(Collections.singletonList(PathCurve.fromCubicSegments(best)))
+                : new PathRoute(best);
     }
 }

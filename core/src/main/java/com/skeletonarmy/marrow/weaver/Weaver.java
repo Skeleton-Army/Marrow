@@ -1,4 +1,4 @@
-package com.skeletonarmy.marrow.bezier;
+package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;
@@ -12,23 +12,23 @@ import java.util.List;
 /**
  * Generator for Bezier paths with optional obstacle avoidance.
  */
-public class BezierPathGenerator {
+public class Weaver {
 
-    private static BezierConfig config = new BezierConfig();
+    private static PathConfig config = new PathConfig();
 
-    private BezierPathGenerator() {
+    private Weaver() {
     }
 
-    public static void setConfig(BezierConfig newConfig) {
+    public static void setConfig(PathConfig newConfig) {
         config = newConfig;
     }
 
-    public static BezierConfig getConfig() {
+    public static PathConfig getConfig() {
         return config;
     }
 
     public static void resetToDefaults() {
-        config = new BezierConfig();
+        config = new PathConfig();
     }
 
     public static Builder builder() {
@@ -36,24 +36,24 @@ public class BezierPathGenerator {
     }
 
     public static class Builder {
-        private Pose startPose;
-        private Pose destinationPose;
-        private final List<Pose> targets = new ArrayList<>();
+        private PathPose startPose;
+        private PathPose destinationPose;
+        private final List<PathPose> targets = new ArrayList<>();
         private final List<Zone> obstacles = new ArrayList<>();
         private boolean reorder = true;
 
-        public Builder start(Pose start) {
+        public Builder start(PathPose start) {
             this.startPose = start;
             return this;
         }
 
-        public Builder targets(List<Pose> targets) {
+        public Builder targets(List<PathPose> targets) {
             this.targets.clear();
             this.targets.addAll(targets);
             return this;
         }
 
-        public Builder addTarget(Pose target) {
+        public Builder addTarget(PathPose target) {
             this.targets.add(target);
             return this;
         }
@@ -63,7 +63,7 @@ public class BezierPathGenerator {
             return this;
         }
 
-        public Builder to(Pose destination) {
+        public Builder to(PathPose destination) {
             this.destinationPose = destination;
             return this;
         }
@@ -79,9 +79,9 @@ public class BezierPathGenerator {
             return this;
         }
 
-        public BezierResult generate() {
+        public PathResult generate() {
             if (startPose == null) {
-                throw new IllegalStateException("Start Pose is required");
+                throw new IllegalStateException("Start PathPose is required");
             }
 
             if (!targets.isEmpty()) {
@@ -100,10 +100,10 @@ public class BezierPathGenerator {
         }
     }
 
-    private static BezierResult generateIntakeResult(Pose start, List<Pose> targets, List<Zone> obstacles, boolean reorder) {
+    private static PathResult generateIntakeResult(PathPose start, List<PathPose> targets, List<Zone> obstacles, boolean reorder) {
         Point startPoint = new Point(start.getX(), start.getY());
-        List<Pose> ordered = reorder 
-                ? OrderOptimizer.order(startPoint, start.getHeadingRad(), targets, config)
+        List<PathPose> ordered = reorder 
+                ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
                 : new ArrayList<>(targets);
         
         List<Point> keyPoints = new ArrayList<>();
@@ -117,7 +117,7 @@ public class BezierPathGenerator {
         Point prevRaw = startPoint;
 
         for (int i = 0; i < ordered.size(); i++) {
-            Pose pose = ordered.get(i);
+            PathPose pose = ordered.get(i);
             Point target = new Point(pose.getX(), pose.getY());
             double heading = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
                     : Math.atan2(target.getY() - prevRaw.getY(), target.getX() - prevRaw.getX());
@@ -127,7 +127,7 @@ public class BezierPathGenerator {
                 robotCenter = new Point(target.getX() - reach * Math.cos(heading),
                         target.getY() - reach * Math.sin(heading));
             } else {
-                Pose nextPose = ordered.get(i + 1);
+                PathPose nextPose = ordered.get(i + 1);
                 robotCenter = solveIntakeCapturePoint(target, heading, reach,
                         effectiveHalfWidth, prevRaw, new Point(nextPose.getX(), nextPose.getY()));
             }
@@ -137,16 +137,16 @@ public class BezierPathGenerator {
             prevRaw = target;
         }
 
-        BezierCurve curve = cubicHermiteChain(keyPoints, headings);
-        BezierPath path = new BezierPath(Collections.singletonList(curve));
+        PathCurve curve = cubicHermiteChain(keyPoints, headings);
+        PathRoute path = new PathRoute(Collections.singletonList(curve));
         if (obstacles != null && !obstacles.isEmpty()) {
             path = preBowSegmentsAwayFromObstacles(path, obstacles, config);
-            path = CollisionAvoider.avoid(path, obstacles, config);
+            path = ObstacleAvoider.avoid(path, obstacles, config);
         }
-        return new BezierResult(path, Collections.singletonList(headings.get(headings.size() - 1)));
+        return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)));
     }
 
-    private static BezierResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles) {
+    private static PathResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles) {
         int n = Math.max(config.getControlPointCount(), 4);
         List<Point> biased = new ArrayList<>();
         for (int i = 0; i < n; i++) {
@@ -154,11 +154,11 @@ public class BezierPathGenerator {
             biased.add(new Point(start.getX() + (end.getX() - start.getX()) * t, start.getY() + (end.getY() - start.getY()) * t));
         }
 
-        BezierCurve curve = biasAwayFromObstacles(new BezierCurve(biased), obstacles, config);
-        BezierPath asPath = new BezierPath(Collections.singletonList(curve));
-        BezierPath avoided = CollisionAvoider.avoid(asPath, obstacles, config);
+        PathCurve curve = biasAwayFromObstacles(new PathCurve(biased), obstacles, config);
+        PathRoute asPath = new PathRoute(Collections.singletonList(curve));
+        PathRoute avoided = ObstacleAvoider.avoid(asPath, obstacles, config);
         
-        return new BezierResult(avoided, Collections.singletonList(avoided.getHeading(1.0)));
+        return new PathResult(avoided, Collections.singletonList(avoided.getHeading(1.0)));
     }
 
     private static Point solveIntakeCapturePoint(Point target, double heading, double offset, double halfWidth, Point prevRaw, Point nextRaw) {
@@ -178,22 +178,22 @@ public class BezierPathGenerator {
         return Math.abs(relX * cos + relY * sin) < 1e-6 && Math.abs(relX * -sin + relY * cos) <= intakeWidth / 2.0 + 1e-6;
     }
 
-    private static BezierPath preBowSegmentsAwayFromObstacles(BezierPath path, List<Zone> obstacles, BezierConfig config) {
-        List<BezierCurve> segments = new ArrayList<>();
-        for (BezierCurve segment : path.getSegments()) segments.add(biasAwayFromObstacles(segment, obstacles, config));
-        return new BezierPath(segments);
+    private static PathRoute preBowSegmentsAwayFromObstacles(PathRoute path, List<Zone> obstacles, PathConfig config) {
+        List<PathCurve> segments = new ArrayList<>();
+        for (PathCurve segment : path.getSegments()) segments.add(biasAwayFromObstacles(segment, obstacles, config));
+        return new PathRoute(segments);
     }
 
-    private static BezierCurve biasAwayFromObstacles(BezierCurve curve, List<Zone> obstacles, BezierConfig config) {
+    private static PathCurve biasAwayFromObstacles(PathCurve curve, List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) return curve;
-        List<BezierCurve> segments = new ArrayList<>();
-        for (BezierCurve seg : curve.toCubicSegments()) {
-            segments.add(new BezierCurve(biasControlPoints(seg.getControlPoints(), obstacles, config)));
+        List<PathCurve> segments = new ArrayList<>();
+        for (PathCurve seg : curve.toCubicSegments()) {
+            segments.add(new PathCurve(biasControlPoints(seg.getControlPoints(), obstacles, config)));
         }
-        return BezierCurve.fromCubicSegments(segments);
+        return PathCurve.fromCubicSegments(segments);
     }
 
-    private static List<Point> biasControlPoints(List<Point> controlPoints, List<Zone> obstacles, BezierConfig config) {
+    private static List<Point> biasControlPoints(List<Point> controlPoints, List<Zone> obstacles, PathConfig config) {
         List<Point> pts = new ArrayList<>(controlPoints);
         Point start = pts.get(0), end = pts.get(pts.size() - 1);
         double dx = end.getX() - start.getX(), dy = end.getY() - start.getY(), len = Math.hypot(dx, dy);
@@ -223,12 +223,12 @@ public class BezierPathGenerator {
         return new Point(a.getX() + t * dx, a.getY() + t * dy);
     }
 
-    public static boolean isPathClear(BezierPath path, List<Zone> obstacles, double clearance, double robotSize, int samplesPerSegment) {
-        for (BezierCurve segment : path.getSegments()) if (!isPathClear(segment, obstacles, clearance, robotSize, samplesPerSegment)) return false;
+    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotSize, int samplesPerSegment) {
+        for (PathCurve segment : path.getSegments()) if (!isPathClear(segment, obstacles, clearance, robotSize, samplesPerSegment)) return false;
         return true;
     }
 
-    public static boolean isPathClear(BezierCurve curve, List<Zone> obstacles, double clearance, double robotSize, int samples) {
+    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, double robotSize, int samples) {
         for (int i = 0; i < samples; i++) {
             Point p = curve.get(samples == 1 ? 0 : (double) i / (samples - 1));
             if (robotSize <= 0) {
@@ -241,19 +241,19 @@ public class BezierPathGenerator {
         return true;
     }
 
-    public static boolean isPathClear(BezierPath path, List<Zone> obstacles, double clearance, int samplesPerSegment) { return isPathClear(path, obstacles, clearance, 0.0, samplesPerSegment); }
-    public static boolean isPathClear(BezierCurve curve, List<Zone> obstacles, double clearance, int samples) { return isPathClear(curve, obstacles, clearance, 0.0, samples); }
+    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, int samplesPerSegment) { return isPathClear(path, obstacles, clearance, 0.0, samplesPerSegment); }
+    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, int samples) { return isPathClear(curve, obstacles, clearance, 0.0, samples); }
 
-    private static BezierCurve twoPointCubic(Point start, Point end, double startHeading, double endHeading) {
+    private static PathCurve twoPointCubic(Point start, Point end, double startHeading, double endHeading) {
         double d = start.distanceTo(end) / 3.0;
-        return new BezierCurve(Arrays.asList(
+        return new PathCurve(Arrays.asList(
                 start,
                 new Point(start.getX() + d * Math.cos(startHeading), start.getY() + d * Math.sin(startHeading)),
                 new Point(end.getX() - d * Math.cos(endHeading), end.getY() - d * Math.sin(endHeading)),
                 end));
     }
 
-    private static BezierCurve cubicHermiteChain(List<Point> pts, List<Double> headings) {
+    private static PathCurve cubicHermiteChain(List<Point> pts, List<Double> headings) {
         int n = pts.size();
         if (n == 2) {
             return twoPointCubic(pts.get(0), pts.get(1), headings.get(0), headings.get(1));
@@ -273,6 +273,6 @@ public class BezierPathGenerator {
             flat.add(cp2);
             flat.add(p1);
         }
-        return new BezierCurve(flat);
+        return new PathCurve(flat);
     }
 }
