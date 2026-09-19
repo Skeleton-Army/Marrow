@@ -8,8 +8,7 @@ public class BezierConfig {
     // Intake & Ordering
     private double turnCostWeight = 10.0;
     private double reach = 5.0;
-    private double width = 8.0;
-    private double tension = 0.0;
+    private double width = 5.0;
     private int bruteForceOrderLimit = 8;
 
     // Obstacle Avoidance
@@ -29,9 +28,6 @@ public class BezierConfig {
 
     public double getWidth() { return width; }
     public BezierConfig width(double v) { this.width = v; return this; }
-
-    public double getTension() { return tension; }
-    public BezierConfig tension(double v) { this.tension = v; return this; }
 
     public int getBruteForceOrderLimit() { return bruteForceOrderLimit; }
     public BezierConfig bruteForceOrderLimit(int v) { this.bruteForceOrderLimit = v; return this; }

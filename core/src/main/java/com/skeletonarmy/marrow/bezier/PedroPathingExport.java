@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -23,15 +24,19 @@ public final class PedroPathingExport {
     }
 
     public static String toPpJson(Pose start, BezierPath path, List<String> names, List<String> modes, List<Double> endHeadings) {
-        List<BezierCurve> segments = path.getSegments();
+        List<BezierCurve> segments = new ArrayList<>();
+        for (BezierCurve curve : path.getSegments()) segments.addAll(curve.toCubicSegments());
+
         StringBuilder json = new StringBuilder("{\n");
         appendPointBlock(json, "  ", "startPoint", new Point(start.getX(), start.getY()), "startDeg", Math.toDegrees(start.getHeadingRad()), null);
         json.append(",\n  \"lines\": [\n");
 
+        Double finalHeading = (endHeadings != null && !endHeadings.isEmpty()) ? endHeadings.get(endHeadings.size() - 1) : null;
+
         for (int i = 0; i < segments.size(); i++) {
             BezierCurve seg = segments.get(i);
             List<Point> cps = seg.getControlPoints();
-            double endRad = (endHeadings != null && i < endHeadings.size()) ? endHeadings.get(i) : seg.getHeading(1.0);
+            double endRad = (finalHeading != null && i == segments.size() - 1) ? finalHeading : seg.getHeading(1.0);
 
             json.append("    {\n      \"name\": \"").append(escape(nameAt(names, i))).append("\",\n");
             appendPointBlock(json, "      ", "endPoint", cps.get(cps.size() - 1), "degrees", Math.toDegrees(endRad), modeAt(modes, i));

@@ -83,7 +83,7 @@ public class ObstacleAvoidanceTest {
 
         assertTrue(BezierPathGenerator.isPathClear(path, obstacles, 1.0, 300));
         
-        Point lastTargetCenter = path.getSegments().get(1).getControlPoints().get(3);
+        Point lastTargetCenter = path.get(1.0);
         assertEquals(START_X + 60 - 5.0, lastTargetCenter.getX(), 1e-6);
     }
 

@@ -108,7 +108,7 @@ public class IntakePathingTest {
                 .generate()
                 .getPath();
         
-        assertEquals(START_X + 10 - 5.0, reordered.getSegments().get(0).getControlPoints().get(3).getX(), EPS);
+        assertEquals(far.getX() - 5.0, reordered.get(1.0).getX(), EPS);
 
         BezierPath forced = BezierPathGenerator.builder()
                 .start(new Pose(START_X, START_Y, 0))
@@ -118,7 +118,37 @@ public class IntakePathingTest {
                 .generate()
                 .getPath();
         
-        assertEquals(START_X + 50 - 5.0, forced.getSegments().get(0).getControlPoints().get(3).getX(), EPS);
+        assertEquals(near.getX() + 5.0, forced.get(1.0).getX(), EPS);
+    }
+
+    @Test
+    public void intakeTouchesEveryWaypoint() {
+        List<Waypoint> targets = Arrays.asList(
+                new Waypoint(START_X + 20, START_Y),
+                new Waypoint(START_X + 40, START_Y + 10),
+                new Waypoint(START_X + 60, START_Y - 5)
+        );
+
+        BezierConfig config = new BezierConfig().reach(5).width(8);
+        BezierPathGenerator.setConfig(config);
+
+        BezierPath path = BezierPathGenerator.builder()
+                .start(new Pose(START_X, START_Y, 0))
+                .waypoints(targets)
+                .ordered()
+                .generate()
+                .getPath();
+
+        int waypointCount = targets.size();
+        for (int i = 0; i < waypointCount; i++) {
+            double t = (double) (i + 1) / waypointCount;
+            Point center = path.get(t);
+            double heading = path.getHeading(t);
+            Point target = new Point(targets.get(i).getX(), targets.get(i).getY());
+
+            assertTrue("waypoint " + i + " should be captured by the intake",
+                    BezierPathGenerator.isCapturedByIntake(center, heading, config.getReach(), config.getWidth(), target));
+        }
     }
 
     private static void permute(List<Waypoint> arr, int k, List<List<Waypoint>> out) {

@@ -137,24 +137,24 @@ public class BezierPathGenerator {
             prevRaw = target;
         }
 
-        BezierPath path = applyAntiWhip(catmullRomToBezier(keyPoints, headings, config.getTension()), headings.get(headings.size() - 1));
+        BezierCurve curve = cubicHermiteChain(keyPoints, headings);
+        BezierPath path = new BezierPath(Collections.singletonList(curve));
         if (obstacles != null && !obstacles.isEmpty()) {
             path = preBowSegmentsAwayFromObstacles(path, obstacles, config);
             path = CollisionAvoider.avoid(path, obstacles, config);
         }
-        return new BezierResult(path, new ArrayList<>(headings.subList(1, headings.size())));
+        return new BezierResult(path, Collections.singletonList(headings.get(headings.size() - 1)));
     }
 
     private static BezierResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles) {
         int n = Math.max(config.getControlPointCount(), 4);
-        List<Point> points = new ArrayList<>();
+        List<Point> biased = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             double t = (double) i / (n - 1);
-            points.add(new Point(start.getX() + (end.getX() - start.getX()) * t, start.getY() + (end.getY() - start.getY()) * t));
+            biased.add(new Point(start.getX() + (end.getX() - start.getX()) * t, start.getY() + (end.getY() - start.getY()) * t));
         }
 
-        List<Point> biased = biasAwayFromObstacles(points, obstacles, config);
-        BezierCurve curve = new BezierCurve(biased);
+        BezierCurve curve = biasAwayFromObstacles(new BezierCurve(biased), obstacles, config);
         BezierPath asPath = new BezierPath(Collections.singletonList(curve));
         BezierPath avoided = CollisionAvoider.avoid(asPath, obstacles, config);
         
@@ -180,13 +180,21 @@ public class BezierPathGenerator {
 
     private static BezierPath preBowSegmentsAwayFromObstacles(BezierPath path, List<Zone> obstacles, BezierConfig config) {
         List<BezierCurve> segments = new ArrayList<>();
-        for (BezierCurve segment : path.getSegments()) segments.add(new BezierCurve(biasAwayFromObstacles(segment.getControlPoints(), obstacles, config)));
+        for (BezierCurve segment : path.getSegments()) segments.add(biasAwayFromObstacles(segment, obstacles, config));
         return new BezierPath(segments);
     }
 
-    private static List<Point> biasAwayFromObstacles(List<Point> controlPoints, List<Zone> obstacles, BezierConfig config) {
+    private static BezierCurve biasAwayFromObstacles(BezierCurve curve, List<Zone> obstacles, BezierConfig config) {
+        if (obstacles == null || obstacles.isEmpty()) return curve;
+        List<BezierCurve> segments = new ArrayList<>();
+        for (BezierCurve seg : curve.toCubicSegments()) {
+            segments.add(new BezierCurve(biasControlPoints(seg.getControlPoints(), obstacles, config)));
+        }
+        return BezierCurve.fromCubicSegments(segments);
+    }
+
+    private static List<Point> biasControlPoints(List<Point> controlPoints, List<Zone> obstacles, BezierConfig config) {
         List<Point> pts = new ArrayList<>(controlPoints);
-        if (obstacles == null || obstacles.isEmpty()) return pts;
         Point start = pts.get(0), end = pts.get(pts.size() - 1);
         double dx = end.getX() - start.getX(), dy = end.getY() - start.getY(), len = Math.hypot(dx, dy);
         if (len < 1e-9) return pts;
@@ -236,31 +244,35 @@ public class BezierPathGenerator {
     public static boolean isPathClear(BezierPath path, List<Zone> obstacles, double clearance, int samplesPerSegment) { return isPathClear(path, obstacles, clearance, 0.0, samplesPerSegment); }
     public static boolean isPathClear(BezierCurve curve, List<Zone> obstacles, double clearance, int samples) { return isPathClear(curve, obstacles, clearance, 0.0, samples); }
 
-    private static BezierPath catmullRomToBezier(List<Point> pts, List<Double> headings, double tension) {
-        int n = pts.size();
-        if (n == 2) return new BezierPath(Collections.singletonList(twoPointCubic(pts.get(0), pts.get(1), headings.get(0), headings.get(1))));
-        List<BezierCurve> segments = new ArrayList<>();
-        double alpha = 1 - tension;
-        for (int i = 0; i < n - 1; i++) {
-            Point p0 = pts.get(Math.max(i - 1, 0)), p1 = pts.get(i), p2 = pts.get(i + 1), p3 = pts.get(Math.min(i + 2, n - 1));
-            Point t1 = new Point((p2.getX() - p0.getX()) * alpha / 2.0, (p2.getY() - p0.getY()) * alpha / 2.0), t2 = new Point((p3.getX() - p1.getX()) * alpha / 2.0, (p3.getY() - p1.getY()) * alpha / 2.0);
-            segments.add(new BezierCurve(Arrays.asList(p1, new Point(p1.getX() + t1.getX() / 3.0, p1.getY() + t1.getY() / 3.0), new Point(p2.getX() - t2.getX() / 3.0, p2.getY() - t2.getY() / 3.0), p2)));
-        }
-        return new BezierPath(segments);
-    }
-
     private static BezierCurve twoPointCubic(Point start, Point end, double startHeading, double endHeading) {
         double d = start.distanceTo(end) / 3.0;
-        return new BezierCurve(Arrays.asList(start, new Point(start.getX() + d * Math.cos(startHeading), start.getY() + d * Math.sin(startHeading)), new Point(end.getX() - d * Math.cos(endHeading), end.getY() - d * Math.sin(endHeading)), end));
+        return new BezierCurve(Arrays.asList(
+                start,
+                new Point(start.getX() + d * Math.cos(startHeading), start.getY() + d * Math.sin(startHeading)),
+                new Point(end.getX() - d * Math.cos(endHeading), end.getY() - d * Math.sin(endHeading)),
+                end));
     }
 
-    private static BezierPath applyAntiWhip(BezierPath path, double finalHeading) {
-        List<BezierCurve> segments = new ArrayList<>(path.getSegments());
-        BezierCurve last = segments.get(segments.size() - 1);
-        List<Point> cps = new ArrayList<>(last.getControlPoints());
-        Point end = cps.get(cps.size() - 1);
-        cps.set(cps.size() - 2, new Point(end.getX() - end.distanceTo(cps.get(cps.size() - 2)) * Math.cos(finalHeading), end.getY() - end.distanceTo(cps.get(cps.size() - 2)) * Math.sin(finalHeading)));
-        segments.set(segments.size() - 1, new BezierCurve(cps));
-        return new BezierPath(segments);
+    private static BezierCurve cubicHermiteChain(List<Point> pts, List<Double> headings) {
+        int n = pts.size();
+        if (n == 2) {
+            return twoPointCubic(pts.get(0), pts.get(1), headings.get(0), headings.get(1));
+        }
+
+        List<Point> flat = new ArrayList<>();
+        for (int i = 0; i < n - 1; i++) {
+            Point p0 = pts.get(i);
+            Point p1 = pts.get(i + 1);
+            double d = p0.distanceTo(p1) / 3.0;
+            double h0 = headings.get(i);
+            double h1 = headings.get(i + 1);
+            Point cp1 = new Point(p0.getX() + d * Math.cos(h0), p0.getY() + d * Math.sin(h0));
+            Point cp2 = new Point(p1.getX() - d * Math.cos(h1), p1.getY() - d * Math.sin(h1));
+            if (i == 0) flat.add(p0);
+            flat.add(cp1);
+            flat.add(cp2);
+            flat.add(p1);
+        }
+        return new BezierCurve(flat);
     }
 }

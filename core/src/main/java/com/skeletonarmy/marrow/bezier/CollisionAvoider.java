@@ -4,6 +4,7 @@ import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.Zone;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class CollisionAvoider {
@@ -14,7 +15,9 @@ public class CollisionAvoider {
             return path;
         }
 
-        List<BezierCurve> segments = new ArrayList<>(path.getSegments());
+        boolean single = path.getSegments().size() == 1;
+        List<BezierCurve> segments = new ArrayList<>();
+        for (BezierCurve curve : path.getSegments()) segments.addAll(curve.toCubicSegments());
         double targetClearance = config.getClearance() * 1.05 + 0.05;
 
         List<BezierCurve> best = new ArrayList<>(segments);
@@ -113,6 +116,8 @@ public class CollisionAvoider {
             }
         }
 
-        return new BezierPath(best);
+        return single
+                ? new BezierPath(Collections.singletonList(BezierCurve.fromCubicSegments(best)))
+                : new BezierPath(best);
     }
 }
