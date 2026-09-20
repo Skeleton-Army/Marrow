@@ -2,6 +2,8 @@ package com.skeletonarmy.marrow.prompts;
 
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
+import com.skeletonarmy.marrow.telemetry.FormatBuilder;
+import com.skeletonarmy.marrow.telemetry.modifiers.HtmlTextSize;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -84,5 +86,14 @@ public abstract class Prompt<T> {
      */
     protected void addData(String caption, Object value) {
         telemetry.addData(caption, value);
+    }
+
+    protected static String formatHeader(String header) {
+        return new FormatBuilder(header)
+                .setPrefix("=== ")
+                .setSuffix(" ===")
+                .bold()
+                .setSize(HtmlTextSize.BIG)
+                .format();
     }
 }
