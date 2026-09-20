@@ -3,6 +3,8 @@ package com.skeletonarmy.marrow.prompts;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
+import com.skeletonarmy.marrow.telemetry.FormatBuilder;
+import com.skeletonarmy.marrow.telemetry.HtmlColor;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -16,6 +18,7 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class Prompter {
     private final OpMode opMode;
@@ -32,6 +35,7 @@ public class Prompter {
 
     public Prompter(OpMode opMode) {
         this.opMode = opMode;
+        this.opMode.telemetry.setDisplayFormat(Telemetry.DisplayFormat.HTML);
     }
 
     // ---- API ----
@@ -149,7 +153,10 @@ public class Prompter {
         // present for the Driver Station display to update and show the cleared state.
         // The telemetry is updated in run().
         opMode.telemetry.clear();
-        opMode.telemetry.addLine("Ready.");
+        new FormatBuilder("Ready.")
+                .bold()
+                .setColor(HtmlColor.LIME_GREEN)
+                .printLine(opMode.telemetry);
 
         if (completeFunc != null) completeFunc.run();
     }
@@ -162,8 +169,8 @@ public class Prompter {
     }
 
     private void runSummary() {
-        opMode.telemetry.addLine("=== SUMMARY ===");
-        opMode.telemetry.addLine("");
+        opMode.telemetry.addLine(new FormatBuilder("=== SUMMARY ===").bold().format());
+        opMode.telemetry.addLine();
 
         Set<String> displayedKeys = new HashSet<>();
 
@@ -182,19 +189,31 @@ public class Prompter {
                         .orElse(entry.key);
             }
 
-            String display = value instanceof List
-                    ? ((List<?>) value).stream()
-                    .map(o -> o != null ? o.toString() : "null")
-                    .collect(java.util.stream.Collectors.joining(", "))
-                    : value != null ? value.toString() : "null";
+            String display;
+            if (value instanceof List) {
+                display = ((List<?>) value).stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(", "));
+            } else {
+                display = String.valueOf(value);
+            }
 
             opMode.telemetry.addData(finalLabel, display);
             displayedKeys.add(entry.key);
         }
 
         opMode.telemetry.addLine("");
-        opMode.telemetry.addLine("Press CROSS/A to confirm");
-        opMode.telemetry.addLine("Press CIRCLE/B to go back");
+
+        FormatBuilder builder = new FormatBuilder()
+                .setPrefix("Press")
+                .setBase("CROSS/A")
+                .setSuffix("to confirm")
+                .italic()
+                .bold();
+        opMode.telemetry.addLine(builder.format());
+
+        builder.setBase("CIRCLE/B").setSuffix("to go back");
+        opMode.telemetry.addLine(builder.format());
 
         if (GamepadInput.justPressed(Button.A)) {
             inSummary = false;
