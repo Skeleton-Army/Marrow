@@ -1,6 +1,8 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.skeletonarmy.marrow.internal.Button;
+import com.skeletonarmy.marrow.telemetry.FormatBuilder;
+import com.skeletonarmy.marrow.telemetry.modifiers.HtmlTextSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +26,7 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
 
         if (maxSelections <= 0) maxSelections = options.length;
 
-        this.header = header;
+        this.header = formatHeader(header);
         this.requireSelection = requireSelection;
         this.ordered = ordered;
         this.options = options.clone();
@@ -39,14 +41,16 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
 
     @Override
     public List<T> process() {
-        addLine("=== " + header + " ===");
+        addLine(header);
         addLine("");
 
         for (int i = 0; i < options.length; i++) {
             T currentOption = options[i];
 
+            FormatBuilder option = new FormatBuilder(currentOption);
             String marker;
             if (chosenOptions.contains(currentOption)) {
+                option.italic(); // Format selected options as italic.
                 if (ordered) {
                     int index = chosenOptions.indexOf(currentOption) + 1;
                     marker = "[" + index + "]";
@@ -57,8 +61,15 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
                 marker = "[ ]";
             }
 
-            String cursor = (i == cursorIndex) ? " <" : "";
-            addLine(marker + " " + currentOption + cursor);
+            String cursor;
+            if (i == cursorIndex) {
+                cursor = " <";
+                option.bold(); //Bold currently selected option
+            } else {
+                cursor = "";
+            }
+            option.setPrefix(marker + " ").setSuffix(cursor);
+            addLine(option.format());
         }
 
         addLine("");
@@ -66,7 +77,8 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
 
         int doneIndex = options.length;
         String doneCursor = (cursorIndex == doneIndex) ? " <" : "";
-        addLine("       DONE" + doneCursor);
+        String doneMsg = new FormatBuilder("       DONE").setSuffix(doneCursor).setSize(HtmlTextSize.BIG).format();
+        addLine(doneMsg);
 
         // Show error message, if any
         if (showError) {

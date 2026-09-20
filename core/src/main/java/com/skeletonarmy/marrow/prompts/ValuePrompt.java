@@ -1,6 +1,9 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.skeletonarmy.marrow.internal.Button;
+import com.skeletonarmy.marrow.telemetry.FormatBuilder;
+import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.HtmlTextSize;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -35,7 +38,7 @@ public class ValuePrompt<T extends Number> extends Prompt<T> {
         if (defaultValue < minValue || defaultValue > maxValue) throw new IllegalArgumentException("Default value must be between min and max value.");
         if (increment <= 0) throw new IllegalArgumentException("Increment must be greater than zero.");
 
-        this.header = header;
+        this.header = formatHeader(header);
         this.type = type;
         this.minValue = minValue;
         this.maxValue = maxValue;
@@ -45,7 +48,7 @@ public class ValuePrompt<T extends Number> extends Prompt<T> {
 
     @Override
     public T process() {
-        addLine("=== " + header + " ===");
+        addLine(header);
         addLine("");
 
         if (isIntegerType()) {

@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.skeletonarmy.marrow.internal.Button;
+import com.skeletonarmy.marrow.telemetry.FormatBuilder;
 
 public class OptionPrompt<T> extends Prompt<T> {
     private final String header;
@@ -14,7 +15,7 @@ public class OptionPrompt<T> extends Prompt<T> {
         if (options == null || options.length == 0)
             throw new IllegalArgumentException("Options cannot be null or empty.");
 
-        this.header = header;
+        this.header = formatHeader(header);
         this.options = options.clone();
     }
 
@@ -25,7 +26,7 @@ public class OptionPrompt<T> extends Prompt<T> {
 
     @Override
     public T process() {
-        addLine("=== " + header + " ===");
+        addLine(header);
         addLine("");
 
         for (int i = 0; i < options.length; i++) {
