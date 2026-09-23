@@ -7,6 +7,7 @@ import com.skeletonarmy.marrow.weaver.PathRoute;
 import com.skeletonarmy.marrow.weaver.Weaver;
 import com.skeletonarmy.marrow.zones.CircleZone;
 import com.skeletonarmy.marrow.zones.Point;
+import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
 
 import javax.swing.JFrame;
@@ -35,12 +36,14 @@ public class Simulator extends JPanel {
     private static final double CLEARANCE = 4.0;
 
     private enum Mode { TARGET, OBSTACLE, START }
+    private enum ObstacleShape { CIRCLE, SQUARE }
 
     private final List<Point> targets = new ArrayList<>();
-    private final List<CircleZone> obstacles = new ArrayList<>();
+    private final List<Zone> obstacles = new ArrayList<>();
 
     private Point start = new Point(24, 24);
     private double obstacleRadius = 6.0;
+    private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private boolean reorder = false;
     private Mode mode = Mode.TARGET;
 
@@ -86,7 +89,7 @@ public class Simulator extends JPanel {
                             targets.add(f);
                             break;
                         case OBSTACLE:
-                            obstacles.add(new CircleZone(f, obstacleRadius));
+                            obstacles.add(newObstacle(f));
                             break;
                         case START:
                             start = f;
@@ -104,6 +107,9 @@ public class Simulator extends JPanel {
                     case KeyEvent.VK_T: mode = Mode.TARGET; break;
                     case KeyEvent.VK_O: mode = Mode.OBSTACLE; break;
                     case KeyEvent.VK_S: mode = Mode.START; break;
+                    case KeyEvent.VK_P:
+                        obstacleShape = obstacleShape == ObstacleShape.CIRCLE ? ObstacleShape.SQUARE : ObstacleShape.CIRCLE;
+                        break;
                     case KeyEvent.VK_R:
                         reorder = !reorder;
                         rebuildPath();
@@ -169,7 +175,7 @@ public class Simulator extends JPanel {
             for (Point t : targets) {
                 b.addTarget(new PathPose(t.getX(), t.getY()));
             }
-            for (CircleZone o : obstacles) {
+            for (Zone o : obstacles) {
                 b.addObstacle(o);
             }
             if (!reorder) {
@@ -231,6 +237,16 @@ public class Simulator extends JPanel {
         while (d > Math.PI) d -= 2 * Math.PI;
         while (d < -Math.PI) d += 2 * Math.PI;
         return a + d * f;
+    }
+
+    private Zone newObstacle(Point p) {
+        switch (obstacleShape) {
+            case SQUARE:
+                return new PolygonZone(p, obstacleRadius * 2, obstacleRadius * 2);
+            case CIRCLE:
+            default:
+                return new CircleZone(p, obstacleRadius);
+        }
     }
 
     private void removeNearest(MouseEvent e) {
@@ -322,15 +338,32 @@ public class Simulator extends JPanel {
     }
 
     private void drawObstacles(Graphics2D g) {
-        for (CircleZone o : obstacles) {
-            Point c = o.getPosition();
-            int r = (int) Math.max(2, o.getRadius() * scale);
-            int px = (int) sx(c.getX());
-            int py = (int) sy(c.getY());
-            g.setColor(new Color(230, 60, 60, 90));
-            g.fillOval(px - r, py - r, r * 2, r * 2);
-            g.setColor(new Color(180, 0, 0));
-            g.drawOval(px - r, py - r, r * 2, r * 2);
+        for (Zone o : obstacles) {
+            if (o instanceof CircleZone) {
+                CircleZone c = (CircleZone) o;
+                Point p = c.getPosition();
+                int r = (int) Math.max(2, c.getRadius() * scale);
+                int px = (int) sx(p.getX());
+                int py = (int) sy(p.getY());
+                g.setColor(new Color(230, 60, 60, 90));
+                g.fillOval(px - r, py - r, r * 2, r * 2);
+                g.setColor(new Color(180, 0, 0));
+                g.drawOval(px - r, py - r, r * 2, r * 2);
+            } else if (o instanceof PolygonZone) {
+                PolygonZone poly = (PolygonZone) o;
+                Point[] corners = poly.getCorners();
+                Path2D.Double shape = new Path2D.Double();
+                for (int i = 0; i < corners.length; i++) {
+                    double px = sx(corners[i].getX());
+                    double py = sy(corners[i].getY());
+                    if (i == 0) shape.moveTo(px, py); else shape.lineTo(px, py);
+                }
+                shape.closePath();
+                g.setColor(new Color(230, 60, 60, 90));
+                g.fill(shape);
+                g.setColor(new Color(180, 0, 0));
+                g.draw(shape);
+            }
         }
     }
 
@@ -389,10 +422,10 @@ public class Simulator extends JPanel {
     private void drawHud(Graphics2D g) {
         String[] lines = {
                 "Left-click: add      Right-click: remove",
-                "T target | O obstacle | S start | R reorder | C clear | +/- obstacle size",
+                "T target | O obstacle | S start | R reorder | C clear | P shape | +/- size",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
                         + "   Targets: " + targets.size() + "   Obstacles: " + obstacles.size(),
-                "Obstacle radius: " + (int) obstacleRadius + " in",
+                "Obstacle shape: " + obstacleShape + "   Size: " + (int) obstacleRadius + " in",
         };
         if (!statusMessage.isEmpty()) {
             lines = java.util.Arrays.copyOf(lines, lines.length + 1);

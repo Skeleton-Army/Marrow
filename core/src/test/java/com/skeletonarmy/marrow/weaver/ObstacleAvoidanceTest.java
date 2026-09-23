@@ -1,7 +1,9 @@
 package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.CircleZone;
+import com.skeletonarmy.marrow.zones.CompositeZone;
 import com.skeletonarmy.marrow.zones.Point;
+import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +36,40 @@ public class ObstacleAvoidanceTest {
                 .getPath();
 
         assertTrue("Path should clear obstacle",
+                Weaver.isPathClear(result, obstacles, Weaver.getConfig().getClearance(), 200));
+    }
+
+    @Test
+    public void pathBowsAroundPolygonObstacle() {
+        List<Zone> obstacles = Collections.singletonList(
+                new PolygonZone(new Point(START_X + 24, START_Y), 12, 12));
+
+        PathRoute result = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
+                .addObstacle(obstacles.get(0))
+                .generate()
+                .getPath();
+
+        assertTrue("Path should clear polygon obstacle",
+                Weaver.isPathClear(result, obstacles, Weaver.getConfig().getClearance(), 200));
+    }
+
+    @Test
+    public void pathBowsAroundCompositeObstacle() {
+        List<Zone> obstacles = Collections.singletonList(
+                new CompositeZone(
+                        new CircleZone(new Point(START_X + 20, START_Y), 4),
+                        new PolygonZone(new Point(START_X + 28, START_Y), 8, 8)));
+
+        PathRoute result = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
+                .addObstacle(obstacles.get(0))
+                .generate()
+                .getPath();
+
+        assertTrue("Path should clear composite obstacle",
                 Weaver.isPathClear(result, obstacles, Weaver.getConfig().getClearance(), 200));
     }
 
