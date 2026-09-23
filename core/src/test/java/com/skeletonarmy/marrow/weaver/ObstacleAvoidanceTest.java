@@ -143,6 +143,31 @@ public class ObstacleAvoidanceTest {
                 Weaver.isPathClear(path, obstacles, Weaver.getConfig().getClearance(), 400));
     }
 
+    @Test
+    public void overlappingObstaclesDoNotOverBow() {
+        Zone obstacle = new CircleZone(new Point(START_X + 24, START_Y), 6);
+
+        PathRoute singlePath = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
+                .addObstacle(obstacle)
+                .generate()
+                .getPath();
+
+        PathRoute overlapPath = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
+                .addObstacle(obstacle)
+                .addObstacle(new CircleZone(new Point(START_X + 24, START_Y), 6))
+                .generate()
+                .getPath();
+
+        double singleDev = maxDev(singlePath.getSegments().get(0), START_Y);
+        double overlapDev = maxDev(overlapPath.getSegments().get(0), START_Y);
+        assertEquals("Overlapping obstacles should not bow farther than a single one",
+                singleDev, overlapDev, 1e-6);
+    }
+
     private double maxDev(PathCurve curve, double baselineY) {
         return curve.sample(100).stream()
                 .mapToDouble(p -> Math.abs(p.getY() - baselineY))

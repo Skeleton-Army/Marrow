@@ -200,18 +200,28 @@ public class Weaver {
         if (len < 1e-9) return pts;
 
         double targetClearance = (config.getClearance() + config.getRobotSize() * Math.sqrt(2) / 2.0) * 1.05 + 0.05;
+        double pushPos = 0, pushNeg = 0;
         for (Zone zone : obstacles) {
             Point closest = closestPointOnSegment(start, end, zone.getPosition());
             double dist = closest.distanceTo(zone.getPosition());
             if (zone.contains(closest) || dist < targetClearance) {
                 double side = (dx * (zone.getPosition().getY() - start.getY()) - dy * (zone.getPosition().getX() - start.getX())) >= 0 ? -1 : 1;
                 double push = Math.max(targetClearance - dist, 0) + targetClearance;
-                for (int i = 1; i < pts.size() - 1; i++) {
-                    double t = (double) i / (pts.size() - 1);
-                    double weight = 1.0 - Math.abs(t - 0.5) * 2;
-                    pts.set(i, new Point(pts.get(i).getX() + side * (-dy / len) * push * weight, pts.get(i).getY() + side * (dx / len) * push * weight));
-                }
+                if (side > 0) pushPos = Math.max(pushPos, push);
+                else pushNeg = Math.max(pushNeg, push);
             }
+        }
+
+        if (pushPos == 0 && pushNeg == 0) return pts;
+
+        double netPush = pushPos - pushNeg;
+        double sign = netPush >= 0 ? 1 : -1;
+        double magnitude = Math.abs(netPush);
+        for (int i = 1; i < pts.size() - 1; i++) {
+            double t = (double) i / (pts.size() - 1);
+            double weight = 1.0 - Math.abs(t - 0.5) * 2;
+            pts.set(i, new Point(pts.get(i).getX() + sign * (-dy / len) * magnitude * weight,
+                    pts.get(i).getY() + sign * (dx / len) * magnitude * weight));
         }
         return pts;
     }
