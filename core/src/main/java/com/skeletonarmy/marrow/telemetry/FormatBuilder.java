@@ -15,6 +15,7 @@ import com.skeletonarmy.marrow.telemetry.modifiers.StrikethroughModifier;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
@@ -111,6 +112,11 @@ public class FormatBuilder {
 
     public FormatBuilder addModifier(TelemetryModifier modifier) {
         modifiers.add(modifier);
+        return this;
+    }
+
+    public FormatBuilder addModifiers(TelemetryModifier... modifiers) {
+        this.modifiers.addAll(Arrays.asList(modifiers));
         return this;
     }
 
