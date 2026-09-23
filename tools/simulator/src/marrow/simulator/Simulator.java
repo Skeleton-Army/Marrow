@@ -36,7 +36,15 @@ public class Simulator extends JPanel {
     private static final double CLEARANCE = 4.0;
 
     private enum Mode { TARGET, OBSTACLE, START }
-    private enum ObstacleShape { CIRCLE, SQUARE }
+    private enum DragMode { MOVE, RESIZE, ROTATE }
+
+    private enum ObstacleShape {
+        CIRCLE, POLYGON;
+
+        ObstacleShape next() {
+            return this == CIRCLE ? POLYGON : CIRCLE;
+        }
+    }
 
     private final List<Point> targets = new ArrayList<>();
     private final List<Zone> obstacles = new ArrayList<>();
@@ -44,8 +52,20 @@ public class Simulator extends JPanel {
     private Point start = new Point(24, 24);
     private double obstacleRadius = 6.0;
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
+    private int polygonSides = 4;
     private boolean reorder = false;
     private Mode mode = Mode.TARGET;
+
+    private int dragIndex = -1;
+    private DragMode dragMode = DragMode.MOVE;
+    private Point moveStart;
+    private Point grabField;
+    private Point[] resizeOriginal;
+    private Point resizeCenter;
+    private double resizeAnchorDist = 1.0;
+    private Point[] rotateOriginal;
+    private Point rotateCenter;
+    private double rotateStartAngle = 0.0;
 
     private PathRoute path;
     private double[] cumArc;
@@ -83,7 +103,25 @@ public class Simulator extends JPanel {
                     return;
                 }
                 if (SwingUtilities.isLeftMouseButton(e)) {
+                    updateTransform();
                     Point f = new Point(fx(e.getX()), fy(e.getY()));
+
+                    int corner = obstacleCorner(f);
+                    if (corner >= 0) {
+                        beginRotate(corner, f);
+                        return;
+                    }
+                    int near = obstacleNearBoundary(f);
+                    if (near >= 0) {
+                        beginResize(near, f);
+                        return;
+                    }
+                    int inside = obstacleInside(f);
+                    if (inside >= 0) {
+                        beginMove(inside, f);
+                        return;
+                    }
+
                     switch (mode) {
                         case TARGET:
                             targets.add(f);
@@ -98,6 +136,30 @@ public class Simulator extends JPanel {
                     rebuildPath();
                 }
             }
+
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (dragIndex >= 0) {
+                    dragIndex = -1;
+                    rebuildPath();
+                }
+            }
+        });
+
+        addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseDragged(MouseEvent e) {
+                if (dragIndex < 0) return;
+                updateTransform();
+                Point f = new Point(fx(e.getX()), fy(e.getY()));
+                switch (dragMode) {
+                    case RESIZE: resizeDragged(f); break;
+                    case ROTATE: rotateDragged(f); break;
+                    case MOVE:
+                    default: moveDragged(f); break;
+                }
+                repaint();
+            }
         });
 
         addKeyListener(new KeyAdapter() {
@@ -108,7 +170,13 @@ public class Simulator extends JPanel {
                     case KeyEvent.VK_O: mode = Mode.OBSTACLE; break;
                     case KeyEvent.VK_S: mode = Mode.START; break;
                     case KeyEvent.VK_P:
-                        obstacleShape = obstacleShape == ObstacleShape.CIRCLE ? ObstacleShape.SQUARE : ObstacleShape.CIRCLE;
+                        obstacleShape = obstacleShape.next();
+                        break;
+                    case KeyEvent.VK_OPEN_BRACKET:
+                        polygonSides = Math.max(3, polygonSides - 1);
+                        break;
+                    case KeyEvent.VK_CLOSE_BRACKET:
+                        polygonSides = Math.min(12, polygonSides + 1);
                         break;
                     case KeyEvent.VK_R:
                         reorder = !reorder;
@@ -240,13 +308,137 @@ public class Simulator extends JPanel {
     }
 
     private Zone newObstacle(Point p) {
-        switch (obstacleShape) {
-            case SQUARE:
-                return new PolygonZone(p, obstacleRadius * 2, obstacleRadius * 2);
-            case CIRCLE:
-            default:
-                return new CircleZone(p, obstacleRadius);
+        if (obstacleShape == ObstacleShape.CIRCLE) {
+            return new CircleZone(p, obstacleRadius);
         }
+        return regularPolygon(p, obstacleRadius, polygonSides);
+    }
+
+    private static PolygonZone regularPolygon(Point center, double radius, int sides) {
+        Point[] points = new Point[sides];
+        for (int i = 0; i < sides; i++) {
+            double angle = -Math.PI / 2.0 + (2.0 * Math.PI * i) / sides;
+            points[i] = new Point(
+                    center.getX() + radius * Math.cos(angle),
+                    center.getY() + radius * Math.sin(angle));
+        }
+        return new PolygonZone(points);
+    }
+
+    private double handleThresholdField() {
+        return Math.max(2.0, 10.0 / scale);
+    }
+
+    private int obstacleNearBoundary(Point f) {
+        double thresh = handleThresholdField();
+        for (int i = obstacles.size() - 1; i >= 0; i--) {
+            Zone o = obstacles.get(i);
+            if (o instanceof CircleZone) {
+                CircleZone c = (CircleZone) o;
+                if (Math.abs(c.getPosition().distanceTo(f) - c.getRadius()) <= thresh) return i;
+            } else if (o instanceof PolygonZone) {
+                if (((PolygonZone) o).distanceToBoundary(f) <= thresh) return i;
+            }
+        }
+        return -1;
+    }
+
+    private int obstacleInside(Point f) {
+        for (int i = obstacles.size() - 1; i >= 0; i--) {
+            if (obstacles.get(i).contains(f)) return i;
+        }
+        return -1;
+    }
+
+    private int obstacleCorner(Point f) {
+        double thresh = handleThresholdField();
+        for (int i = obstacles.size() - 1; i >= 0; i--) {
+            Zone o = obstacles.get(i);
+            if (o instanceof PolygonZone) {
+                for (Point corner : ((PolygonZone) o).getCorners()) {
+                    if (corner.distanceTo(f) <= thresh) return i;
+                }
+            }
+        }
+        return -1;
+    }
+
+    private void beginResize(int idx, Point f) {
+        dragIndex = idx;
+        dragMode = DragMode.RESIZE;
+        Zone o = obstacles.get(idx);
+        resizeAnchorDist = Math.max(1e-6, o.getPosition().distanceTo(f));
+        resizeCenter = o.getPosition();
+        if (o instanceof PolygonZone) {
+            resizeOriginal = ((PolygonZone) o).getCorners();
+        } else {
+            resizeOriginal = null;
+        }
+    }
+
+    private void beginMove(int idx, Point f) {
+        dragIndex = idx;
+        dragMode = DragMode.MOVE;
+        moveStart = obstacles.get(idx).getPosition();
+        grabField = f;
+    }
+
+    private void beginRotate(int idx, Point f) {
+        dragIndex = idx;
+        dragMode = DragMode.ROTATE;
+        PolygonZone p = (PolygonZone) obstacles.get(idx);
+        rotateOriginal = p.getCorners();
+        rotateCenter = p.getPosition();
+        rotateStartAngle = Math.atan2(f.getY() - rotateCenter.getY(), f.getX() - rotateCenter.getX());
+    }
+
+    private void rotateDragged(Point f) {
+        double angle = Math.atan2(f.getY() - rotateCenter.getY(), f.getX() - rotateCenter.getX());
+        double delta = normalizeAngle(angle - rotateStartAngle);
+        Point[] rotated = new Point[rotateOriginal.length];
+        for (int i = 0; i < rotateOriginal.length; i++) {
+            rotated[i] = rotatePoint(rotateOriginal[i], rotateCenter, delta);
+        }
+        obstacles.set(dragIndex, new PolygonZone(rotated));
+    }
+
+    private static double normalizeAngle(double a) {
+        while (a > Math.PI) a -= 2 * Math.PI;
+        while (a < -Math.PI) a += 2 * Math.PI;
+        return a;
+    }
+
+    private static Point rotatePoint(Point p, Point center, double angle) {
+        double dx = p.getX() - center.getX();
+        double dy = p.getY() - center.getY();
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+        return new Point(center.getX() + dx * cos - dy * sin,
+                center.getY() + dx * sin + dy * cos);
+    }
+
+    private void resizeDragged(Point f) {
+        Zone o = obstacles.get(dragIndex);
+        if (o instanceof CircleZone) {
+            double r = Math.max(1.0, resizeCenter.distanceTo(f));
+            obstacles.set(dragIndex, new CircleZone(resizeCenter, r));
+        } else if (o instanceof PolygonZone) {
+            double dist = resizeCenter.distanceTo(f);
+            double factor = Math.max(0.05, dist / resizeAnchorDist);
+            Point[] scaled = new Point[resizeOriginal.length];
+            for (int i = 0; i < resizeOriginal.length; i++) {
+                scaled[i] = new Point(
+                        resizeCenter.getX() + (resizeOriginal[i].getX() - resizeCenter.getX()) * factor,
+                        resizeCenter.getY() + (resizeOriginal[i].getY() - resizeCenter.getY()) * factor);
+            }
+            obstacles.set(dragIndex, new PolygonZone(scaled));
+        }
+    }
+
+    private void moveDragged(Point f) {
+        Zone o = obstacles.get(dragIndex);
+        o.setPosition(moveStart.getX() + (f.getX() - grabField.getX()),
+                moveStart.getY() + (f.getY() - grabField.getY()));
     }
 
     private void removeNearest(MouseEvent e) {
@@ -338,7 +530,9 @@ public class Simulator extends JPanel {
     }
 
     private void drawObstacles(Graphics2D g) {
-        for (Zone o : obstacles) {
+        for (int idx = 0; idx < obstacles.size(); idx++) {
+            Zone o = obstacles.get(idx);
+            boolean active = idx == dragIndex;
             if (o instanceof CircleZone) {
                 CircleZone c = (CircleZone) o;
                 Point p = c.getPosition();
@@ -349,6 +543,7 @@ public class Simulator extends JPanel {
                 g.fillOval(px - r, py - r, r * 2, r * 2);
                 g.setColor(new Color(180, 0, 0));
                 g.drawOval(px - r, py - r, r * 2, r * 2);
+                drawEdgeHandle(g, p.getX() + c.getRadius(), p.getY(), active && dragMode == DragMode.RESIZE);
             } else if (o instanceof PolygonZone) {
                 PolygonZone poly = (PolygonZone) o;
                 Point[] corners = poly.getCorners();
@@ -363,8 +558,37 @@ public class Simulator extends JPanel {
                 g.fill(shape);
                 g.setColor(new Color(180, 0, 0));
                 g.draw(shape);
+                for (int i = 0; i < corners.length; i++) {
+                    Point a = corners[i];
+                    Point b = corners[(i + 1) % corners.length];
+                    drawEdgeHandle(g, (a.getX() + b.getX()) / 2.0, (a.getY() + b.getY()) / 2.0,
+                            active && dragMode == DragMode.RESIZE);
+                }
+                for (Point corner : corners) {
+                    drawCornerHandle(g, corner.getX(), corner.getY(), active && dragMode == DragMode.ROTATE);
+                }
             }
         }
+    }
+
+    private void drawCornerHandle(Graphics2D g, double fx, double fy, boolean active) {
+        int s = 8;
+        int px = (int) sx(fx);
+        int py = (int) sy(fy);
+        g.setColor(active ? new Color(0, 120, 220) : new Color(110, 110, 110));
+        g.fillRect(px - s / 2, py - s / 2, s, s);
+        g.setColor(Color.BLACK);
+        g.drawRect(px - s / 2, py - s / 2, s, s);
+    }
+
+    private void drawEdgeHandle(Graphics2D g, double fx, double fy, boolean active) {
+        int r = 5;
+        int px = (int) sx(fx);
+        int py = (int) sy(fy);
+        g.setColor(active ? new Color(0, 120, 220) : new Color(160, 160, 160));
+        g.fillOval(px - r, py - r, r * 2, r * 2);
+        g.setColor(Color.BLACK);
+        g.drawOval(px - r, py - r, r * 2, r * 2);
     }
 
     private void drawTargets(Graphics2D g) {
@@ -422,10 +646,13 @@ public class Simulator extends JPanel {
     private void drawHud(Graphics2D g) {
         String[] lines = {
                 "Left-click: add      Right-click: remove",
-                "T target | O obstacle | S start | R reorder | C clear | P shape | +/- size",
+                "Drag body: move   Drag edge (o): resize   Drag corner ([]): rotate",
+                "T target | O obstacle | S start | R reorder | C clear | P shape | [ ] sides | +/- size",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
                         + "   Targets: " + targets.size() + "   Obstacles: " + obstacles.size(),
-                "Obstacle shape: " + obstacleShape + "   Size: " + (int) obstacleRadius + " in",
+                "Obstacle shape: " + obstacleShape
+                        + (obstacleShape == ObstacleShape.POLYGON ? " (" + polygonSides + " sides)" : "")
+                        + "   Size: " + (int) obstacleRadius + " in",
         };
         if (!statusMessage.isEmpty()) {
             lines = java.util.Arrays.copyOf(lines, lines.length + 1);
