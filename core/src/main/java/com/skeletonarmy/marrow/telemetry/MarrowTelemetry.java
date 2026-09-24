@@ -1,5 +1,7 @@
 package com.skeletonarmy.marrow.telemetry;
 
+import android.text.TextUtils;
+
 import org.firstinspires.ftc.robotcore.external.Func;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -39,6 +41,7 @@ public class MarrowTelemetry implements Telemetry {
     @SuppressWarnings("unchecked")
     public Item addData(String caption, String message, Object... args) {
         HtmlArgType argType = isHtml(args);
+        message = TextUtils.htmlEncode(message);
 
         // Early return for default use, and resolve potential NegativeArraySizeException
         if (argType == HtmlArgType.NONE) {
