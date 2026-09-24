@@ -12,7 +12,7 @@ public class BulkCachingSettings {
      * Set this to {@link LynxModule.BulkCachingMode#OFF} to disable bulk caching globally
      * by default (opt-in only via {@link BulkCaching} annotation).
      * <p>
-     * Defaults to {@link LynxModule.BulkCachingMode#AUTO}.
+     * Defaults to {@link LynxModule.BulkCachingMode#OFF}.
      */
-    public static LynxModule.BulkCachingMode defaultMode = LynxModule.BulkCachingMode.AUTO;
+    public static LynxModule.BulkCachingMode defaultMode = LynxModule.BulkCachingMode.OFF;
 }
