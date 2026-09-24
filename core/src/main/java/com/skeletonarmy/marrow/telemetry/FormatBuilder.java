@@ -1,5 +1,8 @@
 package com.skeletonarmy.marrow.telemetry;
 
+import android.text.Html;
+import android.text.TextUtils;
+
 import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ColorModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ConditionalColorModifier;
@@ -127,7 +130,7 @@ public class FormatBuilder {
      * @return this
      */
     public FormatBuilder setPrefix(String prefix) {
-        this.prefix = prefix;
+        this.prefix = TextUtils.htmlEncode(prefix);
         return this;
     }
 
@@ -138,7 +141,7 @@ public class FormatBuilder {
      * @return this
      */
     public FormatBuilder setSuffix(String suffix) {
-        this.suffix = suffix;
+        this.suffix = TextUtils.htmlEncode(suffix);
         return this;
     }
 
