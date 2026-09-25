@@ -7,7 +7,7 @@ public class PathConfig {
 
     // Intake & Ordering
     private double turnCostWeight = 10.0;
-    private double width = 5.0;
+    private double width = 0.0;
     private int bruteForceOrderLimit = 8;
 
     // Obstacle Avoidance
