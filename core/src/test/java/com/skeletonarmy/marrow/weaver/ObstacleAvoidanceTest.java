@@ -168,6 +168,27 @@ public class ObstacleAvoidanceTest {
                 singleDev, overlapDev, 1e-6);
     }
 
+    @Test
+    public void pathReroutesAroundTouchingObstacleWall() {
+        Weaver.setConfig(new PathConfig().reach(0).width(0).robotSize(12.0).clearance(4.0));
+
+        List<Zone> obstacles = Arrays.asList(
+                new CircleZone(new Point(66, 66), 6),
+                new CircleZone(new Point(66, 78), 6)
+        );
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(24, 48, 0))
+                .addTarget(new PathPose(120, 96))
+                .addObstacle(obstacles.get(0))
+                .addObstacle(obstacles.get(1))
+                .generate()
+                .getPath();
+
+        assertTrue("Path should reroute around the touching obstacle wall instead of cutting through",
+                Weaver.isPathClear(path, obstacles, 4.0, 12.0, 400));
+    }
+
     private double maxDev(PathCurve curve, double baselineY) {
         return curve.sample(100).stream()
                 .mapToDouble(p -> Math.abs(p.getY() - baselineY))

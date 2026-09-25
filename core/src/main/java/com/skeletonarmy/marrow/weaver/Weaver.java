@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
-import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
 
 import java.util.ArrayList;
@@ -140,7 +139,6 @@ public class Weaver {
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
         PathRoute path = new PathRoute(Collections.singletonList(curve));
         if (obstacles != null && !obstacles.isEmpty()) {
-            path = preBowSegmentsAwayFromObstacles(path, obstacles, config);
             path = ObstacleAvoider.avoid(path, obstacles, config);
         }
         return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)));
@@ -154,7 +152,7 @@ public class Weaver {
             biased.add(new Point(start.getX() + (end.getX() - start.getX()) * t, start.getY() + (end.getY() - start.getY()) * t));
         }
 
-        PathCurve curve = biasAwayFromObstacles(new PathCurve(biased), obstacles, config);
+        PathCurve curve = new PathCurve(biased);
         PathRoute asPath = new PathRoute(Collections.singletonList(curve));
         PathRoute avoided = ObstacleAvoider.avoid(asPath, obstacles, config);
         
@@ -178,61 +176,6 @@ public class Weaver {
         return Math.abs(relX * cos + relY * sin) < 1e-6 && Math.abs(relX * -sin + relY * cos) <= intakeWidth / 2.0 + 1e-6;
     }
 
-    private static PathRoute preBowSegmentsAwayFromObstacles(PathRoute path, List<Zone> obstacles, PathConfig config) {
-        List<PathCurve> segments = new ArrayList<>();
-        for (PathCurve segment : path.getSegments()) segments.add(biasAwayFromObstacles(segment, obstacles, config));
-        return new PathRoute(segments);
-    }
-
-    private static PathCurve biasAwayFromObstacles(PathCurve curve, List<Zone> obstacles, PathConfig config) {
-        if (obstacles == null || obstacles.isEmpty()) return curve;
-        List<PathCurve> segments = new ArrayList<>();
-        for (PathCurve seg : curve.toCubicSegments()) {
-            segments.add(new PathCurve(biasControlPoints(seg.getControlPoints(), obstacles, config)));
-        }
-        return PathCurve.fromCubicSegments(segments);
-    }
-
-    private static List<Point> biasControlPoints(List<Point> controlPoints, List<Zone> obstacles, PathConfig config) {
-        List<Point> pts = new ArrayList<>(controlPoints);
-        Point start = pts.get(0), end = pts.get(pts.size() - 1);
-        double dx = end.getX() - start.getX(), dy = end.getY() - start.getY(), len = Math.hypot(dx, dy);
-        if (len < 1e-9) return pts;
-
-        double targetClearance = (config.getClearance() + config.getRobotSize() * Math.sqrt(2) / 2.0) * 1.05 + 0.05;
-        double pushPos = 0, pushNeg = 0;
-        for (Zone zone : obstacles) {
-            Point closest = closestPointOnSegment(start, end, zone.getPosition());
-            double dist = closest.distanceTo(zone.getPosition());
-            if (zone.contains(closest) || dist < targetClearance) {
-                double side = (dx * (zone.getPosition().getY() - start.getY()) - dy * (zone.getPosition().getX() - start.getX())) >= 0 ? -1 : 1;
-                double push = Math.max(targetClearance - dist, 0) + targetClearance;
-                if (side > 0) pushPos = Math.max(pushPos, push);
-                else pushNeg = Math.max(pushNeg, push);
-            }
-        }
-
-        if (pushPos == 0 && pushNeg == 0) return pts;
-
-        double netPush = pushPos - pushNeg;
-        double sign = netPush >= 0 ? 1 : -1;
-        double magnitude = Math.abs(netPush);
-        for (int i = 1; i < pts.size() - 1; i++) {
-            double t = (double) i / (pts.size() - 1);
-            double weight = 1.0 - Math.abs(t - 0.5) * 2;
-            pts.set(i, new Point(pts.get(i).getX() + sign * (-dy / len) * magnitude * weight,
-                    pts.get(i).getY() + sign * (dx / len) * magnitude * weight));
-        }
-        return pts;
-    }
-
-    private static Point closestPointOnSegment(Point a, Point b, Point p) {
-        double dx = b.getX() - a.getX(), dy = b.getY() - a.getY(), lenSq = dx * dx + dy * dy;
-        if (lenSq < 1e-9) return a;
-        double t = Math.max(0, Math.min(1, ((p.getX() - a.getX()) * dx + (p.getY() - a.getY()) * dy) / lenSq));
-        return new Point(a.getX() + t * dx, a.getY() + t * dy);
-    }
-
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotSize, int samplesPerSegment) {
         for (PathCurve segment : path.getSegments()) if (!isPathClear(segment, obstacles, clearance, robotSize, samplesPerSegment)) return false;
         return true;
@@ -244,7 +187,7 @@ public class Weaver {
             if (robotSize <= 0) {
                 for (Zone zone : obstacles) if (zone.contains(p) || zone.distanceToBoundary(p) < clearance) return false;
             } else {
-                PolygonZone footprint = RobotFootprint.asZone(p, curve.getHeading(samples == 1 ? 0 : (double) i / (samples - 1)), robotSize);
+                Zone footprint = RobotFootprint.asZone(p, curve.getHeading(samples == 1 ? 0 : (double) i / (samples - 1)), robotSize);
                 for (Zone zone : obstacles) if (zone.isInside(footprint) || zone.distanceTo(footprint) < clearance) return false;
             }
         }
