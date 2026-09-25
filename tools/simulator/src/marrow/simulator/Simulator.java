@@ -32,7 +32,7 @@ import java.util.List;
 public class Simulator extends JPanel {
 
     private static final double FIELD = 144.0;
-    private static final double ROBOT_SIZE = 12.0;
+    private static final double ROBOT_SIZE = 18.0;
     private static final double CLEARANCE = 4.0;
 
     private enum Mode { TARGET, OBSTACLE, START }
