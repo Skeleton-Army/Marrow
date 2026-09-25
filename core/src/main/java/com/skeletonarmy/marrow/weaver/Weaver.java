@@ -172,26 +172,27 @@ public class Weaver {
         return Math.abs(relX * cos + relY * sin) < 1e-6 && Math.abs(relX * -sin + relY * cos) <= intakeWidth / 2.0 + 1e-6;
     }
 
-    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotSize, int samplesPerSegment) {
-        for (PathCurve segment : path.getSegments()) if (!isPathClear(segment, obstacles, clearance, robotSize, samplesPerSegment)) return false;
+    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotWidth, double robotHeight, int samplesPerSegment) {
+        for (PathCurve segment : path.getSegments()) if (!isPathClear(segment, obstacles, clearance, robotWidth, robotHeight, samplesPerSegment)) return false;
         return true;
     }
 
-    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, double robotSize, int samples) {
+    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, double robotWidth, double robotHeight, int samples) {
         for (int i = 0; i < samples; i++) {
-            Point p = curve.get(samples == 1 ? 0 : (double) i / (samples - 1));
-            if (robotSize <= 0) {
+            double t = samples == 1 ? 0 : (double) i / (samples - 1);
+            Point p = curve.get(t);
+            if (robotWidth <= 0 || robotHeight <= 0) {
                 for (Zone zone : obstacles) if (zone.contains(p) || zone.distanceToBoundary(p) < clearance) return false;
             } else {
-                Zone footprint = RobotFootprint.asZone(p, curve.getHeading(samples == 1 ? 0 : (double) i / (samples - 1)), robotSize);
+                Zone footprint = RobotFootprint.asZone(p, curve.getHeading(t), robotWidth, robotHeight);
                 for (Zone zone : obstacles) if (zone.isInside(footprint) || zone.distanceTo(footprint) < clearance) return false;
             }
         }
         return true;
     }
 
-    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, int samplesPerSegment) { return isPathClear(path, obstacles, clearance, 0.0, samplesPerSegment); }
-    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, int samples) { return isPathClear(curve, obstacles, clearance, 0.0, samples); }
+    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, int samplesPerSegment) { return isPathClear(path, obstacles, clearance, 0.0, 0.0, samplesPerSegment); }
+    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, int samples) { return isPathClear(curve, obstacles, clearance, 0.0, 0.0, samples); }
 
     private static PathCurve twoPointCubic(Point start, Point end, double startHeading, double endHeading) {
         double d = start.distanceTo(end) / 3.0;

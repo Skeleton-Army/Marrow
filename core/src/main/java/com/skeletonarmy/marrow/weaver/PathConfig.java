@@ -12,11 +12,12 @@ public class PathConfig {
     // Set to half your intake width if you want to intake game elements.
     private double width = 0.0;
 
-    // Robot footprint size used for clearance checks.
-    // Set to the robot's largest dimension.
-    private double robotSize = 18.0;
+    // Robot footprint dimensions used for clearance checks.
+    // Width runs along the robot's forward axis, height perpendicular to it.
+    private double robotWidth = 18.0;
+    private double robotHeight = 18.0;
 
-    // Extra distance kept from obstacles, added to half the robot size.
+    // Extra distance kept from obstacles, added to the robot footprint.
     // Raise for safer paths, lower to cut closer to obstacles.
     private double clearance = 4.0;
 
@@ -39,8 +40,11 @@ public class PathConfig {
     public double getWidth() { return width; }
     public PathConfig width(double v) { this.width = v; return this; }
 
-    public double getRobotSize() { return robotSize; }
-    public PathConfig robotSize(double v) { this.robotSize = v; return this; }
+    public double getRobotWidth() { return robotWidth; }
+    public PathConfig robotWidth(double v) { this.robotWidth = v; return this; }
+
+    public double getRobotHeight() { return robotHeight; }
+    public PathConfig robotHeight(double v) { this.robotHeight = v; return this; }
 
     public double getClearance() { return clearance; }
     public PathConfig clearance(double v) { this.clearance = v; return this; }

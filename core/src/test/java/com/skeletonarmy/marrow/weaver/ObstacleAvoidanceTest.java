@@ -77,9 +77,10 @@ public class ObstacleAvoidanceTest {
     public void footprintCheckingAccountsForRobotSize() {
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(START_X + 24, START_Y + 12), 4));
 
-        double robotSize = 18.0;
-        PathConfig pointConfig = new PathConfig().clearance(2.0).robotSize(0.0);
-        PathConfig squareConfig = new PathConfig().clearance(2.0).robotSize(robotSize);
+        double robotWidth = 18.0;
+        double robotHeight = 18.0;
+        PathConfig pointConfig = new PathConfig().clearance(2.0).robotWidth(0.0).robotHeight(0.0);
+        PathConfig squareConfig = new PathConfig().clearance(2.0).robotWidth(robotWidth).robotHeight(robotHeight);
 
         Weaver.setConfig(pointConfig);
         PathRoute pointPath = Weaver.builder()
@@ -196,7 +197,7 @@ public class ObstacleAvoidanceTest {
 
     @Test
     public void pathReroutesAroundTouchingObstacleWall() {
-        Weaver.setConfig(new PathConfig().width(0).robotSize(12.0).clearance(4.0));
+        Weaver.setConfig(new PathConfig().width(0).robotWidth(12.0).robotHeight(12.0).clearance(4.0));
 
         List<Zone> obstacles = Arrays.asList(
                 new CircleZone(new Point(66, 66), 6),
@@ -212,7 +213,7 @@ public class ObstacleAvoidanceTest {
                 .getPath();
 
         assertTrue("Path should reroute around the touching obstacle wall instead of cutting through",
-                Weaver.isPathClear(path, obstacles, 4.0, 12.0, 400));
+                Weaver.isPathClear(path, obstacles, 4.0, 12.0, 12.0, 400));
     }
 
     private double maxDev(PathCurve curve, double baselineY) {

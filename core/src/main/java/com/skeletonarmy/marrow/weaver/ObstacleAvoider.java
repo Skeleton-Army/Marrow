@@ -35,7 +35,7 @@ public class ObstacleAvoider {
     }
 
     private static double margin(PathConfig config) {
-        return config.getRobotSize() / 2.0 + config.getClearance();
+        return Math.hypot(config.getRobotWidth(), config.getRobotHeight()) / 2.0 + config.getClearance();
     }
 
     private static PathCurve routeCurve(PathCurve top, List<Zone> obstacles, PathConfig config) {

@@ -24,7 +24,7 @@ public class PathGeneratorTest {
         assertEquals(99.0, Weaver.getConfig().getWidth(), 1e-6);
 
         Weaver.resetToDefaults();
-        assertEquals(5.0, Weaver.getConfig().getWidth(), 1e-6);
+        assertEquals(0.0, Weaver.getConfig().getWidth(), 1e-6);
     }
 
     @Test(expected = IllegalStateException.class)

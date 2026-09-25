@@ -32,7 +32,8 @@ import java.util.List;
 public class Simulator extends JPanel {
 
     private static final double FIELD = 144.0;
-    private static final double ROBOT_SIZE = 18.0;
+    private static final double ROBOT_WIDTH = 18.0;
+    private static final double ROBOT_HEIGHT = 18.0;
     private static final double CLEARANCE = 4.0;
 
     private enum Mode { TARGET, OBSTACLE, START }
@@ -243,7 +244,8 @@ public class Simulator extends JPanel {
         try {
             Weaver.setConfig(new PathConfig()
                     .width(width)
-                    .robotSize(ROBOT_SIZE)
+                    .robotWidth(ROBOT_WIDTH)
+                    .robotHeight(ROBOT_HEIGHT)
                     .clearance(CLEARANCE));
 
             Weaver.Builder b = Weaver.builder()
@@ -623,11 +625,12 @@ public class Simulator extends JPanel {
     }
 
     private void drawRobot(Graphics2D g) {
-        double half = ROBOT_SIZE / 2.0;
+        double halfW = ROBOT_WIDTH / 2.0;
+        double halfH = ROBOT_HEIGHT / 2.0;
         double cos = Math.cos(robotHeading);
         double sin = Math.sin(robotHeading);
         double[][] local = {
-                {-half, -half}, {half, -half}, {half, half}, {-half, half}
+                {-halfW, -halfH}, {halfW, -halfH}, {halfW, halfH}, {-halfW, halfH}
         };
 
         Path2D.Double p = new Path2D.Double();
@@ -645,16 +648,16 @@ public class Simulator extends JPanel {
         g.setStroke(new BasicStroke(1.5f));
         g.draw(p);
 
-        double nx = robotPos.getX() + half * cos;
-        double ny = robotPos.getY() + half * sin;
+        double nx = robotPos.getX() + halfW * cos;
+        double ny = robotPos.getY() + halfW * sin;
         g.setColor(Color.BLACK);
         g.drawLine((int) sx(robotPos.getX()), (int) sy(robotPos.getY()), (int) sx(nx), (int) sy(ny));
 
         if (width > 0) {
             double px = -sin, py = cos;
             double hw = width / 2.0;
-            double ix = robotPos.getX() + half * cos;
-            double iy = robotPos.getY() + half * sin;
+            double ix = robotPos.getX() + halfW * cos;
+            double iy = robotPos.getY() + halfW * sin;
             int ax = (int) sx(ix - hw * px);
             int ay = (int) sy(iy - hw * py);
             int bx = (int) sx(ix + hw * px);
@@ -721,7 +724,7 @@ public class Simulator extends JPanel {
     }
 
     private static void runSelfTest() {
-        Weaver.setConfig(new PathConfig().width(0).robotSize(ROBOT_SIZE).clearance(CLEARANCE));
+        Weaver.setConfig(new PathConfig().width(0).robotWidth(ROBOT_WIDTH).robotHeight(ROBOT_HEIGHT).clearance(CLEARANCE));
 
         PathResult result = Weaver.builder()
                 .start(new PathPose(24, 24, 0))
@@ -741,7 +744,7 @@ public class Simulator extends JPanel {
 
         List<Zone> obs = new ArrayList<>();
         obs.add(new CircleZone(new Point(72, 60), 6));
-        boolean clear = Weaver.isPathClear(route, obs, CLEARANCE, ROBOT_SIZE, 300);
+        boolean clear = Weaver.isPathClear(route, obs, CLEARANCE, ROBOT_WIDTH, ROBOT_HEIGHT, 300);
         System.out.println("path clear of obstacle: " + clear);
         System.out.println("SELFTEST OK");
     }
