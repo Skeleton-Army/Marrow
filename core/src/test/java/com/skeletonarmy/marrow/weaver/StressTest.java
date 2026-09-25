@@ -33,7 +33,7 @@ public class StressTest {
         assertEquals(1, path.getSegmentCount());
         
         Point end = path.get(1.0);
-        assertEquals(px - 5.0, end.getX(), 1e-6);
+        assertEquals(px, end.getX(), 1e-6);
         assertEquals(py, end.getY(), 1e-6);
     }
 

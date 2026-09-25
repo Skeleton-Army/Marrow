@@ -120,7 +120,33 @@ public class ObstacleAvoidanceTest {
         assertTrue(Weaver.isPathClear(path, obstacles, 1.0, 300));
         
         Point lastTargetCenter = path.get(1.0);
-        assertEquals(START_X + 60 - 5.0, lastTargetCenter.getX(), 1e-6);
+        assertEquals(START_X + 60, lastTargetCenter.getX(), 1e-6);
+    }
+
+    @Test
+    public void intakePreservesHeadingThroughObstacle() {
+        List<PathPose> targets = Arrays.asList(
+                new PathPose(72, 96),
+                new PathPose(120, 48)
+        );
+        List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(72, 60), 6));
+
+        Weaver.setConfig(new PathConfig().width(5));
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(24, 24, 0))
+                .targets(targets)
+                .ordered()
+                .addObstacle(obstacles.get(0))
+                .generate()
+                .getPath();
+
+        Point end = path.get(1.0);
+        assertEquals("Path should end at the last target even after routing around an obstacle",
+                120.0, end.getX(), 1e-6);
+        assertEquals(48.0, end.getY(), 1e-6);
+        assertEquals("End heading should be preserved through obstacle avoidance",
+                -Math.PI / 4.0, path.getHeading(1.0), 1e-6);
     }
 
     @Test
@@ -170,7 +196,7 @@ public class ObstacleAvoidanceTest {
 
     @Test
     public void pathReroutesAroundTouchingObstacleWall() {
-        Weaver.setConfig(new PathConfig().reach(0).width(0).robotSize(12.0).clearance(4.0));
+        Weaver.setConfig(new PathConfig().width(0).robotSize(12.0).clearance(4.0));
 
         List<Zone> obstacles = Arrays.asList(
                 new CircleZone(new Point(66, 66), 6),

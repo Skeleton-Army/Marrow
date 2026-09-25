@@ -32,7 +32,7 @@ public class VisualExportTest {
 
     @Test
     public void exportNoIntakePath() throws IOException {
-        Weaver.setConfig(new PathConfig().reach(0).width(0));
+        Weaver.setConfig(new PathConfig().width(0));
         PathResult result = Weaver.builder()
                 .start(new PathPose(72, 72, 0))
                 .addTarget(new PathPose(100, 80))
@@ -138,7 +138,7 @@ public class VisualExportTest {
 
     @Test
     public void exportWideIntake() throws IOException {
-        Weaver.setConfig(new PathConfig().width(18).reach(0));
+        Weaver.setConfig(new PathConfig().width(18));
         PathPose start = new PathPose(24, 24, 0);
         PathResult result = Weaver.builder()
                 .start(start)
@@ -152,7 +152,7 @@ public class VisualExportTest {
 
     @Test
     public void exportSharpZigzag() throws IOException {
-        Weaver.setConfig(new PathConfig().reach(0).width(0));
+        Weaver.setConfig(new PathConfig().width(0));
         PathPose start = new PathPose(24, 72, 0);
         PathResult result = Weaver.builder()
                 .start(start)
@@ -167,7 +167,7 @@ public class VisualExportTest {
 
     @Test
     public void exportUnevenSpacing() throws IOException {
-        Weaver.setConfig(new PathConfig().reach(0).width(0));
+        Weaver.setConfig(new PathConfig().width(0));
         PathPose start = new PathPose(24, 24, 0);
         PathResult result = Weaver.builder()
                 .start(start)

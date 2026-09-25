@@ -40,6 +40,8 @@ public class ObstacleAvoider {
 
     private static PathCurve routeCurve(PathCurve top, List<Zone> obstacles, PathConfig config) {
         double required = margin(config);
+        double startHeading = top.getHeading(0.0);
+        double endHeading = top.getHeading(1.0);
         List<PathCurve> cubics = top.toCubicSegments();
 
         List<Point> keypoints = new ArrayList<>();
@@ -56,7 +58,7 @@ public class ObstacleAvoider {
             if (waypoints == null) break;
             if (bestWaypoints == null) bestWaypoints = waypoints;
 
-            PathCurve curve = fitSmooth(waypoints, Double.NaN, Double.NaN);
+            PathCurve curve = fitSmooth(waypoints, startHeading, endHeading);
             if (isCurveClear(curve, obstacles, required, waypoints)) {
                 return curve;
             }
@@ -64,7 +66,7 @@ public class ObstacleAvoider {
             m += 0.5;
         }
 
-        return bestWaypoints != null ? buildPath(bestWaypoints, Double.NaN, Double.NaN) : top;
+        return bestWaypoints != null ? buildPath(bestWaypoints, startHeading, endHeading) : top;
     }
 
     private static List<Point> collectWaypoints(List<Point> keypoints, List<Zone> obstacles, PathConfig config, double m) {

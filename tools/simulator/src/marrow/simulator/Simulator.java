@@ -51,6 +51,7 @@ public class Simulator extends JPanel {
 
     private Point start = new Point(24, 24);
     private double obstacleRadius = 6.0;
+    private double width = 5.0;
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private int polygonSides = 4;
     private boolean reorder = false;
@@ -182,6 +183,14 @@ public class Simulator extends JPanel {
                         reorder = !reorder;
                         rebuildPath();
                         break;
+                    case KeyEvent.VK_A:
+                        width = Math.max(0, width - 1);
+                        rebuildPath();
+                        break;
+                    case KeyEvent.VK_D:
+                        width = Math.min(60, width + 1);
+                        rebuildPath();
+                        break;
                     case KeyEvent.VK_C:
                         targets.clear();
                         obstacles.clear();
@@ -233,8 +242,7 @@ public class Simulator extends JPanel {
 
         try {
             Weaver.setConfig(new PathConfig()
-                    .reach(0)
-                    .width(0)
+                    .width(width)
                     .robotSize(ROBOT_SIZE)
                     .clearance(CLEARANCE));
 
@@ -641,6 +649,20 @@ public class Simulator extends JPanel {
         double ny = robotPos.getY() + half * sin;
         g.setColor(Color.BLACK);
         g.drawLine((int) sx(robotPos.getX()), (int) sy(robotPos.getY()), (int) sx(nx), (int) sy(ny));
+
+        if (width > 0) {
+            double px = -sin, py = cos;
+            double hw = width / 2.0;
+            double ix = robotPos.getX() + half * cos;
+            double iy = robotPos.getY() + half * sin;
+            int ax = (int) sx(ix - hw * px);
+            int ay = (int) sy(iy - hw * py);
+            int bx = (int) sx(ix + hw * px);
+            int by = (int) sy(iy + hw * py);
+            g.setColor(new Color(0, 120, 220));
+            g.setStroke(new BasicStroke(4.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.drawLine(ax, ay, bx, by);
+        }
     }
 
     private void drawHud(Graphics2D g) {
@@ -648,8 +670,10 @@ public class Simulator extends JPanel {
                 "Left-click: add      Right-click: remove",
                 "Drag body: move   Drag edge (o): resize   Drag corner ([]): rotate",
                 "T target | O obstacle | S start | R reorder | C clear | P shape | [ ] sides | +/- size",
+                "A/D width",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
                         + "   Targets: " + targets.size() + "   Obstacles: " + obstacles.size(),
+                "Width: " + (int) width + " in",
                 "Obstacle shape: " + obstacleShape
                         + (obstacleShape == ObstacleShape.POLYGON ? " (" + polygonSides + " sides)" : "")
                         + "   Size: " + (int) obstacleRadius + " in",
@@ -697,7 +721,7 @@ public class Simulator extends JPanel {
     }
 
     private static void runSelfTest() {
-        Weaver.setConfig(new PathConfig().reach(0).width(0).robotSize(ROBOT_SIZE).clearance(CLEARANCE));
+        Weaver.setConfig(new PathConfig().width(0).robotSize(ROBOT_SIZE).clearance(CLEARANCE));
 
         PathResult result = Weaver.builder()
                 .start(new PathPose(24, 24, 0))

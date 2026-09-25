@@ -18,18 +18,13 @@ public class PathGeneratorTest {
 
     @Test
     public void globalConfigIsHonoredByBuilder() {
-        PathConfig global = new PathConfig().reach(99);
+        PathConfig global = new PathConfig().width(99);
         Weaver.setConfig(global);
 
-        PathResult result = Weaver.builder()
-                .start(new PathPose(0, 0, 0))
-                .addTarget(new PathPose(10, 0))
-                .generate();
-
-        Point[] cps = result.getControlPointArray(0);
-        assertEquals(-89.0, cps[cps.length - 1].getX(), 1e-6);
+        assertEquals(99.0, Weaver.getConfig().getWidth(), 1e-6);
 
         Weaver.resetToDefaults();
+        assertEquals(5.0, Weaver.getConfig().getWidth(), 1e-6);
     }
 
     @Test(expected = IllegalStateException.class)
@@ -50,6 +45,6 @@ public class PathGeneratorTest {
         assertNotNull(result.getControlPointArray(0));
         
         Point endPoint = result.getPath().get(1.0);
-        assertEquals(START_X + 15.0, endPoint.getX(), 1e-6);
+        assertEquals(START_X + 20.0, endPoint.getX(), 1e-6);
     }
 }

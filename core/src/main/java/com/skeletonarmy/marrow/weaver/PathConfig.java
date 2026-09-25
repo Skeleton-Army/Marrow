@@ -7,7 +7,6 @@ public class PathConfig {
 
     // Intake & Ordering
     private double turnCostWeight = 10.0;
-    private double reach = 5.0;
     private double width = 5.0;
     private int bruteForceOrderLimit = 8;
 
@@ -22,9 +21,6 @@ public class PathConfig {
     // Getters and fluent setters for Intake
     public double getTurnCostWeight() { return turnCostWeight; }
     public PathConfig turnCostWeight(double v) { this.turnCostWeight = v; return this; }
-
-    public double getReach() { return reach; }
-    public PathConfig reach(double v) { this.reach = v; return this; }
 
     public double getWidth() { return width; }
     public PathConfig width(double v) { this.width = v; return this; }

@@ -112,7 +112,6 @@ public class Weaver {
         headings.add(start.getHeadingRad());
 
         double effectiveHalfWidth = config.getWidth() / 2.0;
-        double reach = config.getReach();
         Point prevRaw = startPoint;
 
         for (int i = 0; i < ordered.size(); i++) {
@@ -122,12 +121,11 @@ public class Weaver {
                     : Math.atan2(target.getY() - prevRaw.getY(), target.getX() - prevRaw.getX());
 
             Point robotCenter;
-            if (effectiveHalfWidth <= 1e-9 || i == 0 || i == ordered.size() - 1) {
-                robotCenter = new Point(target.getX() - reach * Math.cos(heading),
-                        target.getY() - reach * Math.sin(heading));
+            if (effectiveHalfWidth <= 1e-9 || i == ordered.size() - 1) {
+                robotCenter = target;
             } else {
                 PathPose nextPose = ordered.get(i + 1);
-                robotCenter = solveIntakeCapturePoint(target, heading, reach,
+                robotCenter = solveIntakeCapturePoint(target, heading,
                         effectiveHalfWidth, prevRaw, new Point(nextPose.getX(), nextPose.getY()));
             }
 
@@ -159,20 +157,18 @@ public class Weaver {
         return new PathResult(avoided, Collections.singletonList(avoided.getHeading(1.0)));
     }
 
-    private static Point solveIntakeCapturePoint(Point target, double heading, double offset, double halfWidth, Point prevRaw, Point nextRaw) {
+    private static Point solveIntakeCapturePoint(Point target, double heading, double halfWidth, Point prevRaw, Point nextRaw) {
         double cos = Math.cos(heading), sin = Math.sin(heading);
-        Point nominalCenter = new Point(target.getX() - offset * cos, target.getY() - offset * sin);
         double ux = sin, uy = -cos, vx = nextRaw.getX() - prevRaw.getX(), vy = nextRaw.getY() - prevRaw.getY();
         double denom = ux * vy - uy * vx, s = 0;
-        if (Math.abs(denom) > 1e-9) s = ((prevRaw.getX() - nominalCenter.getX()) * vy - (prevRaw.getY() - nominalCenter.getY()) * vx) / denom;
+        if (Math.abs(denom) > 1e-9) s = ((prevRaw.getX() - target.getX()) * vy - (prevRaw.getY() - target.getY()) * vx) / denom;
         s = Math.max(-halfWidth, Math.min(halfWidth, s));
-        return new Point(nominalCenter.getX() + s * ux, nominalCenter.getY() + s * uy);
+        return new Point(target.getX() + s * ux, target.getY() + s * uy);
     }
 
-    public static boolean isCapturedByIntake(Point robotCenter, double headingRad, double intakeOffset, double intakeWidth, Point target) {
+    public static boolean isCapturedByIntake(Point robotCenter, double headingRad, double intakeWidth, Point target) {
         double cos = Math.cos(headingRad), sin = Math.sin(headingRad);
-        double intakeCenterX = robotCenter.getX() + intakeOffset * cos, intakeCenterY = robotCenter.getY() + intakeOffset * sin;
-        double relX = target.getX() - intakeCenterX, relY = target.getY() - intakeCenterY;
+        double relX = target.getX() - robotCenter.getX(), relY = target.getY() - robotCenter.getY();
         return Math.abs(relX * cos + relY * sin) < 1e-6 && Math.abs(relX * -sin + relY * cos) <= intakeWidth / 2.0 + 1e-6;
     }
 

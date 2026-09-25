@@ -46,7 +46,7 @@ public class IntakePathingTest {
     }
 
     @Test
-    public void offsetMathIsCorrect() {
+    public void pathGoesThroughTarget() {
         List<PathPose> targets = Collections.singletonList(new PathPose(START_X + 20, START_Y));
         
         PathRoute path = Weaver.builder()
@@ -56,7 +56,7 @@ public class IntakePathingTest {
                 .getPath();
 
         Point pathEnd = path.get(1.0);
-        assertEquals(START_X + 20 - 5.0, pathEnd.getX(), EPS);
+        assertEquals(START_X + 20, pathEnd.getX(), EPS);
     }
 
     @Test
@@ -67,8 +67,8 @@ public class IntakePathingTest {
                 new PathPose(START_X + 60, START_Y)
         );
 
-        PathConfig pointConfig = new PathConfig().width(0).reach(0);
-        PathConfig wideConfig = new PathConfig().width(18).reach(0);
+        PathConfig pointConfig = new PathConfig().width(0);
+        PathConfig wideConfig = new PathConfig().width(18);
 
         Weaver.setConfig(pointConfig);
         PathRoute pointPath = Weaver.builder().start(new PathPose(START_X, START_Y, 0)).targets(targets).generate().getPath();
@@ -81,19 +81,23 @@ public class IntakePathingTest {
     }
 
     @Test
-    public void reachMathIsCorrect() {
-        List<PathPose> targets = Collections.singletonList(new PathPose(START_X + 20, START_Y));
+    public void wideIntakeStraightensFirstTarget() {
+        List<PathPose> targets = Arrays.asList(
+                new PathPose(START_X + 20, START_Y + 3),
+                new PathPose(START_X + 60, START_Y)
+        );
 
-        Weaver.setConfig(new PathConfig().reach(7.0).width(0));
+        PathConfig pointConfig = new PathConfig().width(0);
+        PathConfig wideConfig = new PathConfig().width(18);
 
-        PathRoute path = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .targets(targets)
-                .generate()
-                .getPath();
+        Weaver.setConfig(pointConfig);
+        PathRoute pointPath = Weaver.builder().start(new PathPose(START_X, START_Y, 0)).targets(targets).generate().getPath();
 
-        Point pathEnd = path.get(1.0);
-        assertEquals(START_X + 20 - 7.0, pathEnd.getX(), EPS);
+        Weaver.setConfig(wideConfig);
+        PathRoute widePath = Weaver.builder().start(new PathPose(START_X, START_Y, 0)).targets(targets).generate().getPath();
+
+        assertTrue("Wide intake should straighten the first target (shorter length)",
+                widePath.approxLength(50) < pointPath.approxLength(50) - 0.1);
     }
 
     @Test
@@ -108,7 +112,7 @@ public class IntakePathingTest {
                 .generate()
                 .getPath();
         
-        assertEquals(far.getX() - 5.0, reordered.get(1.0).getX(), EPS);
+        assertEquals(far.getX(), reordered.get(1.0).getX(), EPS);
 
         PathRoute forced = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -118,7 +122,7 @@ public class IntakePathingTest {
                 .generate()
                 .getPath();
         
-        assertEquals(near.getX() + 5.0, forced.get(1.0).getX(), EPS);
+        assertEquals(near.getX(), forced.get(1.0).getX(), EPS);
     }
 
     @Test
@@ -129,7 +133,7 @@ public class IntakePathingTest {
                 new PathPose(START_X + 60, START_Y - 5)
         );
 
-        PathConfig config = new PathConfig().reach(5).width(8);
+        PathConfig config = new PathConfig().width(8);
         Weaver.setConfig(config);
 
         PathRoute path = Weaver.builder()
@@ -147,7 +151,7 @@ public class IntakePathingTest {
             Point target = new Point(targets.get(i).getX(), targets.get(i).getY());
 
             assertTrue("PathPose " + i + " should be captured by the intake",
-                    Weaver.isCapturedByIntake(center, heading, config.getReach(), config.getWidth(), target));
+                    Weaver.isCapturedByIntake(center, heading, config.getWidth(), target));
         }
     }
 
