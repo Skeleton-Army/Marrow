@@ -32,9 +32,10 @@ import java.util.List;
 public class Simulator extends JPanel {
 
     private static final double FIELD = 144.0;
-    private static final double ROBOT_WIDTH = 18.0;
-    private static final double ROBOT_HEIGHT = 18.0;
-    private static final double CLEARANCE = 4.0;
+    private static final PathConfig DEFAULT_CONFIG = new PathConfig();
+    private static final double ROBOT_WIDTH = DEFAULT_CONFIG.getRobotWidth();
+    private static final double ROBOT_HEIGHT = DEFAULT_CONFIG.getRobotHeight();
+    private static final double CLEARANCE = DEFAULT_CONFIG.getClearance();
 
     private enum Mode { TARGET, OBSTACLE, START }
     private enum DragMode { MOVE, RESIZE, ROTATE }
@@ -52,7 +53,7 @@ public class Simulator extends JPanel {
 
     private Point start = new Point(24, 24);
     private double obstacleRadius = 6.0;
-    private double width = 5.0;
+    private double width = DEFAULT_CONFIG.getWidth();
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private int polygonSides = 4;
     private boolean reorder = false;
@@ -242,11 +243,7 @@ public class Simulator extends JPanel {
         }
 
         try {
-            Weaver.setConfig(new PathConfig()
-                    .width(width)
-                    .robotWidth(ROBOT_WIDTH)
-                    .robotHeight(ROBOT_HEIGHT)
-                    .clearance(CLEARANCE));
+            Weaver.setConfig(new PathConfig().width(width));
 
             Weaver.Builder b = Weaver.builder()
                     .start(new PathPose(start.getX(), start.getY(), 0));
@@ -724,7 +721,7 @@ public class Simulator extends JPanel {
     }
 
     private static void runSelfTest() {
-        Weaver.setConfig(new PathConfig().width(0).robotWidth(ROBOT_WIDTH).robotHeight(ROBOT_HEIGHT).clearance(CLEARANCE));
+        Weaver.setConfig(new PathConfig());
 
         PathResult result = Weaver.builder()
                 .start(new PathPose(24, 24, 0))
