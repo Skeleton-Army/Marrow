@@ -18,6 +18,8 @@ public class ObstacleAvoider {
     private static final int SEGMENT_CHECKS = 12;
     private static final int SMOOTH_SAMPLES = 100;
     private static final int MAX_INFLATE_ATTEMPTS = 10;
+    private static final double GRADIENT_EPS = 1e-3;
+    private static final double SEED_PAD = 0.75;
 
     public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
@@ -34,12 +36,33 @@ public class ObstacleAvoider {
                 : new PathRoute(out);
     }
 
-    private static double margin(PathConfig config) {
+    private static double footprintRadius(double relativeAngle, PathConfig config) {
+        double hw = config.getRobotWidth() / 2.0;
+        double hh = config.getRobotHeight() / 2.0;
+        return hw * Math.abs(Math.cos(relativeAngle)) + hh * Math.abs(Math.sin(relativeAngle));
+    }
+
+    private static double worstCaseMargin(PathConfig config) {
         return Math.hypot(config.getRobotWidth(), config.getRobotHeight()) / 2.0 + config.getClearance();
     }
 
+    private static double obstacleDirection(Zone zone, Point p) {
+        double gx = (signedDist(zone, new Point(p.getX() + GRADIENT_EPS, p.getY()))
+                - signedDist(zone, new Point(p.getX() - GRADIENT_EPS, p.getY()))) / (2 * GRADIENT_EPS);
+        double gy = (signedDist(zone, new Point(p.getX(), p.getY() + GRADIENT_EPS))
+                - signedDist(zone, new Point(p.getX(), p.getY() - GRADIENT_EPS))) / (2 * GRADIENT_EPS);
+        if (Math.abs(gx) < 1e-9 && Math.abs(gy) < 1e-9) {
+            return 0.0;
+        }
+        return Math.atan2(gy, gx);
+    }
+
+    private static double requiredMargin(Point p, double heading, Zone zone, PathConfig config, double extra) {
+        double relative = obstacleDirection(zone, p) - heading;
+        return footprintRadius(relative, config) + config.getClearance() + extra;
+    }
+
     private static PathCurve routeCurve(PathCurve top, List<Zone> obstacles, PathConfig config) {
-        double required = margin(config);
         double startHeading = top.getHeading(0.0);
         double endHeading = top.getHeading(1.0);
         List<PathCurve> cubics = top.toCubicSegments();
@@ -52,44 +75,46 @@ public class ObstacleAvoider {
         }
 
         List<Point> bestWaypoints = null;
-        double m = required;
+        double extra = 0.0;
         for (int attempt = 0; attempt < MAX_INFLATE_ATTEMPTS; attempt++) {
-            List<Point> waypoints = collectWaypoints(keypoints, obstacles, config, m);
+            List<Point> waypoints = collectWaypoints(keypoints, obstacles, config, extra);
             if (waypoints == null) break;
             if (bestWaypoints == null) bestWaypoints = waypoints;
 
             PathCurve curve = fitSmooth(waypoints, startHeading, endHeading);
-            if (isCurveClear(curve, obstacles, required, waypoints)) {
+            if (isCurveClear(curve, obstacles, config, waypoints)) {
                 return curve;
             }
 
-            m += 0.5;
+            extra += 0.5;
         }
 
         return bestWaypoints != null ? buildPath(bestWaypoints, startHeading, endHeading) : top;
     }
 
-    private static List<Point> collectWaypoints(List<Point> keypoints, List<Zone> obstacles, PathConfig config, double m) {
+    private static List<Point> collectWaypoints(List<Point> keypoints, List<Zone> obstacles, PathConfig config, double extra) {
         List<Point> waypoints = new ArrayList<>();
         waypoints.add(keypoints.get(0));
         for (int i = 0; i < keypoints.size() - 1; i++) {
             Point a = keypoints.get(i);
             Point b = keypoints.get(i + 1);
-            List<Point> seg = routeSegmentWaypoints(a, b, obstacles, config, m);
+            List<Point> seg = routeSegmentWaypoints(a, b, obstacles, config, extra);
             if (seg == null) return null;
             for (int k = 1; k < seg.size(); k++) waypoints.add(seg.get(k));
         }
         return waypoints;
     }
 
-    private static List<Point> routeSegmentWaypoints(Point start, Point end, List<Zone> obstacles, PathConfig config, double m) {
+    private static List<Point> routeSegmentWaypoints(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
         if (insideObstacle(start, obstacles) || insideObstacle(end, obstacles)) {
             return Arrays.asList(start, end);
         }
 
-        if (isSegmentClear(start, end, obstacles, m)) {
+        if (isSegmentClear(start, end, obstacles, config, extra)) {
             return Arrays.asList(start, end);
         }
+
+        double approxHeading = Math.atan2(end.getY() - start.getY(), end.getX() - start.getX());
 
         double startRelax = minSignedDist(start, obstacles);
         double endRelax = minSignedDist(end, obstacles);
@@ -98,10 +123,10 @@ public class ObstacleAvoider {
         nodes.add(start);
         nodes.add(end);
         for (Zone zone : obstacles) {
-            nodes.addAll(sampleBoundary(zone, m));
+            nodes.addAll(sampleBoundary(zone, approxHeading, config, extra));
         }
 
-        return shortestPath(0, 1, nodes, obstacles, m, startRelax, endRelax);
+        return shortestPath(0, 1, nodes, obstacles, config, extra, startRelax, endRelax);
     }
 
     private static double minSignedDist(Point p, List<Zone> obstacles) {
@@ -121,34 +146,45 @@ public class ObstacleAvoider {
         return false;
     }
 
-    private static boolean isPointClear(Point p, List<Zone> obstacles, double margin) {
+    private static boolean isPointClear(Point p, double heading, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
         for (Zone zone : obstacles) {
-            if (signedDist(zone, p) < margin - 1e-6) {
+            double req = Math.min(requiredMargin(p, heading, zone, config, extra), relaxCap);
+            if (signedDist(zone, p) < req - 1e-6) {
                 return false;
             }
         }
         return true;
     }
 
-    private static boolean isSegmentClear(Point a, Point b, List<Zone> obstacles, double margin) {
+    private static boolean isSegmentClear(Point a, Point b, List<Zone> obstacles, PathConfig config, double extra) {
+        return isSegmentClear(a, b, obstacles, config, extra, Double.MAX_VALUE);
+    }
+
+    private static boolean isSegmentClear(Point a, Point b, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
+        double heading = Math.atan2(b.getY() - a.getY(), b.getX() - a.getX());
         for (int i = 0; i <= SEGMENT_CHECKS; i++) {
             double t = (double) i / SEGMENT_CHECKS;
             Point p = new Point(a.getX() + (b.getX() - a.getX()) * t, a.getY() + (b.getY() - a.getY()) * t);
-            if (!isPointClear(p, obstacles, margin)) {
+            if (!isPointClear(p, heading, obstacles, config, extra, relaxCap)) {
                 return false;
             }
         }
         return true;
     }
 
-    private static boolean isCurveClear(PathCurve curve, List<Zone> obstacles, double margin, List<Point> waypoints) {
+    private static boolean isCurveClear(PathCurve curve, List<Zone> obstacles, PathConfig config, List<Point> waypoints) {
         List<PathCurve> segs = curve.toCubicSegments();
         for (int si = 0; si < segs.size(); si++) {
-            double m = margin;
-            if (si < waypoints.size()) m = Math.min(m, relaxDistance(waypoints.get(si), obstacles, margin));
-            if (si + 1 < waypoints.size()) m = Math.min(m, relaxDistance(waypoints.get(si + 1), obstacles, margin));
-            for (Point p : segs.get(si).sample(SMOOTH_SAMPLES)) {
-                if (!isPointClear(p, obstacles, m)) {
+            PathCurve seg = segs.get(si);
+            double relaxCap = Double.MAX_VALUE;
+            if (si < waypoints.size()) relaxCap = Math.min(relaxCap, relaxDistance(waypoints.get(si), obstacles, config));
+            if (si + 1 < waypoints.size()) relaxCap = Math.min(relaxCap, relaxDistance(waypoints.get(si + 1), obstacles, config));
+
+            List<Point> pts = seg.sample(SMOOTH_SAMPLES);
+            for (int i = 0; i < pts.size(); i++) {
+                double t = pts.size() > 1 ? (double) i / (pts.size() - 1) : 0.0;
+                double heading = seg.getHeading(t);
+                if (!isPointClear(pts.get(i), heading, obstacles, config, 0.0, relaxCap)) {
                     return false;
                 }
             }
@@ -156,9 +192,10 @@ public class ObstacleAvoider {
         return true;
     }
 
-    private static double relaxDistance(Point waypoint, List<Zone> obstacles, double margin) {
+    private static double relaxDistance(Point waypoint, List<Zone> obstacles, PathConfig config) {
+        double nominal = worstCaseMargin(config);
         double d = minSignedDist(waypoint, obstacles);
-        return (d < margin) ? Math.max(0.0, d - margin * 0.2) : margin;
+        return (d < nominal) ? Math.max(0.0, d - nominal * 0.2) : Double.MAX_VALUE;
     }
 
     private static double signedDist(Zone zone, Point p) {
@@ -166,14 +203,16 @@ public class ObstacleAvoider {
         return zone.contains(p) ? -Math.abs(d) : d;
     }
 
-    private static List<Point> sampleBoundary(Zone zone, double margin) {
+    private static List<Point> sampleBoundary(Zone zone, double heading, PathConfig config, double extra) {
         List<Point> pts = new ArrayList<>();
+        double clearance = config.getClearance();
         if (zone instanceof CircleZone) {
             CircleZone c = (CircleZone) zone;
             Point center = c.getPosition();
-            double r = (c.getRadius() + margin) / Math.cos(Math.PI / CIRCLE_SAMPLES);
             for (int i = 0; i < CIRCLE_SAMPLES; i++) {
                 double a = 2.0 * Math.PI * i / CIRCLE_SAMPLES;
+                double offset = footprintRadius(a - heading, config) + clearance + extra + SEED_PAD;
+                double r = (c.getRadius() + offset) / Math.cos(Math.PI / CIRCLE_SAMPLES);
                 pts.add(new Point(center.getX() + r * Math.cos(a), center.getY() + r * Math.sin(a)));
             }
         } else if (zone instanceof PolygonZone) {
@@ -187,25 +226,32 @@ public class ObstacleAvoider {
                 Point next = corners[(i + 1) % n];
                 Point n1 = outwardNormal(prev, cur, center);
                 Point n2 = outwardNormal(cur, next, center);
+                double a1 = Math.atan2(n1.getY(), n1.getX());
+                double a2 = Math.atan2(n2.getY(), n2.getX());
+                double offset1 = footprintRadius(a1 - heading, config) + clearance + extra + SEED_PAD;
+                double offset2 = footprintRadius(a2 - heading, config) + clearance + extra + SEED_PAD;
+                double offset = Math.max(offset1, offset2);
                 double dot = n1.getX() * n2.getX() + n1.getY() * n2.getY();
                 double denom = 1.0 + dot;
                 if (denom < 1e-9) {
-                    pts.add(new Point(cur.getX() + margin * n1.getX(), cur.getY() + margin * n1.getY()));
+                    pts.add(new Point(cur.getX() + offset * n1.getX(), cur.getY() + offset * n1.getY()));
                 } else {
                     pts.add(new Point(
-                            cur.getX() + margin * (n1.getX() + n2.getX()) / denom,
-                            cur.getY() + margin * (n1.getY() + n2.getY()) / denom));
+                            cur.getX() + offset * (n1.getX() + n2.getX()) / denom,
+                            cur.getY() + offset * (n1.getY() + n2.getY()) / denom));
                 }
             }
             for (int i = 0; i < n; i++) {
                 Point a = corners[i], b = corners[(i + 1) % n];
                 Point mid = new Point((a.getX() + b.getX()) / 2.0, (a.getY() + b.getY()) / 2.0);
                 Point nrm = outwardNormal(a, b, center);
-                pts.add(new Point(mid.getX() + margin * nrm.getX(), mid.getY() + margin * nrm.getY()));
+                double normalAngle = Math.atan2(nrm.getY(), nrm.getX());
+                double offset = footprintRadius(normalAngle - heading, config) + clearance + extra + SEED_PAD;
+                pts.add(new Point(mid.getX() + offset * nrm.getX(), mid.getY() + offset * nrm.getY()));
             }
         } else if (zone instanceof CompositeZone) {
             for (Zone z : ((CompositeZone) zone).getZones()) {
-                pts.addAll(sampleBoundary(z, margin));
+                pts.addAll(sampleBoundary(z, heading, config, extra));
             }
         }
         return pts;
@@ -223,19 +269,20 @@ public class ObstacleAvoider {
         return new Point(n2x, n2y);
     }
 
-    private static List<Point> shortestPath(int startIdx, int endIdx, List<Point> nodes, List<Zone> obstacles, double margin, double startRelax, double endRelax) {
+    private static List<Point> shortestPath(int startIdx, int endIdx, List<Point> nodes, List<Zone> obstacles, PathConfig config, double extra, double startRelax, double endRelax) {
         int n = nodes.size();
-        boolean startRelaxed = !isPointClear(nodes.get(startIdx), obstacles, margin);
-        boolean endRelaxed = !isPointClear(nodes.get(endIdx), obstacles, margin);
+        double nominal = worstCaseMargin(config) + extra;
+        boolean startRelaxed = startRelax < nominal;
+        boolean endRelaxed = endRelax < nominal;
         boolean[][] visible = new boolean[n][n];
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
                 boolean touchStart = (i == startIdx && startRelaxed) || (j == startIdx && startRelaxed);
                 boolean touchEnd = (i == endIdx && endRelaxed) || (j == endIdx && endRelaxed);
-                double m = margin;
-                if (touchStart) m = Math.min(m, startRelax);
-                if (touchEnd) m = Math.min(m, endRelax);
-                visible[i][j] = visible[j][i] = isSegmentClear(nodes.get(i), nodes.get(j), obstacles, m);
+                double relaxCap = Double.MAX_VALUE;
+                if (touchStart) relaxCap = Math.min(relaxCap, startRelax);
+                if (touchEnd) relaxCap = Math.min(relaxCap, endRelax);
+                visible[i][j] = visible[j][i] = isSegmentClear(nodes.get(i), nodes.get(j), obstacles, config, extra, relaxCap);
             }
         }
 
