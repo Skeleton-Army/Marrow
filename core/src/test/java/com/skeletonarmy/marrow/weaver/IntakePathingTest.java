@@ -1,5 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
+import com.skeletonarmy.marrow.zones.CircleZone;
 import com.skeletonarmy.marrow.zones.Point;
 import org.junit.Before;
 import org.junit.Test;
@@ -153,6 +154,128 @@ public class IntakePathingTest {
             assertTrue("PathPose " + i + " should be captured by the intake",
                     Weaver.isCapturedByIntake(center, heading, config.getWidth(), target));
         }
+    }
+
+    @Test
+    public void closePerpendicularTargetsContinueStraight() {
+        PathConfig config = new PathConfig().width(18);
+        Weaver.setConfig(config);
+
+        List<PathPose> targets = Arrays.asList(
+                new PathPose(START_X + 20, START_Y),
+                new PathPose(START_X + 40, START_Y - 5),
+                new PathPose(START_X + 40, START_Y + 5)
+        );
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered()
+                .generate()
+                .getPath();
+
+        for (int i = 0; i <= 100; i++) {
+            Point p = path.get(i / 100.0);
+            assertEquals("Path should continue straight through the close perpendicular targets",
+                    START_Y, p.getY(), 0.5);
+        }
+
+        double previousHeading = path.getHeading(0.0);
+        for (int i = 1; i <= 100; i++) {
+            double heading = path.getHeading(i / 100.0);
+            double delta = Math.abs(heading - previousHeading);
+            while (delta > Math.PI) delta = Math.abs(delta - 2 * Math.PI);
+            assertTrue("Path should not contort (heading jump of " + Math.toDegrees(delta) + " deg)",
+                    delta < Math.toRadians(5));
+            previousHeading = heading;
+        }
+
+        double endX = path.get(1.0).getX();
+        for (int i = 0; i < targets.size(); i++) {
+            PathPose target = targets.get(i);
+            assertTrue("Pose " + i + " should be within the intake band",
+                    Math.abs(target.getY() - START_Y) <= config.getWidth() / 2.0);
+            assertTrue("Pose " + i + " should be swept along the path",
+                    target.getX() >= START_X - 0.5 && target.getX() <= endX + 0.5);
+        }
+    }
+
+    @Test
+    public void compactClusterContinuesStraight() {
+        PathConfig config = new PathConfig().width(18);
+        Weaver.setConfig(config);
+
+        List<PathPose> targets = Arrays.asList(
+                new PathPose(START_X + 40, START_Y - 2),
+                new PathPose(START_X + 41, START_Y - 1),
+                new PathPose(START_X + 40, START_Y),
+                new PathPose(START_X + 39, START_Y - 1)
+        );
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered()
+                .generate()
+                .getPath();
+
+        double previousHeading = path.getHeading(0.0);
+        double previousX = path.get(0.0).getX();
+        for (int i = 1; i <= 200; i++) {
+            Point p = path.get(i / 200.0);
+            double heading = path.getHeading(i / 200.0);
+            double delta = Math.abs(heading - previousHeading);
+            while (delta > Math.PI) delta = Math.abs(delta - 2 * Math.PI);
+            assertTrue("Cluster should not contort (heading jump of " + Math.toDegrees(delta) + " deg)",
+                    delta < Math.toRadians(5));
+            assertTrue("Cluster path should not backtrack in x", p.getX() >= previousX - 0.01);
+            previousHeading = heading;
+            previousX = p.getX();
+        }
+    }
+
+    @Test
+    public void obstacleAvoidanceStillCapturesEveryTarget() {
+        PathConfig config = new PathConfig().width(18);
+        Weaver.setConfig(config);
+
+        List<PathPose> targets = Arrays.asList(
+                new PathPose(START_X + 40, START_Y - 2),
+                new PathPose(START_X + 41, START_Y - 1),
+                new PathPose(START_X + 40, START_Y),
+                new PathPose(START_X + 39, START_Y - 1)
+        );
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered()
+                .addObstacle(new CircleZone(new Point(START_X + 20, START_Y), 6))
+                .generate()
+                .getPath();
+
+        for (int i = 0; i < targets.size(); i++) {
+            PathPose target = targets.get(i);
+            assertTrue("Pose " + i + " should still be captured despite the obstacle",
+                    capturedSomewhere(path, config.getWidth(), new Point(target.getX(), target.getY())));
+        }
+    }
+
+    private static boolean capturedSomewhere(PathRoute path, double width, Point target) {
+        int samples = 4000;
+        for (int i = 0; i <= samples; i++) {
+            double t = (double) i / samples;
+            Point p = path.get(t);
+            double heading = path.getHeading(t);
+            double rx = target.getX() - p.getX();
+            double ry = target.getY() - p.getY();
+            double along = rx * Math.cos(heading) + ry * Math.sin(heading);
+            double lateral = Math.abs(rx * -Math.sin(heading) + ry * Math.cos(heading));
+            if (lateral <= width / 2.0 + 1e-6 && Math.abs(along) < 0.5) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void permute(List<PathPose> arr, int k, List<List<PathPose>> out) {

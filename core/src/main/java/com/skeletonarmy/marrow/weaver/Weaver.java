@@ -112,21 +112,28 @@ public class Weaver {
         headings.add(start.getHeadingRad());
 
         double effectiveHalfWidth = config.getWidth() / 2.0;
+        List<int[]> groups = groupTargets(startPoint, ordered, config.getWidth());
         Point prevRaw = startPoint;
 
-        for (int i = 0; i < ordered.size(); i++) {
-            PathPose pose = ordered.get(i);
-            Point target = new Point(pose.getX(), pose.getY());
-            double heading = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
+        for (int g = 0; g < groups.size(); g++) {
+            int[] indices = groups.get(g);
+            if (indices.length > 1 && effectiveHalfWidth > 1e-9) {
+                prevRaw = addMergedGroup(ordered, indices, prevRaw, keyPoints, headings);
+                continue;
+            }
+
+            PathPose first = ordered.get(indices[0]);
+            Point target = new Point(first.getX(), first.getY());
+            double heading = !Double.isNaN(first.getHeadingRad()) ? first.getHeadingRad()
                     : Math.atan2(target.getY() - prevRaw.getY(), target.getX() - prevRaw.getX());
 
             Point robotCenter;
-            if (effectiveHalfWidth <= 1e-9 || i == ordered.size() - 1) {
+            if (effectiveHalfWidth <= 1e-9 || g == groups.size() - 1) {
                 robotCenter = target;
             } else {
-                PathPose nextPose = ordered.get(i + 1);
+                Point nextRepresentative = groupRepresentative(ordered, groups.get(g + 1));
                 robotCenter = solveIntakeCapturePoint(target, heading,
-                        effectiveHalfWidth, prevRaw, new Point(nextPose.getX(), nextPose.getY()));
+                        effectiveHalfWidth, prevRaw, nextRepresentative);
             }
 
             keyPoints.add(robotCenter);
@@ -155,6 +162,107 @@ public class Weaver {
         PathRoute avoided = ObstacleAvoider.avoid(asPath, obstacles, config);
         
         return new PathResult(avoided, Collections.singletonList(avoided.getHeading(1.0)));
+    }
+
+    private static List<int[]> groupTargets(Point startPoint, List<PathPose> targets, double width) {
+        List<int[]> groups = new ArrayList<>();
+        int n = targets.size();
+
+        if (width <= 1e-9) {
+            for (int i = 0; i < n; i++) {
+                groups.add(new int[]{i});
+            }
+            return groups;
+        }
+
+        Point prevKey = startPoint;
+        int i = 0;
+        while (i < n) {
+            int first = i;
+            PathPose firstPose = targets.get(i);
+            double dx = firstPose.getX() - prevKey.getX();
+            double dy = firstPose.getY() - prevKey.getY();
+            double len = Math.hypot(dx, dy);
+            double ux = len > 1e-9 ? dx / len : 1.0;
+            double uy = len > 1e-9 ? dy / len : 0.0;
+
+            double minLateral = 0, maxLateral = 0;
+            int j = i + 1;
+            while (j < n) {
+                PathPose a = targets.get(j - 1);
+                PathPose b = targets.get(j);
+                if (!Double.isNaN(a.getHeadingRad()) || !Double.isNaN(b.getHeadingRad())) {
+                    break;
+                }
+                double wx = b.getX() - firstPose.getX();
+                double wy = b.getY() - firstPose.getY();
+                double lateral = wx * -uy + wy * ux;
+                double nextMin = Math.min(minLateral, lateral);
+                double nextMax = Math.max(maxLateral, lateral);
+                if (nextMax - nextMin > width) {
+                    break;
+                }
+                minLateral = nextMin;
+                maxLateral = nextMax;
+                j++;
+            }
+
+            int[] group = new int[j - first];
+            for (int k = 0; k < group.length; k++) {
+                group[k] = first + k;
+            }
+            groups.add(group);
+            prevKey = groupRepresentative(targets, group);
+            i = j;
+        }
+        return groups;
+    }
+
+    private static Point addMergedGroup(List<PathPose> targets, int[] indices, Point from,
+                                        List<Point> keyPoints, List<Double> headings) {
+        PathPose first = targets.get(indices[0]);
+        double dx = first.getX() - from.getX();
+        double dy = first.getY() - from.getY();
+        double len = Math.hypot(dx, dy);
+        double ux = len > 1e-9 ? dx / len : 1.0;
+        double uy = len > 1e-9 ? dy / len : 0.0;
+        double px = -uy, py = ux;
+        double heading = len > 1e-9 ? Math.atan2(dy, dx) : headings.get(headings.size() - 1);
+
+        final double[] projections = new double[indices.length];
+        Integer[] order = new Integer[indices.length];
+        double minLateral = Double.MAX_VALUE, maxLateral = -Double.MAX_VALUE;
+        for (int k = 0; k < indices.length; k++) {
+            PathPose pose = targets.get(indices[k]);
+            double wx = pose.getX() - from.getX();
+            double wy = pose.getY() - from.getY();
+            double lateral = wx * px + wy * py;
+            minLateral = Math.min(minLateral, lateral);
+            maxLateral = Math.max(maxLateral, lateral);
+            projections[k] = wx * ux + wy * uy;
+            order[k] = k;
+        }
+        Arrays.sort(order, (a, b) -> Double.compare(projections[a], projections[b]));
+
+        double centerLateral = (minLateral + maxLateral) / 2.0;
+        Point last = from;
+        for (int k : order) {
+            last = new Point(
+                    from.getX() + projections[k] * ux + centerLateral * px,
+                    from.getY() + projections[k] * uy + centerLateral * py);
+            keyPoints.add(last);
+            headings.add(heading);
+        }
+        return last;
+    }
+
+    private static Point groupRepresentative(List<PathPose> targets, int[] indices) {
+        double x = 0, y = 0;
+        for (int index : indices) {
+            x += targets.get(index).getX();
+            y += targets.get(index).getY();
+        }
+        return new Point(x / indices.length, y / indices.length);
     }
 
     private static Point solveIntakeCapturePoint(Point target, double heading, double halfWidth, Point prevRaw, Point nextRaw) {
