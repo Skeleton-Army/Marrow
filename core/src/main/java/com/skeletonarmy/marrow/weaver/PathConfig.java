@@ -31,12 +31,6 @@ public class PathConfig {
     // Raise to try more orderings (slower, better results).
     private int bruteForceOrderLimit = 8;
 
-    // --- Curve Resolution ---
-
-    // Number of Bezier control points used to seed each path.
-    // Raise for smoother, more flexible curves (more computation).
-    private int controlPointCount = 6;
-
     public double getWidth() { return width; }
     public PathConfig width(double v) { this.width = v; return this; }
 
@@ -54,7 +48,4 @@ public class PathConfig {
 
     public int getBruteForceOrderLimit() { return bruteForceOrderLimit; }
     public PathConfig bruteForceOrderLimit(int v) { this.bruteForceOrderLimit = v; return this; }
-
-    public int getControlPointCount() { return controlPointCount; }
-    public PathConfig controlPointCount(int v) { this.controlPointCount = v; return this; }
 }

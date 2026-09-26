@@ -143,10 +143,10 @@ public class Weaver {
     }
 
     private static PathResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles) {
-        int n = Math.max(config.getControlPointCount(), 4);
+        int controlPointCount = 6;
         List<Point> biased = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            double t = (double) i / (n - 1);
+        for (int i = 0; i < controlPointCount; i++) {
+            double t = (double) i / (controlPointCount - 1);
             biased.add(new Point(start.getX() + (end.getX() - start.getX()) * t, start.getY() + (end.getY() - start.getY()) * t));
         }
 
