@@ -15,6 +15,7 @@ public class ObstacleAvoider {
     private ObstacleAvoider() {}
 
     private static final int CIRCLE_SAMPLES = 24;
+    private static final int CORNER_SAMPLES = 8;
     private static final int SEGMENT_CHECKS = 12;
     private static final int SMOOTH_SAMPLES = 100;
     private static final int MAX_INFLATE_ATTEMPTS = 10;
@@ -228,17 +229,12 @@ public class ObstacleAvoider {
                 Point n2 = outwardNormal(cur, next, center);
                 double a1 = Math.atan2(n1.getY(), n1.getX());
                 double a2 = Math.atan2(n2.getY(), n2.getX());
-                double offset1 = footprintRadius(a1 - heading, config) + clearance + extra + SEED_PAD;
-                double offset2 = footprintRadius(a2 - heading, config) + clearance + extra + SEED_PAD;
-                double offset = Math.max(offset1, offset2);
-                double dot = n1.getX() * n2.getX() + n1.getY() * n2.getY();
-                double denom = 1.0 + dot;
-                if (denom < 1e-9) {
-                    pts.add(new Point(cur.getX() + offset * n1.getX(), cur.getY() + offset * n1.getY()));
-                } else {
-                    pts.add(new Point(
-                            cur.getX() + offset * (n1.getX() + n2.getX()) / denom,
-                            cur.getY() + offset * (n1.getY() + n2.getY()) / denom));
+                double sweep = a2 - a1;
+                while (sweep <= 0) sweep += 2 * Math.PI;
+                for (int k = 0; k <= CORNER_SAMPLES; k++) {
+                    double theta = a1 + sweep * k / CORNER_SAMPLES;
+                    double offset = footprintRadius(theta - heading, config) + clearance + extra + SEED_PAD;
+                    pts.add(new Point(cur.getX() + offset * Math.cos(theta), cur.getY() + offset * Math.sin(theta)));
                 }
             }
             for (int i = 0; i < n; i++) {

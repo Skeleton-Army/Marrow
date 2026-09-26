@@ -196,6 +196,42 @@ public class ObstacleAvoidanceTest {
     }
 
     @Test
+    public void pathReroutesAroundTouchingPolygonTip() {
+        double half = 6.0;
+        Zone obstacle = new PolygonZone(new Point(START_X + 24, START_Y + Math.hypot(half, half)),
+                12, 12, Math.PI / 4.0);
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
+                .addObstacle(obstacle)
+                .generate()
+                .getPath();
+
+        assertTrue("Path should reroute around a corner touching the path",
+                Weaver.isPathClear(path, Collections.singletonList(obstacle), Weaver.getConfig().getClearance(), 200));
+        assertTrue("Path should move away from the touching corner",
+                maxDev(path.getSegments().get(0), START_Y) > 1.0);
+    }
+
+    @Test
+    public void pathReroutesAroundTouchingPolygonEdge() {
+        Zone obstacle = new PolygonZone(new Point(START_X + 24, START_Y + 6), 12, 12);
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y))
+                .end(new PathPose(START_X + 48, START_Y))
+                .addObstacle(obstacle)
+                .generate()
+                .getPath();
+
+        assertTrue("Path should reroute around an edge touching the path",
+                Weaver.isPathClear(path, Collections.singletonList(obstacle), Weaver.getConfig().getClearance(), 200));
+        assertTrue("Path should move away from the touching edge",
+                maxDev(path.getSegments().get(0), START_Y) > 1.0);
+    }
+
+    @Test
     public void pathReroutesAroundTouchingObstacleWall() {
         Weaver.setConfig(new PathConfig().width(0).robotWidth(12.0).robotHeight(12.0).clearance(4.0));
 
