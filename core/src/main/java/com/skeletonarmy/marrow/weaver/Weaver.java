@@ -142,10 +142,7 @@ public class Weaver {
         }
 
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
-        PathRoute path = new PathRoute(Collections.singletonList(curve));
-        if (obstacles != null && !obstacles.isEmpty()) {
-            path = ObstacleAvoider.avoid(path, obstacles, config);
-        }
+        PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles);
         return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)));
     }
 
@@ -159,9 +156,19 @@ public class Weaver {
 
         PathCurve curve = new PathCurve(biased);
         PathRoute asPath = new PathRoute(Collections.singletonList(curve));
-        PathRoute avoided = ObstacleAvoider.avoid(asPath, obstacles, config);
-        
-        return new PathResult(avoided, Collections.singletonList(avoided.getHeading(1.0)));
+        PathRoute finished = finish(asPath, obstacles);
+
+        return new PathResult(finished, Collections.singletonList(finished.getHeading(1.0)));
+    }
+
+    private static PathRoute finish(PathRoute path, List<Zone> obstacles) {
+        if (config.isSmoothing()) {
+            path = ObstacleAvoider.smooth(path);
+        }
+        if (obstacles != null && !obstacles.isEmpty()) {
+            path = ObstacleAvoider.avoid(path, obstacles, config);
+        }
+        return path;
     }
 
     private static List<int[]> groupTargets(Point startPoint, List<PathPose> targets, double width) {

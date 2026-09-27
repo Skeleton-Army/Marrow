@@ -21,6 +21,11 @@ public class PathConfig {
     // Raise for safer paths, lower to cut closer to obstacles.
     private double clearance = 4.0;
 
+    // Re-fit generated curves with continuous tangents so corners are rounded
+    // and curvature stays gradual. Defaults on. Disable for the raw Hermite
+    // chain, which tracks target headings more tightly but turns more abruptly.
+    private boolean smoothing = true;
+
     // --- Waypoint Ordering ---
 
     // Weight applied to turning cost when ordering waypoints.
@@ -42,6 +47,9 @@ public class PathConfig {
 
     public double getClearance() { return clearance; }
     public PathConfig clearance(double v) { this.clearance = v; return this; }
+
+    public boolean isSmoothing() { return smoothing; }
+    public PathConfig smoothing(boolean v) { this.smoothing = v; return this; }
 
     public double getTurnCostWeight() { return turnCostWeight; }
     public PathConfig turnCostWeight(double v) { this.turnCostWeight = v; return this; }

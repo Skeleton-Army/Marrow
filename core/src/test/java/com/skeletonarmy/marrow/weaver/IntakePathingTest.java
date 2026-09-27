@@ -144,15 +144,10 @@ public class IntakePathingTest {
                 .generate()
                 .getPath();
 
-        int poseCount = targets.size();
-        for (int i = 0; i < poseCount; i++) {
-            double t = (double) (i + 1) / poseCount;
-            Point center = path.get(t);
-            double heading = path.getHeading(t);
-            Point target = new Point(targets.get(i).getX(), targets.get(i).getY());
-
+        for (int i = 0; i < targets.size(); i++) {
+            PathPose target = targets.get(i);
             assertTrue("PathPose " + i + " should be captured by the intake",
-                    Weaver.isCapturedByIntake(center, heading, config.getWidth(), target));
+                    capturedSomewhere(path, config.getWidth(), new Point(target.getX(), target.getY())));
         }
     }
 
@@ -259,6 +254,47 @@ public class IntakePathingTest {
             assertTrue("Pose " + i + " should still be captured despite the obstacle",
                     capturedSomewhere(path, config.getWidth(), new Point(target.getX(), target.getY())));
         }
+    }
+
+    @Test
+    public void smoothingRoundsCornersByDefault() {
+        List<PathPose> targets = Arrays.asList(
+                new PathPose(START_X + 20, START_Y),
+                new PathPose(START_X + 40, START_Y + 12),
+                new PathPose(START_X + 60, START_Y - 6));
+
+        Weaver.setConfig(new PathConfig().width(8));
+        PathRoute smoothPath = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered()
+                .generate()
+                .getPath();
+
+        Weaver.setConfig(new PathConfig().width(8).smoothing(false));
+        PathRoute rawPath = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered()
+                .generate()
+                .getPath();
+
+        assertTrue("Default smoothing should round corners (smaller heading jumps)",
+                maxHeadingJump(smoothPath) < maxHeadingJump(rawPath));
+    }
+
+    private static double maxHeadingJump(PathRoute path) {
+        double max = 0;
+        double previous = path.getHeading(0.0);
+        int samples = 4000;
+        for (int i = 1; i <= samples; i++) {
+            double heading = path.getHeading((double) i / samples);
+            double delta = Math.abs(heading - previous);
+            while (delta > Math.PI) delta = Math.abs(delta - 2 * Math.PI);
+            max = Math.max(max, delta);
+            previous = heading;
+        }
+        return max;
     }
 
     private static boolean capturedSomewhere(PathRoute path, double width, Point target) {

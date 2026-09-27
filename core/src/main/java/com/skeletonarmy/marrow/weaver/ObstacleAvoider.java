@@ -37,6 +37,33 @@ public class ObstacleAvoider {
                 : new PathRoute(out);
     }
 
+    /**
+     * Re-fits every segment through its original keypoints using continuous,
+     * central-difference tangents. Obstacle routing already smooths as a side
+     * effect of fitting; this applies the same treatment to obstacle-free paths.
+     */
+    public static PathRoute smooth(PathRoute path) {
+        List<PathCurve> out = new ArrayList<>();
+        for (PathCurve top : path.getSegments()) {
+            out.add(smoothCurve(top));
+        }
+
+        return out.size() == 1
+                ? new PathRoute(Collections.singletonList(out.get(0)))
+                : new PathRoute(out);
+    }
+
+    private static PathCurve smoothCurve(PathCurve top) {
+        List<PathCurve> cubics = top.toCubicSegments();
+        List<Point> keypoints = new ArrayList<>();
+        keypoints.add(cubics.get(0).getControlPoints().get(0));
+        for (PathCurve c : cubics) {
+            List<Point> cps = c.getControlPoints();
+            keypoints.add(cps.get(cps.size() - 1));
+        }
+        return fitSmooth(keypoints, top.getHeading(0.0), top.getHeading(1.0));
+    }
+
     private static double footprintRadius(double relativeAngle, PathConfig config) {
         double hw = config.getRobotWidth() / 2.0;
         double hh = config.getRobotHeight() / 2.0;
