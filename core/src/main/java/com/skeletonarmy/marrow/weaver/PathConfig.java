@@ -21,12 +21,12 @@ public class PathConfig {
     // Raise for safer paths, lower to cut closer to obstacles.
     private double clearance = 4.0;
 
+    // --- Path Generation ---
+
     // Re-fit generated curves with continuous tangents so corners are rounded
     // and curvature stays gradual. Defaults on. Disable for the raw Hermite
     // chain, which tracks target headings more tightly but turns more abruptly.
     private boolean smoothing = true;
-
-    // --- Waypoint Ordering ---
 
     // Weight applied to turning cost when ordering waypoints.
     // Raise to prefer straighter routes over shorter distance.
