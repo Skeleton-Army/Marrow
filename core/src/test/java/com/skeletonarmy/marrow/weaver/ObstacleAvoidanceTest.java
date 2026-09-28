@@ -252,6 +252,62 @@ public class ObstacleAvoidanceTest {
                 Weaver.isPathClear(path, obstacles, 4.0, 12.0, 12.0, 400));
     }
 
+    @Test
+    public void blockedTargetIsExcludedByDefault() {
+        Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(START_X + 30, START_Y))
+                .ordered()
+                .addObstacle(obstacle)
+                .generate()
+                .getPath();
+
+        assertEquals("Blocked target should be skipped, leaving the robot at the start",
+                START_X, path.get(1.0).getX(), 1e-6);
+        assertEquals(START_Y, path.get(1.0).getY(), 1e-6);
+        assertTrue(Weaver.isPathClear(path, Collections.singletonList(obstacle),
+                Weaver.getConfig().getClearance(), 200));
+    }
+
+    @Test
+    public void blockedTargetIsIncludedWhenOptionDisabled() {
+        Weaver.setConfig(new PathConfig().excludeBlockedTargets(false));
+        Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(START_X + 30, START_Y))
+                .ordered()
+                .addObstacle(obstacle)
+                .generate()
+                .getPath();
+
+        assertEquals("Target should be reached when exclusion is disabled",
+                START_X + 30, path.get(1.0).getX(), 1e-6);
+        assertEquals(START_Y, path.get(1.0).getY(), 1e-6);
+    }
+
+    @Test
+    public void blockedTargetIsSkippedButOthersReached() {
+        Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
+
+        PathRoute path = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(START_X + 30, START_Y))
+                .addTarget(new PathPose(START_X + 60, START_Y))
+                .addObstacle(obstacle)
+                .generate()
+                .getPath();
+
+        assertEquals("Path should still reach the free target",
+                START_X + 60, path.get(1.0).getX(), 1e-6);
+        assertEquals(START_Y, path.get(1.0).getY(), 1e-6);
+        assertTrue(Weaver.isPathClear(path, Collections.singletonList(obstacle),
+                Weaver.getConfig().getClearance(), 300));
+    }
+
     private double maxDev(PathCurve curve, double baselineY) {
         return curve.sample(100).stream()
                 .mapToDouble(p -> Math.abs(p.getY() - baselineY))

@@ -104,7 +104,17 @@ public class Weaver {
         List<PathPose> ordered = reorder 
                 ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
                 : new ArrayList<>(targets);
-        
+
+        if (config.isExcludeBlockedTargets()) {
+            ordered = excludeBlockedTargets(startPoint, ordered, obstacles);
+        }
+
+        if (ordered.isEmpty()) {
+            PathRoute idle = finish(new PathRoute(Collections.singletonList(
+                    new PathCurve(Arrays.asList(startPoint, startPoint)))), obstacles);
+            return new PathResult(idle, Collections.singletonList(start.getHeadingRad()));
+        }
+
         List<Point> keyPoints = new ArrayList<>();
         List<Double> headings = new ArrayList<>();
         
@@ -279,6 +289,42 @@ public class Weaver {
         if (Math.abs(denom) > 1e-9) s = ((prevRaw.getX() - target.getX()) * vy - (prevRaw.getY() - target.getY()) * vx) / denom;
         s = Math.max(-halfWidth, Math.min(halfWidth, s));
         return new Point(target.getX() + s * ux, target.getY() + s * uy);
+    }
+
+    private static List<PathPose> excludeBlockedTargets(Point startPoint, List<PathPose> targets, List<Zone> obstacles) {
+        if (obstacles == null || obstacles.isEmpty()) {
+            return targets;
+        }
+
+        List<PathPose> reachable = new ArrayList<>();
+        Point prev = startPoint;
+        for (PathPose target : targets) {
+            if (!isTargetBlocked(target, prev, obstacles)) {
+                reachable.add(target);
+                prev = new Point(target.getX(), target.getY());
+            }
+        }
+        return reachable;
+    }
+
+    private static boolean isTargetBlocked(PathPose target, Point from, List<Zone> obstacles) {
+        Point p = new Point(target.getX(), target.getY());
+        double heading = !Double.isNaN(target.getHeadingRad())
+                ? target.getHeadingRad()
+                : Math.atan2(p.getY() - from.getY(), p.getX() - from.getX());
+
+        if (config.getRobotWidth() <= 0 || config.getRobotHeight() <= 0) {
+            for (Zone zone : obstacles) {
+                if (zone.contains(p) || zone.distanceToBoundary(p) < config.getClearance()) return true;
+            }
+            return false;
+        }
+
+        Zone footprint = RobotFootprint.asZone(p, heading, config.getRobotWidth(), config.getRobotHeight());
+        for (Zone zone : obstacles) {
+            if (zone.isInside(footprint) || zone.distanceTo(footprint) < config.getClearance()) return true;
+        }
+        return false;
     }
 
     public static boolean isCapturedByIntake(Point robotCenter, double headingRad, double intakeWidth, Point target) {

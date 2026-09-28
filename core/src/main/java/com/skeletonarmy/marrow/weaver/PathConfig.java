@@ -23,6 +23,11 @@ public class PathConfig {
 
     // --- Path Generation ---
 
+    // Drop targets an obstacle blocks the robot from occupying, so the path
+    // ignores them instead of cutting through the obstacle to chase them.
+    // Defaults on.
+    private boolean excludeBlockedTargets = true;
+
     // Re-fit generated curves with continuous tangents so corners are rounded
     // and curvature stays gradual. Defaults on. Disable for the raw Hermite
     // chain, which tracks target headings more tightly but turns more abruptly.
@@ -47,6 +52,9 @@ public class PathConfig {
 
     public double getClearance() { return clearance; }
     public PathConfig clearance(double v) { this.clearance = v; return this; }
+
+    public boolean isExcludeBlockedTargets() { return excludeBlockedTargets; }
+    public PathConfig excludeBlockedTargets(boolean v) { this.excludeBlockedTargets = v; return this; }
 
     public boolean isSmoothing() { return smoothing; }
     public PathConfig smoothing(boolean v) { this.smoothing = v; return this; }
