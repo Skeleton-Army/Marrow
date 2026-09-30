@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
+import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
 
 import java.util.ArrayList;
@@ -320,7 +321,7 @@ public class Weaver {
             return false;
         }
 
-        Zone footprint = RobotFootprint.asZone(p, heading, config.getRobotWidth(), config.getRobotHeight());
+        Zone footprint = new PolygonZone(p, config.getRobotWidth(), config.getRobotHeight(), heading);
         for (Zone zone : obstacles) {
             if (zone.isInside(footprint) || zone.distanceTo(footprint) < config.getClearance()) return true;
         }
@@ -345,7 +346,7 @@ public class Weaver {
             if (robotWidth <= 0 || robotHeight <= 0) {
                 for (Zone zone : obstacles) if (zone.contains(p) || zone.distanceToBoundary(p) < clearance) return false;
             } else {
-                Zone footprint = RobotFootprint.asZone(p, curve.getHeading(t), robotWidth, robotHeight);
+                Zone footprint = new PolygonZone(p, robotWidth, robotHeight, curve.getHeading(t));
                 for (Zone zone : obstacles) if (zone.isInside(footprint) || zone.distanceTo(footprint) < clearance) return false;
             }
         }
