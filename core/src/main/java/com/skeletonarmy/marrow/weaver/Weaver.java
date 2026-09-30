@@ -109,11 +109,12 @@ public class Weaver {
         if (config.isExcludeBlockedTargets()) {
             ordered = excludeBlockedTargets(startPoint, ordered, obstacles);
         }
+        int skippedTargets = targets.size() - ordered.size();
 
         if (ordered.isEmpty()) {
             PathRoute idle = finish(new PathRoute(Collections.singletonList(
                     new PathCurve(Arrays.asList(startPoint, startPoint)))), obstacles);
-            return new PathResult(idle, Collections.singletonList(start.getHeadingRad()));
+            return new PathResult(idle, Collections.singletonList(start.getHeadingRad()), skippedTargets);
         }
 
         List<Point> keyPoints = new ArrayList<>();
@@ -154,7 +155,7 @@ public class Weaver {
 
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
         PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles);
-        return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)));
+        return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)), skippedTargets);
     }
 
     private static PathResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles) {
@@ -169,7 +170,7 @@ public class Weaver {
         PathRoute asPath = new PathRoute(Collections.singletonList(curve));
         PathRoute finished = finish(asPath, obstacles);
 
-        return new PathResult(finished, Collections.singletonList(finished.getHeading(1.0)));
+        return new PathResult(finished, Collections.singletonList(finished.getHeading(1.0)), 0);
     }
 
     private static PathRoute finish(PathRoute path, List<Zone> obstacles) {

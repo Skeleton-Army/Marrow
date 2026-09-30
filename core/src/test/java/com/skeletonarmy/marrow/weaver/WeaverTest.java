@@ -281,6 +281,74 @@ public class WeaverTest {
     }
 
     @Test
+    public void generate_allTargetsBlocked_reportsSkippedTargets() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().width(0));
+        Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
+        Weaver.Builder builder = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(START_X + 30, START_Y))
+                .ordered()
+                .addObstacle(obstacle);
+
+        // Act
+        int actual = builder.generate().getSkippedTargets();
+
+        // Assert
+        assertEquals(1, actual);
+    }
+
+    @Test
+    public void generate_someTargetsBlocked_reportsSkippedTargets() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().width(0));
+        Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
+        Weaver.Builder builder = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(START_X + 30, START_Y))
+                .addTarget(new PathPose(START_X + 60, START_Y))
+                .addObstacle(obstacle);
+
+        // Act
+        int actual = builder.generate().getSkippedTargets();
+
+        // Assert
+        assertEquals(1, actual);
+    }
+
+    @Test
+    public void generate_blockedTargetExclusionDisabled_reportsNoSkippedTargets() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().width(0).excludeBlockedTargets(false));
+        Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
+        Weaver.Builder builder = Weaver.builder()
+                .start(new PathPose(START_X, START_Y, 0))
+                .addTarget(new PathPose(START_X + 30, START_Y))
+                .ordered()
+                .addObstacle(obstacle);
+
+        // Act
+        int actual = builder.generate().getSkippedTargets();
+
+        // Assert
+        assertEquals(0, actual);
+    }
+
+    @Test
+    public void generate_destinationMode_reportsNoSkippedTargets() {
+        // Arrange
+        Weaver.Builder builder = Weaver.builder()
+                .start(new PathPose(10, 10, 0))
+                .end(new PathPose(30, 10));
+
+        // Act
+        int actual = builder.generate().getSkippedTargets();
+
+        // Assert
+        assertEquals(0, actual);
+    }
+
+    @Test
     public void generate_blockedTargetExclusionDisabled_reachesBlockedTarget() {
         // Arrange
         Weaver.setConfig(new PathConfig().width(0).excludeBlockedTargets(false));

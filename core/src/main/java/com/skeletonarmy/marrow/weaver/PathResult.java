@@ -12,14 +12,23 @@ public final class PathResult {
 
     private final PathRoute path;
     private final List<Double> segmentEndHeadingsRad;
+    private final int skippedTargets;
 
-    PathResult(PathRoute path, List<Double> segmentEndHeadingsRad) {
+    PathResult(PathRoute path, List<Double> segmentEndHeadingsRad, int skippedTargets) {
         this.path = path;
         this.segmentEndHeadingsRad = segmentEndHeadingsRad;
+        this.skippedTargets = skippedTargets;
     }
 
     public PathRoute getPath() {
         return path;
+    }
+
+    /**
+     * @return the number of targets excluded because they were unreachable (blocked by an obstacle).
+     */
+    public int getSkippedTargets() {
+        return skippedTargets;
     }
 
     public List<PathCurve> getSegments() {
