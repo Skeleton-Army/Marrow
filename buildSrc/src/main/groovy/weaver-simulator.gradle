@@ -1,0 +1,42 @@
+// Cross-platform launcher for the Weaver simulator.
+
+def simulatorSourceDir = file('tools/simulator/src')
+def coreSourceDir = file('core/src/main/java')
+def simulatorOutputDir = layout.buildDirectory.dir('weaver-simulator')
+
+tasks.register('compileWeaverSimulator', Exec) {
+    group = 'application'
+    description = 'Compiles the Weaver simulator with javac.'
+
+    def out = simulatorOutputDir.get().asFile
+    def entryPoint = new File(simulatorSourceDir, 'marrow/simulator/Simulator.java')
+    def javaHome = System.getProperty('java.home')
+    def javacName = System.getProperty('os.name').toLowerCase().contains('win') ? 'javac.exe' : 'javac'
+    def javac = new File(new File(javaHome, 'bin'), javacName).absolutePath
+    def sourcePath = [coreSourceDir.absolutePath, simulatorSourceDir.absolutePath].join(File.pathSeparator)
+
+    inputs.dir(simulatorSourceDir)
+    inputs.dir(coreSourceDir)
+    outputs.dir(simulatorOutputDir)
+
+    doFirst {
+        out.deleteDir()
+        out.mkdirs()
+    }
+
+    commandLine(
+            javac,
+            '-encoding', 'UTF-8',
+            '-d', out.absolutePath,
+            '-sourcepath', sourcePath,
+            entryPoint.absolutePath
+    )
+}
+
+tasks.register('runWeaverSimulator', JavaExec) {
+    group = 'application'
+    description = 'Compiles and launches the Weaver simulator GUI.'
+    dependsOn 'compileWeaverSimulator'
+    classpath = files(simulatorOutputDir)
+    mainClass = 'marrow.simulator.Simulator'
+}
