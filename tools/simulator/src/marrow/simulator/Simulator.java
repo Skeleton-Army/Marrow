@@ -56,7 +56,7 @@ public class Simulator extends JPanel {
     private double width = DEFAULT_CONFIG.getWidth();
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private int polygonSides = 4;
-    private boolean reorder = false;
+    private boolean reorder = true;
     private Mode mode = Mode.TARGET;
 
     private int dragIndex = -1;

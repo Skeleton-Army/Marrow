@@ -9,7 +9,7 @@ public class PathConfig {
 
     // Intake width used when reaching targets.
     // Set to 0 to stop with the robot center on the target.
-    // Set to half your intake width if you want to intake game elements.
+    // Set to your intake width if you want to intake game elements.
     private double width = 0.0;
 
     // Robot footprint dimensions used for clearance checks.
