@@ -39,10 +39,6 @@ public final class PathResult {
         return path.getSegments().get(segmentIndex).getControlPoints();
     }
 
-    public Point[] getControlPointArray(int segmentIndex) {
-        return path.getSegments().get(segmentIndex).getControlPointArray();
-    }
-
     public List<Double> getSegmentEndHeadingsRad() {
         return Collections.unmodifiableList(segmentEndHeadingsRad);
     }

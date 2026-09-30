@@ -25,10 +25,6 @@ public class PathCurve {
         return Collections.unmodifiableList(controlPoints);
     }
 
-    public Point[] getControlPointArray() {
-        return controlPoints.toArray(new Point[0]);
-    }
-
     public boolean isComposite() {
         return cubicSegments > 0;
     }
