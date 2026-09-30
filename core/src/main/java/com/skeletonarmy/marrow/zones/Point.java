@@ -1,6 +1,6 @@
 package com.skeletonarmy.marrow.zones;
 
-import android.annotation.SuppressLint;
+import java.util.Locale;
 
 import androidx.annotation.NonNull;
 
@@ -25,10 +25,9 @@ public class Point {
         return Math.hypot(this.x - other.x, this.y - other.y);
     }
 
-    @SuppressLint("DefaultLocale")
     @NonNull
     @Override
     public String toString() {
-        return String.format("Point(x=%.3f, y=%.3f)", x, y);
+        return String.format(Locale.ROOT, "Point(x=%.3f, y=%.3f)", x, y);
     }
 }

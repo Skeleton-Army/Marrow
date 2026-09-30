@@ -4,6 +4,22 @@ def simulatorSourceDir = file('tools/simulator/src')
 def coreSourceDir = file('core/src/main/java')
 def simulatorOutputDir = layout.buildDirectory.dir('weaver-simulator')
 
+repositories {
+    google()
+    mavenCentral()
+}
+
+configurations {
+    weaverSimulatorAnnotations
+}
+
+dependencies {
+    // Core sources import androidx.annotation.NonNull, which is only available on the
+    // Android classpath. The desktop simulator compiles core with plain javac, so it
+    // needs the annotation jar (a pure Java artifact) on its classpath.
+    weaverSimulatorAnnotations 'androidx.annotation:annotation:1.2.0'
+}
+
 tasks.register('compileWeaverSimulator', Exec) {
     group = 'application'
     description = 'Compiles the Weaver simulator with javac.'
@@ -14,9 +30,11 @@ tasks.register('compileWeaverSimulator', Exec) {
     def javacName = System.getProperty('os.name').toLowerCase().contains('win') ? 'javac.exe' : 'javac'
     def javac = new File(new File(javaHome, 'bin'), javacName).absolutePath
     def sourcePath = [coreSourceDir.absolutePath, simulatorSourceDir.absolutePath].join(File.pathSeparator)
+    def annotationClasspath = configurations.weaverSimulatorAnnotations.asPath
 
     inputs.dir(simulatorSourceDir)
     inputs.dir(coreSourceDir)
+    inputs.files(configurations.weaverSimulatorAnnotations)
     outputs.dir(simulatorOutputDir)
 
     doFirst {
@@ -29,6 +47,7 @@ tasks.register('compileWeaverSimulator', Exec) {
             '-encoding', 'UTF-8',
             '-d', out.absolutePath,
             '-sourcepath', sourcePath,
+            '-classpath', annotationClasspath,
             entryPoint.absolutePath
     )
 }
