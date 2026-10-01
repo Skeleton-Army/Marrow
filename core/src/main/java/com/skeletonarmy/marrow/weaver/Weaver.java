@@ -69,9 +69,19 @@ public class Weaver {
             return this;
         }
 
+        public Builder obstacles(List<Zone> obstacles) {
+            this.obstacles.clear();
+            if (obstacles != null) {
+                this.obstacles.addAll(obstacles);
+            }
+            return this;
+        }
+
         public Builder obstacles(Zone... obstacles) {
             this.obstacles.clear();
-            this.obstacles.addAll(Arrays.asList(obstacles));
+            if (obstacles != null) {
+                this.obstacles.addAll(Arrays.asList(obstacles));
+            }
             return this;
         }
 
