@@ -136,7 +136,7 @@ public class WeaverTest {
         PathRoute actual = builder.generate().getPath();
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, Weaver.getConfig().getClearance(), 200));
+        assertTrue(WeaverGenerator.isPathClear(actual, obstacles, Weaver.getConfig().getClearance(), 200));
     }
 
     // --- Intake mode ---
@@ -433,7 +433,7 @@ public class WeaverTest {
         Point target = new Point(0, 1);
 
         // Act
-        boolean actual = Weaver.isCapturedByIntake(robotCenter, 0, 4, target);
+        boolean actual = WeaverGenerator.isCapturedByIntake(robotCenter, 0, 4, target);
 
         // Assert
         assertTrue(actual);
@@ -446,7 +446,7 @@ public class WeaverTest {
         Point target = new Point(0, 2);
 
         // Act
-        boolean actual = Weaver.isCapturedByIntake(robotCenter, 0, 4, target);
+        boolean actual = WeaverGenerator.isCapturedByIntake(robotCenter, 0, 4, target);
 
         // Assert
         assertTrue(actual);
@@ -459,7 +459,7 @@ public class WeaverTest {
         Point target = new Point(0, 3);
 
         // Act
-        boolean actual = Weaver.isCapturedByIntake(robotCenter, 0, 4, target);
+        boolean actual = WeaverGenerator.isCapturedByIntake(robotCenter, 0, 4, target);
 
         // Assert
         assertFalse(actual);
@@ -472,7 +472,7 @@ public class WeaverTest {
         Point target = new Point(1, 0);
 
         // Act
-        boolean actual = Weaver.isCapturedByIntake(robotCenter, 0, 4, target);
+        boolean actual = WeaverGenerator.isCapturedByIntake(robotCenter, 0, 4, target);
 
         // Assert
         assertFalse(actual);
@@ -488,7 +488,7 @@ public class WeaverTest {
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 10), 1));
 
         // Act
-        boolean actual = Weaver.isPathClear(route, obstacles, 0.5, 50);
+        boolean actual = WeaverGenerator.isPathClear(route, obstacles, 0.5, 50);
 
         // Assert
         assertTrue(actual);
@@ -502,7 +502,7 @@ public class WeaverTest {
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 0), 1));
 
         // Act
-        boolean actual = Weaver.isPathClear(route, obstacles, 0.5, 50);
+        boolean actual = WeaverGenerator.isPathClear(route, obstacles, 0.5, 50);
 
         // Assert
         assertFalse(actual);
@@ -515,7 +515,7 @@ public class WeaverTest {
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 0.9), 0.1));
 
         // Act
-        boolean actual = Weaver.isPathClear(curve, obstacles, 0.5, 3.0, 1.0, 50);
+        boolean actual = WeaverGenerator.isPathClear(curve, obstacles, 0.5, 3.0, 1.0, 50);
 
         // Assert
         assertFalse(actual);
@@ -527,7 +527,7 @@ public class WeaverTest {
         PathCurve curve = new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)));
 
         // Act
-        boolean actual = Weaver.isPathClear(curve, Collections.<Zone>emptyList(), 1.0, 10);
+        boolean actual = WeaverGenerator.isPathClear(curve, Collections.<Zone>emptyList(), 1.0, 10);
 
         // Assert
         assertTrue(actual);
@@ -542,8 +542,8 @@ public class WeaverTest {
         PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
 
         // Act & Assert
-        assertFalse(Weaver.isPathClear(route, obstacles, config, 50));
-        assertFalse(Weaver.isPathClear(route, obstacles, config));
+        assertFalse(WeaverGenerator.isPathClear(route, obstacles, config, 50));
+        assertFalse(WeaverGenerator.isPathClear(route, obstacles, config));
     }
 
     @Test
@@ -554,8 +554,8 @@ public class WeaverTest {
         PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
 
         // Act & Assert
-        assertTrue(Weaver.isPathClear(curve, obstacles, config, 50));
-        assertTrue(Weaver.isPathClear(curve, obstacles, config));
+        assertTrue(WeaverGenerator.isPathClear(curve, obstacles, config, 50));
+        assertTrue(WeaverGenerator.isPathClear(curve, obstacles, config));
     }
 
     @Test
@@ -566,10 +566,10 @@ public class WeaverTest {
         PathConfig config = new PathConfig().width(12.0);
 
         // Act & Assert
-        assertTrue(Weaver.isCapturedByIntake(center, 0, config, target));
+        assertTrue(WeaverGenerator.isCapturedByIntake(center, 0, config, target));
 
         Weaver.setConfig(config);
-        assertTrue(Weaver.isCapturedByIntake(center, 0, target));
+        assertTrue(WeaverGenerator.isCapturedByIntake(center, 0, Weaver.getConfig(), target));
         Weaver.resetToDefaults();
     }
 
@@ -583,10 +583,10 @@ public class WeaverTest {
         PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
 
         // Act & Assert
-        assertTrue(Weaver.isPathClear(route, obstacles, config));
-        assertTrue(Weaver.isPathClear(curve, obstacles, config));
-        assertTrue(Weaver.isPathClear(route, obstacles, config, 50));
-        assertTrue(Weaver.isPathClear(curve, obstacles, config, 50));
+        assertTrue(WeaverGenerator.isPathClear(route, obstacles, config));
+        assertTrue(WeaverGenerator.isPathClear(curve, obstacles, config));
+        assertTrue(WeaverGenerator.isPathClear(route, obstacles, config, 50));
+        assertTrue(WeaverGenerator.isPathClear(curve, obstacles, config, 50));
     }
 
     // --- Smoothing toggle ---

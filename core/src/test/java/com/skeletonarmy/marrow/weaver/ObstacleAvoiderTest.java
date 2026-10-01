@@ -56,7 +56,7 @@ public class ObstacleAvoiderTest {
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
+        assertTrue(WeaverGenerator.isPathClear(actual, obstacles, config, 200));
     }
 
     @Test
@@ -70,7 +70,7 @@ public class ObstacleAvoiderTest {
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
+        assertTrue(WeaverGenerator.isPathClear(actual, obstacles, config, 200));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class ObstacleAvoiderTest {
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
+        assertTrue(WeaverGenerator.isPathClear(actual, obstacles, config, 200));
     }
 
     @Test
@@ -102,7 +102,7 @@ public class ObstacleAvoiderTest {
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config, 300));
+        assertTrue(WeaverGenerator.isPathClear(actual, obstacles, config, 300));
     }
 
     @Test
@@ -149,7 +149,7 @@ public class ObstacleAvoiderTest {
 
         // Assert
         assertEquals(2, actual.getSegments().size());
-        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
+        assertTrue(WeaverGenerator.isPathClear(actual, obstacles, config, 200));
     }
 
     // --- smooth ---

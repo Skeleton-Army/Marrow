@@ -5,6 +5,8 @@ import com.skeletonarmy.marrow.weaver.PathPose;
 import com.skeletonarmy.marrow.weaver.PathResult;
 import com.skeletonarmy.marrow.weaver.PathRoute;
 import com.skeletonarmy.marrow.weaver.Weaver;
+import com.skeletonarmy.marrow.weaver.WeaverBuilder;
+import com.skeletonarmy.marrow.weaver.WeaverGenerator;
 import com.skeletonarmy.marrow.zones.CircleZone;
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;
@@ -245,7 +247,7 @@ public class Simulator extends JPanel {
         try {
             Weaver.setConfig(new PathConfig().width(width));
 
-            Weaver.Builder b = Weaver.builder()
+            WeaverBuilder b = Weaver.builder()
                     .start(new PathPose(start.getX(), start.getY(), 0));
             for (Point t : targets) {
                 b.addTarget(new PathPose(t.getX(), t.getY()));
@@ -704,10 +706,6 @@ public class Simulator extends JPanel {
     }
 
     public static void main(String[] args) {
-        if (args.length > 0 && args[0].equalsIgnoreCase("selftest")) {
-            runSelfTest();
-            return;
-        }
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Marrow Weaver Simulator");
             Simulator sim = new Simulator();
@@ -718,31 +716,5 @@ public class Simulator extends JPanel {
             frame.setVisible(true);
             sim.requestFocusInWindow();
         });
-    }
-
-    private static void runSelfTest() {
-        Weaver.setConfig(new PathConfig());
-
-        PathResult result = Weaver.builder()
-                .start(new PathPose(24, 24, 0))
-                .addTarget(new PathPose(72, 96))
-                .addTarget(new PathPose(120, 48))
-                .addObstacle(new CircleZone(new Point(72, 60), 6))
-                .generate();
-
-        PathRoute route = result.getPath();
-        int segCount = route.getSegmentCount();
-        for (int i = 0; i <= 10; i++) {
-            double g = (double) i / 10 * segCount;
-            Point p = route.get(g);
-            System.out.printf("t=%.2f pos=(%.2f, %.2f) heading=%.3f%n",
-                    (double) i / 10, p.getX(), p.getY(), route.getHeading(g));
-        }
-
-        List<Zone> obs = new ArrayList<>();
-        obs.add(new CircleZone(new Point(72, 60), 6));
-        boolean clear = Weaver.isPathClear(route, obs, CLEARANCE, ROBOT_WIDTH, ROBOT_HEIGHT, 300);
-        System.out.println("path clear of obstacle: " + clear);
-        System.out.println("SELFTEST OK");
     }
 }
