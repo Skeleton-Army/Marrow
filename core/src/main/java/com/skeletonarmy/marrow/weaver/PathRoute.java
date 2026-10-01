@@ -68,7 +68,7 @@ public class PathRoute {
         return total;
     }
 
-    public List<List<Point>> toControlPointArrays() {
+    public List<List<Point>> toControlPointLists() {
         List<List<Point>> out = new ArrayList<>();
         for (PathCurve c : segments) {
             out.add(c.getControlPoints());
