@@ -15,9 +15,12 @@ public class TargetOrderer {
         if (targets.size() <= 1) {
             return new ArrayList<>(targets);
         }
-        return targets.size() <= config.getBruteForceOrderLimit()
-                ? bruteForce(startPos, startHeadingRad, targets, config)
-                : greedy(startPos, startHeadingRad, targets, config);
+
+        if (targets.size() <= config.getBruteForceOrderLimit()) {
+            return bruteForce(startPos, startHeadingRad, targets, config);
+        } else {
+            return greedy(startPos, startHeadingRad, targets, config);
+        }
     }
 
     public static double pathCost(Point startPos, double startHeadingRad, List<PathPose> order, double turnCostWeight) {
@@ -26,8 +29,12 @@ public class TargetOrderer {
         double currentHeading = startHeadingRad;
 
         for (PathPose pose : order) {
-            double travelBearing = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
-                    : Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
+            double travelBearing;
+            if (Double.isNaN(pose.getHeadingRad())) {
+                travelBearing = Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
+            } else {
+                travelBearing = pose.getHeadingRad();
+            }
 
             cost += currentPos.distanceTo(new Point(pose.getX(), pose.getY())) + turnCostWeight * Math.abs(normalizeAngle(travelBearing - currentHeading));
 
@@ -66,8 +73,12 @@ public class TargetOrderer {
             double bestHeading = 0;
 
             for (PathPose pose : remaining) {
-                double travelBearing = !Double.isNaN(pose.getHeadingRad()) ? pose.getHeadingRad()
-                        : Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
+                double travelBearing;
+                if (Double.isNaN(pose.getHeadingRad())) {
+                    travelBearing = Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
+                } else {
+                    travelBearing = pose.getHeadingRad();
+                }
 
                 double cost = currentPos.distanceTo(new Point(pose.getX(), pose.getY())) + k * Math.abs(normalizeAngle(travelBearing - currentHeading));
 
