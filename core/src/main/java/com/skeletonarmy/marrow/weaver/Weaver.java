@@ -7,6 +7,7 @@ import com.skeletonarmy.marrow.zones.Zone;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -261,7 +262,7 @@ public class Weaver {
             projections[k] = wx * ux + wy * uy;
             order[k] = k;
         }
-        Arrays.sort(order, (a, b) -> Double.compare(projections[a], projections[b]));
+        Arrays.sort(order, Comparator.comparingDouble(a -> projections[a]));
 
         double centerLateral = (minLateral + maxLateral) / 2.0;
         Point last = from;
