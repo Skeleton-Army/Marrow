@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow.telemetry;
 
 import android.text.TextUtils;
 
+import com.skeletonarmy.marrow.telemetry.modifiers.AlignmentModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.BackgroundColorModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ColorModifier;
@@ -147,6 +148,11 @@ public class FormatBuilder {
 
     public FormatBuilder underline() {
         modifiers.add(new UnderlineModifier());
+        return this;
+    }
+
+    public FormatBuilder align(AlignmentModifier.Alignment alignment) {
+        modifiers.add(new AlignmentModifier(alignment));
         return this;
     }
 
