@@ -1,8 +1,8 @@
 package com.skeletonarmy.marrow.telemetry;
 
-import android.text.Html;
 import android.text.TextUtils;
 
+import com.skeletonarmy.marrow.telemetry.modifiers.BackgroundColorModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ColorModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.ConditionalColorModifier;
@@ -14,6 +14,9 @@ import com.skeletonarmy.marrow.telemetry.modifiers.MultiConditionalModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.NewlineModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.SizeModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.StrikethroughModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.SubscriptModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.UnderlineModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.UnorderedListModifier;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
@@ -87,7 +90,7 @@ public class FormatBuilder {
     }
 
     public FormatBuilder monospace() {
-        modifiers.add(new MonospaceModifier());
+        this.modifiers.add(new MonospaceModifier());
         return this;
     }
 
@@ -112,6 +115,40 @@ public class FormatBuilder {
         return this;
     }
 
+    public FormatBuilder unorderedList(FormatBuilder... items) {
+        modifiers.add(new UnorderedListModifier(items));
+        return this;
+    }
+
+    public FormatBuilder setBackgroundColor(HtmlColor color) {
+        modifiers.add(new BackgroundColorModifier(color));
+        return this;
+    }
+
+    public FormatBuilder setBackgroundColor(int r, int g, int b) {
+        modifiers.add(new BackgroundColorModifier(r, g, b));
+        return this;
+    }
+
+    public FormatBuilder setBackgroundColor(String hex) {
+        modifiers.add(new BackgroundColorModifier(hex));
+        return this;
+    }
+
+    public FormatBuilder subscript() {
+        modifiers.add(new SubscriptModifier());
+        return this;
+    }
+
+    public FormatBuilder superscript() {
+        modifiers.add(new SubscriptModifier());
+        return this;
+    }
+
+    public FormatBuilder underline() {
+        modifiers.add(new UnderlineModifier());
+        return this;
+    }
 
     public FormatBuilder addModifier(TelemetryModifier modifier) {
         modifiers.add(modifier);
