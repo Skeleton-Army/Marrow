@@ -6,6 +6,7 @@ import com.pedropathing.paths.CompoundPath;
 import com.pedropathing.paths.Path;
 import com.pedropathing.paths.curves.Curve;
 import com.pedropathing.paths.curves.Line;
+import com.pedropathing.paths.curves.bezier.BezierCurve;
 import com.skeletonarmy.marrow.zones.Point;
 
 import java.util.ArrayList;
@@ -54,7 +55,7 @@ public final class PedroPathingConverter {
         for (Point p : points) {
             controlPoints.add(vector(p));
         }
-        return new com.pedropathing.paths.curves.bezier.BezierCurve(controlPoints);
+        return new BezierCurve(controlPoints);
     }
 
     private static Vector2D vector(Point p) {
