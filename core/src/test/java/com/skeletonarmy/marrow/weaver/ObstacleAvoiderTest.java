@@ -50,13 +50,13 @@ public class ObstacleAvoiderTest {
         // Arrange
         PathRoute route = straightRoute(new Point(10, 10), new Point(30, 10));
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(20, 10), 3));
-        PathConfig config = new PathConfig();
+        PathConfig config = new PathConfig().robotWidth(0).robotHeight(0);
 
         // Act
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config.getClearance(), 200));
+        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
     }
 
     @Test
@@ -64,13 +64,13 @@ public class ObstacleAvoiderTest {
         // Arrange
         PathRoute route = straightRoute(new Point(72, 72), new Point(120, 72));
         List<Zone> obstacles = Collections.singletonList(new PolygonZone(new Point(96, 72), 12, 12));
-        PathConfig config = new PathConfig();
+        PathConfig config = new PathConfig().robotWidth(0).robotHeight(0);
 
         // Act
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config.getClearance(), 200));
+        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
     }
 
     @Test
@@ -80,13 +80,13 @@ public class ObstacleAvoiderTest {
         List<Zone> obstacles = Collections.singletonList(new CompositeZone(
                 new CircleZone(new Point(92, 72), 4),
                 new PolygonZone(new Point(100, 72), 8, 8)));
-        PathConfig config = new PathConfig();
+        PathConfig config = new PathConfig().robotWidth(0).robotHeight(0);
 
         // Act
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config.getClearance(), 200));
+        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
     }
 
     @Test
@@ -96,13 +96,13 @@ public class ObstacleAvoiderTest {
         List<Zone> obstacles = Arrays.asList(
                 new CircleZone(new Point(88, 72), 4),
                 new CircleZone(new Point(104, 72), 4));
-        PathConfig config = new PathConfig();
+        PathConfig config = new PathConfig().robotWidth(0).robotHeight(0);
 
         // Act
         PathRoute actual = ObstacleAvoider.avoid(route, obstacles, config);
 
         // Assert
-        assertTrue(Weaver.isPathClear(actual, obstacles, config.getClearance(), 300));
+        assertTrue(Weaver.isPathClear(actual, obstacles, config, 300));
     }
 
     @Test
@@ -149,7 +149,7 @@ public class ObstacleAvoiderTest {
 
         // Assert
         assertEquals(2, actual.getSegments().size());
-        assertTrue(Weaver.isPathClear(actual, obstacles, config.getClearance(), 200));
+        assertTrue(Weaver.isPathClear(actual, obstacles, config, 200));
     }
 
     // --- smooth ---

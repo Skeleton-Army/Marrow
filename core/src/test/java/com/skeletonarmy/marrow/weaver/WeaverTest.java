@@ -533,6 +533,62 @@ public class WeaverTest {
         assertTrue(actual);
     }
 
+    @Test
+    public void isPathClear_withPathConfig_returnsCorrectResult() {
+        // Arrange
+        PathRoute route = new PathRoute(Collections.singletonList(
+                new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
+        List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 0), 1));
+        PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
+
+        // Act & Assert
+        assertFalse(Weaver.isPathClear(route, obstacles, config, 50));
+        assertFalse(Weaver.isPathClear(route, obstacles, config));
+    }
+
+    @Test
+    public void isPathClear_curveWithPathConfig_returnsCorrectResult() {
+        // Arrange
+        PathCurve curve = new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)));
+        List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 10), 1));
+        PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
+
+        // Act & Assert
+        assertTrue(Weaver.isPathClear(curve, obstacles, config, 50));
+        assertTrue(Weaver.isPathClear(curve, obstacles, config));
+    }
+
+    @Test
+    public void isCapturedByIntake_withPathConfig_returnsCorrectResult() {
+        // Arrange
+        Point center = new Point(0, 0);
+        Point target = new Point(0, 5);
+        PathConfig config = new PathConfig().width(12.0);
+
+        // Act & Assert
+        assertTrue(Weaver.isCapturedByIntake(center, 0, config, target));
+
+        Weaver.setConfig(config);
+        assertTrue(Weaver.isCapturedByIntake(center, 0, target));
+        Weaver.resetToDefaults();
+    }
+
+    @Test
+    public void isPathClear_usingPathConfig_returnsCorrectResult() {
+        // Arrange
+        PathRoute route = new PathRoute(Collections.singletonList(
+                new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
+        PathCurve curve = new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)));
+        List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 10), 1));
+        PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
+
+        // Act & Assert
+        assertTrue(Weaver.isPathClear(route, obstacles, config));
+        assertTrue(Weaver.isPathClear(curve, obstacles, config));
+        assertTrue(Weaver.isPathClear(route, obstacles, config, 50));
+        assertTrue(Weaver.isPathClear(curve, obstacles, config, 50));
+    }
+
     // --- Smoothing toggle ---
 
     @Test

@@ -340,10 +340,34 @@ public class Weaver {
         return false;
     }
 
+    public static boolean isCapturedByIntake(Point robotCenter, double headingRad, PathConfig config, Point target) {
+        return isCapturedByIntake(robotCenter, headingRad, config.getWidth(), target);
+    }
+
+    public static boolean isCapturedByIntake(Point robotCenter, double headingRad, Point target) {
+        return isCapturedByIntake(robotCenter, headingRad, config.getWidth(), target);
+    }
+
     public static boolean isCapturedByIntake(Point robotCenter, double headingRad, double intakeWidth, Point target) {
         double cos = Math.cos(headingRad), sin = Math.sin(headingRad);
         double relX = target.getX() - robotCenter.getX(), relY = target.getY() - robotCenter.getY();
         return Math.abs(relX * cos + relY * sin) < 1e-6 && Math.abs(relX * -sin + relY * cos) <= intakeWidth / 2.0 + 1e-6;
+    }
+
+    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, PathConfig config, int samplesPerSegment) {
+        return isPathClear(path, obstacles, config.getClearance(), config.getRobotWidth(), config.getRobotHeight(), samplesPerSegment);
+    }
+
+    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, PathConfig config, int samples) {
+        return isPathClear(curve, obstacles, config.getClearance(), config.getRobotWidth(), config.getRobotHeight(), samples);
+    }
+
+    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, PathConfig config) {
+        return isPathClear(path, obstacles, config, 100);
+    }
+
+    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, PathConfig config) {
+        return isPathClear(curve, obstacles, config, 100);
     }
 
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotWidth, double robotHeight, int samplesPerSegment) {
