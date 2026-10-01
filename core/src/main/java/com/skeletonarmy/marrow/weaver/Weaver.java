@@ -32,86 +32,11 @@ public class Weaver {
         config = new PathConfig();
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static WeaverBuilder builder() {
+        return new WeaverBuilder();
     }
 
-    public static class Builder {
-        private PathPose startPose;
-        private PathPose destinationPose;
-        private final List<PathPose> targets = new ArrayList<>();
-        private final List<Zone> obstacles = new ArrayList<>();
-        private boolean reorder = true;
-
-        public Builder start(PathPose start) {
-            this.startPose = start;
-            return this;
-        }
-
-        public Builder targets(List<PathPose> targets) {
-            this.targets.clear();
-            this.targets.addAll(targets);
-            return this;
-        }
-
-        public Builder addTarget(PathPose target) {
-            this.targets.add(target);
-            return this;
-        }
-
-        public Builder ordered() {
-            this.reorder = false;
-            return this;
-        }
-
-        public Builder end(PathPose destination) {
-            this.destinationPose = destination;
-            return this;
-        }
-
-        public Builder obstacles(List<Zone> obstacles) {
-            this.obstacles.clear();
-            if (obstacles != null) {
-                this.obstacles.addAll(obstacles);
-            }
-            return this;
-        }
-
-        public Builder obstacles(Zone... obstacles) {
-            this.obstacles.clear();
-            if (obstacles != null) {
-                this.obstacles.addAll(Arrays.asList(obstacles));
-            }
-            return this;
-        }
-
-        public Builder addObstacle(Zone obstacle) {
-            this.obstacles.add(obstacle);
-            return this;
-        }
-
-        public PathResult generate() {
-            if (startPose == null) {
-                throw new IllegalStateException("Start PathPose is required");
-            }
-
-            if (!targets.isEmpty()) {
-                return generateIntakeResult(startPose, targets, obstacles, reorder);
-            }
-
-            if (destinationPose != null) {
-                return generateAvoidanceResult(
-                        new Point(startPose.getX(), startPose.getY()),
-                        new Point(destinationPose.getX(), destinationPose.getY()),
-                        obstacles
-                );
-            }
-
-            throw new IllegalStateException("Either targets or a destination must be set");
-        }
-    }
-
-    private static PathResult generateIntakeResult(PathPose start, List<PathPose> targets, List<Zone> obstacles, boolean reorder) {
+    static PathResult generateIntakeResult(PathPose start, List<PathPose> targets, List<Zone> obstacles, boolean reorder) {
         Point startPoint = new Point(start.getX(), start.getY());
         List<PathPose> ordered = reorder 
                 ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
@@ -169,7 +94,7 @@ public class Weaver {
         return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)), skippedTargets);
     }
 
-    private static PathResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles) {
+    static PathResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles) {
         int controlPointCount = 6;
         List<Point> biased = new ArrayList<>();
         for (int i = 0; i < controlPointCount; i++) {
