@@ -1,6 +1,5 @@
 package com.skeletonarmy.marrow.weaver;
 
-import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.Zone;
 
 import java.util.ArrayList;
@@ -21,7 +20,9 @@ public class WeaverBuilder {
 
     public WeaverBuilder targets(List<PathPose> targets) {
         this.targets.clear();
-        this.targets.addAll(targets);
+        if (targets != null) {
+            this.targets.addAll(targets);
+        }
         return this;
     }
 
@@ -65,19 +66,17 @@ public class WeaverBuilder {
         if (startPose == null) {
             throw new IllegalStateException("Start PathPose is required");
         }
-
-        if (!targets.isEmpty()) {
-            return Weaver.generateIntakeResult(startPose, targets, obstacles, reorder);
+        if (targets.isEmpty() && destinationPose == null) {
+            throw new IllegalStateException("Either targets or a destination must be set");
         }
 
-        if (destinationPose != null) {
-            return Weaver.generateAvoidanceResult(
-                    new Point(startPose.getX(), startPose.getY()),
-                    new Point(destinationPose.getX(), destinationPose.getY()),
-                    obstacles
-            );
-        }
-
-        throw new IllegalStateException("Either targets or a destination must be set");
+        return WeaverGenerator.generate(
+                startPose,
+                destinationPose,
+                targets,
+                obstacles,
+                reorder,
+                Weaver.getConfig()
+        );
     }
 }
