@@ -37,6 +37,17 @@ public class WeaverBuilder {
         return this;
     }
 
+    /** Replaces all previously added targets. */
+    public WeaverBuilder targets(PathPose... newTargets) {
+        this.targets.clear();
+
+        if (newTargets != null) {
+            this.targets.addAll(Arrays.asList(newTargets));
+        }
+
+        return this;
+    }
+
     /** Appends one target. */
     public WeaverBuilder addTarget(PathPose target) {
         this.targets.add(target);
