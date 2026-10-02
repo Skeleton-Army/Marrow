@@ -2,43 +2,66 @@ package com.skeletonarmy.marrow.weaver;
 
 /**
  * Combined configuration for Bezier path generation and obstacle avoidance.
+ * <p>
+ * Example usage:
+ * <pre>{@code
+ * PathConfig config = new PathConfig()
+ *         .width(13.0)
+ *         .robotWidth(16.0)
+ *         .clearance(3.0);
+ * }</pre>
  */
 public class PathConfig {
-
     // --- Robot Geometry ---
 
-    // Intake width used when reaching targets.
-    // Set to 0 to stop with the robot center on the target.
-    // Set to your intake width if you want to intake game elements.
+    /**
+     * Intake width used when reaching targets. Set to 0 to stop with the robot center
+     * on the target. Set to the real intake width to sweep up game elements.
+     */
     private double width = 0.0;
 
-    // Robot footprint dimensions used for clearance checks.
-    // Width runs along the robot's forward axis, height perpendicular to it.
+    /**
+     * Robot footprint width, measured along the robot's forward axis.
+     */
     private double robotWidth = 18.0;
+
+    /**
+     * Robot footprint height, measured perpendicular to the forward axis.
+     */
     private double robotHeight = 18.0;
 
-    // Extra distance kept from obstacles, added to the robot footprint.
-    // Raise for safer paths, lower to cut closer to obstacles.
+    /**
+     * Extra distance kept from obstacles, added on top of the robot footprint. Raise
+     * for safer paths, lower to cut closer to obstacles.
+     */
     private double clearance = 4.0;
 
     // --- Path Generation ---
 
-    // Drop targets an obstacle blocks the robot from occupying, so the path
-    // ignores them instead of cutting through the obstacle to chase them.
-    // Defaults on.
+    /**
+     * When {@code true}, targets that an obstacle blocks the robot from occupying are
+     * dropped so the path does not cut through the obstacle chasing them. Defaults on.
+     */
     private boolean excludeBlockedTargets = true;
 
-    // Re-fit generated curves with continuous tangents so corners are rounded
-    // and curvature stays gradual. Defaults on. Disable for the raw Hermite
-    // chain, which tracks target headings more tightly but turns more abruptly.
+    /**
+     * When {@code true}, generated curves are re-fitted with continuous tangents so
+     * corners are rounded and curvature stays gradual. Disable for the raw Hermite
+     * chain, which tracks target headings more tightly but turns more abruptly.
+     * Defaults on.
+     */
     private boolean smoothing = true;
 
-    // Weight applied to turning cost when ordering waypoints.
-    // Raise to prefer straighter routes over shorter distance.
+    /**
+     * Weight applied to turning cost when ordering waypoints. Raise to prefer
+     * straighter routes over shorter distance.
+     */
     private double turnCostWeight = 10.0;
 
-    // Max targets ordered by brute force before falling back to greedy.
-    // Raise to try more orderings (slower, better results).
+    /**
+     * Maximum number of targets ordered by brute force before falling back to the
+     * greedy strategy. Raise to try more orderings (slower, usually better).
+     */
     private int bruteForceOrderLimit = 8;
 
     public double getWidth() { return width; }

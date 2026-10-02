@@ -17,6 +17,11 @@ import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Tests the public weaver surface: global configuration, builder validation,
+ * destination (avoidance) mode, intake mode, blocked-target handling, and the
+ * {@link WeaverGenerator} clearance/capture helpers.
+ */
 public class WeaverTest {
 
     private static final double EPS = 1e-6;

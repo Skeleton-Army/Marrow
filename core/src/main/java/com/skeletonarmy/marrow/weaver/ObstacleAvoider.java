@@ -11,30 +11,56 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * Bends and smooths generated paths so they clear obstacles.
+ * <p>
+ * The avoider works on the control points of the incoming curve chain. For each
+ * segment it samples the obstacle boundaries into candidate waypoints, runs a
+ * visibility-graph shortest path through them, then re-fits a smooth cubic chain
+ * through the result. If a first attempt is still too tight, it retries with extra
+ * padding, and finally falls back to the original curve when nothing works.
+ */
 public class ObstacleAvoider {
     private ObstacleAvoider() {}
 
+    /** Number of points sampled around a circular obstacle. */
     private static final int CIRCLE_SAMPLES = 24;
+
+    /** Number of points sampled around each polygon corner. */
     private static final int CORNER_SAMPLES = 8;
+
+    /** Number of straight-line checks used when testing a segment. */
     private static final int SEGMENT_CHECKS = 12;
+
+    /** Number of samples used when validating a fitted curve. */
     private static final int SMOOTH_SAMPLES = 100;
+
+    /** How many times to inflate the clearance before giving up on a segment. */
     private static final int MAX_INFLATE_ATTEMPTS = 10;
+
+    /** Step used for the finite-difference gradient of a zone's signed distance. */
     private static final double GRADIENT_EPS = 1e-3;
+
+    /** Extra seed padding added to sampled boundary points. */
     private static final double SEED_PAD = 0.75;
 
+    /**
+     * Routes every segment of {@code path} around the given obstacles.
+     */
     public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
             return path;
         }
 
-        List<PathCurve> out = new ArrayList<>();
-        for (PathCurve top : path.getSegments()) {
-            out.add(routeCurve(top, obstacles, config));
+        List<PathCurve> routedSegments = new ArrayList<>();
+
+        for (PathCurve segment : path.getSegments()) {
+            routedSegments.add(routeCurve(segment, obstacles, config));
         }
 
-        return out.size() == 1
-                ? new PathRoute(Collections.singletonList(out.get(0)))
-                : new PathRoute(out);
+        return routedSegments.size() == 1
+                ? new PathRoute(Collections.singletonList(routedSegments.get(0)))
+                : new PathRoute(routedSegments);
     }
 
     /**
@@ -43,97 +69,171 @@ public class ObstacleAvoider {
      * effect of fitting; this applies the same treatment to obstacle-free paths.
      */
     public static PathRoute smooth(PathRoute path) {
-        List<PathCurve> out = new ArrayList<>();
-        for (PathCurve top : path.getSegments()) {
-            out.add(smoothCurve(top));
+        List<PathCurve> smoothedSegments = new ArrayList<>();
+
+        for (PathCurve segment : path.getSegments()) {
+            smoothedSegments.add(smoothCurve(segment));
         }
 
-        return out.size() == 1
-                ? new PathRoute(Collections.singletonList(out.get(0)))
-                : new PathRoute(out);
+        return smoothedSegments.size() == 1
+                ? new PathRoute(Collections.singletonList(smoothedSegments.get(0)))
+                : new PathRoute(smoothedSegments);
     }
 
-    private static PathCurve smoothCurve(PathCurve top) {
-        List<PathCurve> cubics = top.toCubicSegments();
+    /**
+     * Smooths a single curve by extracting its keypoints and re-fitting them with
+     * central-difference tangents.
+     */
+    private static PathCurve smoothCurve(PathCurve curve) {
+        List<PathCurve> cubicSegments = curve.toCubicSegments();
+
         List<Point> keypoints = new ArrayList<>();
-        keypoints.add(cubics.get(0).getControlPoints().get(0));
-        for (PathCurve c : cubics) {
-            List<Point> cps = c.getControlPoints();
-            keypoints.add(cps.get(cps.size() - 1));
+        keypoints.add(cubicSegments.get(0).getControlPoints().get(0));
+
+        for (PathCurve cubic : cubicSegments) {
+            List<Point> controlPoints = cubic.getControlPoints();
+            keypoints.add(controlPoints.get(controlPoints.size() - 1));
         }
-        return fitSmooth(keypoints, top.getHeading(0.0), top.getHeading(1.0));
+
+        return fitSmooth(keypoints, curve.getHeading(0.0), curve.getHeading(1.0));
     }
 
+    /**
+     * Returns the radius of the robot footprint in the direction of
+     * {@code relativeAngle}, measured from the robot center.
+     */
     private static double footprintRadius(double relativeAngle, PathConfig config) {
-        double hw = config.getRobotWidth() / 2.0;
-        double hh = config.getRobotHeight() / 2.0;
-        return hw * Math.abs(Math.cos(relativeAngle)) + hh * Math.abs(Math.sin(relativeAngle));
+        double halfWidth = config.getRobotWidth() / 2.0;
+        double halfHeight = config.getRobotHeight() / 2.0;
+
+        return halfWidth * Math.abs(Math.cos(relativeAngle)) + halfHeight * Math.abs(Math.sin(relativeAngle));
     }
 
+    /**
+     * Returns the largest distance any point of the robot could need from an
+     * obstacle: the half diagonal of the footprint plus the clearance.
+     */
     private static double worstCaseMargin(PathConfig config) {
         return Math.hypot(config.getRobotWidth(), config.getRobotHeight()) / 2.0 + config.getClearance();
     }
 
+    /**
+     * Estimates the direction pointing away from the obstacle at point {@code p}
+     * using a central-difference gradient of the signed distance.
+     *
+     * @return the outward angle in radians
+     */
     private static double obstacleDirection(Zone zone, Point p) {
-        double gx = (signedDist(zone, new Point(p.getX() + GRADIENT_EPS, p.getY()))
+        double gradientX = (signedDist(zone, new Point(p.getX() + GRADIENT_EPS, p.getY()))
                 - signedDist(zone, new Point(p.getX() - GRADIENT_EPS, p.getY()))) / (2 * GRADIENT_EPS);
-        double gy = (signedDist(zone, new Point(p.getX(), p.getY() + GRADIENT_EPS))
+
+        double gradientY = (signedDist(zone, new Point(p.getX(), p.getY() + GRADIENT_EPS))
                 - signedDist(zone, new Point(p.getX(), p.getY() - GRADIENT_EPS))) / (2 * GRADIENT_EPS);
-        if (Math.abs(gx) < 1e-9 && Math.abs(gy) < 1e-9) {
+
+        if (Math.abs(gradientX) < 1e-9 && Math.abs(gradientY) < 1e-9) {
             return 0.0;
         }
-        return Math.atan2(gy, gx);
+
+        return Math.atan2(gradientY, gradientX);
     }
 
+    /**
+     * Computes how far {@code p} must be from {@code zone}, given the robot heading.
+     * The footprint radius is measured toward the obstacle, so the required margin
+     * grows when the robot presents a corner rather than a flat side.
+     */
     private static double requiredMargin(Point p, double heading, Zone zone, PathConfig config, double extra) {
-        double relative = obstacleDirection(zone, p) - heading;
-        return footprintRadius(relative, config) + config.getClearance() + extra;
+        double relativeAngle = obstacleDirection(zone, p) - heading;
+
+        return footprintRadius(relativeAngle, config) + config.getClearance() + extra;
     }
 
-    private static PathCurve routeCurve(PathCurve top, List<Zone> obstacles, PathConfig config) {
-        double startHeading = top.getHeading(0.0);
-        double endHeading = top.getHeading(1.0);
-        List<PathCurve> cubics = top.toCubicSegments();
+    /**
+     * Routes a single curve around obstacles.
+     * <p>
+     * Candidate waypoints are collected around the obstacle boundaries and a
+     * smooth path is fitted through the shortest visible route. If the fitted curve
+     * still clips an obstacle, the padding is increased and the attempt repeated.
+     */
+    private static PathCurve routeCurve(PathCurve sourceCurve, List<Zone> obstacles, PathConfig config) {
+        double startHeading = sourceCurve.getHeading(0.0);
+        double endHeading = sourceCurve.getHeading(1.0);
+        List<PathCurve> cubicSegments = sourceCurve.toCubicSegments();
 
         List<Point> keypoints = new ArrayList<>();
-        keypoints.add(cubics.get(0).getControlPoints().get(0));
-        for (PathCurve c : cubics) {
-            List<Point> cps = c.getControlPoints();
-            keypoints.add(cps.get(cps.size() - 1));
+        keypoints.add(cubicSegments.get(0).getControlPoints().get(0));
+
+        for (PathCurve cubic : cubicSegments) {
+            List<Point> controlPoints = cubic.getControlPoints();
+            keypoints.add(controlPoints.get(controlPoints.size() - 1));
         }
 
         List<Point> bestWaypoints = null;
-        double extra = 0.0;
+        double padding = 0.0;
+
         for (int attempt = 0; attempt < MAX_INFLATE_ATTEMPTS; attempt++) {
-            List<Point> waypoints = collectWaypoints(keypoints, obstacles, config, extra);
-            if (waypoints == null) break;
-            if (bestWaypoints == null) bestWaypoints = waypoints;
+            List<Point> waypoints = collectWaypoints(keypoints, obstacles, config, padding);
+
+            if (waypoints == null) {
+                break;
+            }
+
+            if (bestWaypoints == null) {
+                bestWaypoints = waypoints;
+            }
 
             PathCurve curve = fitSmooth(waypoints, startHeading, endHeading);
+
             if (isCurveClear(curve, obstacles, config, waypoints)) {
                 return curve;
             }
 
-            extra += 0.5;
+            // Nothing fit, so keep the robot further away and try again.
+            padding += 0.5;
         }
 
-        return bestWaypoints != null ? buildPath(bestWaypoints, startHeading, endHeading) : top;
+        return bestWaypoints != null ? buildPath(bestWaypoints, startHeading, endHeading) : sourceCurve;
     }
 
-    private static List<Point> collectWaypoints(List<Point> keypoints, List<Zone> obstacles, PathConfig config, double extra) {
+    /**
+     * Builds a full list of waypoints by routing each original keypoint-to-keypoint
+     * segment and concatenating the pieces.
+     *
+     * @return the combined waypoints, or {@code null} if any segment cannot be routed
+     */
+    private static List<Point> collectWaypoints(List<Point> keypoints, List<Zone> obstacles,
+                                                PathConfig config, double extra) {
         List<Point> waypoints = new ArrayList<>();
         waypoints.add(keypoints.get(0));
+
         for (int i = 0; i < keypoints.size() - 1; i++) {
-            Point a = keypoints.get(i);
-            Point b = keypoints.get(i + 1);
-            List<Point> seg = routeSegmentWaypoints(a, b, obstacles, config, extra);
-            if (seg == null) return null;
-            for (int k = 1; k < seg.size(); k++) waypoints.add(seg.get(k));
+            Point segmentStart = keypoints.get(i);
+            Point segmentEnd = keypoints.get(i + 1);
+
+            List<Point> segmentWaypoints = routeSegmentWaypoints(segmentStart, segmentEnd, obstacles, config, extra);
+
+            if (segmentWaypoints == null) {
+                return null;
+            }
+
+            // Skip the shared start point; it was already added.
+            for (int k = 1; k < segmentWaypoints.size(); k++) {
+                waypoints.add(segmentWaypoints.get(k));
+            }
         }
+
         return waypoints;
     }
 
-    private static List<Point> routeSegmentWaypoints(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
+    /**
+     * Routes one straight segment, returning a list of points that begins at
+     * {@code start} and ends at {@code end}.
+     * <p>
+     * If either endpoint is inside an obstacle, or the segment is already clear,
+     * the segment endpoints are returned unchanged.
+     */
+    private static List<Point> routeSegmentWaypoints(Point start, Point end, List<Zone> obstacles,
+                                                     PathConfig config, double extra) {
         if (insideObstacle(start, obstacles) || insideObstacle(end, obstacles)) {
             return Arrays.asList(start, end);
         }
@@ -144,259 +244,464 @@ public class ObstacleAvoider {
 
         double approxHeading = Math.atan2(end.getY() - start.getY(), end.getX() - start.getX());
 
-        double startRelax = minSignedDist(start, obstacles);
-        double endRelax = minSignedDist(end, obstacles);
+        // How far inside its safety margin each endpoint sits. Relaxing to this
+        // distance lets a route leave from a tight start or arrive at a tight goal.
+        double startRelaxDistance = minSignedDist(start, obstacles);
+        double endRelaxDistance = minSignedDist(end, obstacles);
 
+        // Node 0 is the start and node 1 is the end; the rest are obstacle boundary samples.
         List<Point> nodes = new ArrayList<>();
         nodes.add(start);
         nodes.add(end);
+
         for (Zone zone : obstacles) {
             nodes.addAll(sampleBoundary(zone, approxHeading, config, extra));
         }
 
-        return shortestPath(0, 1, nodes, obstacles, config, extra, startRelax, endRelax);
+        return shortestPath(0, 1, nodes, obstacles, config, extra, startRelaxDistance, endRelaxDistance);
     }
 
+    /** Returns the smallest signed distance from {@code p} to any obstacle. */
     private static double minSignedDist(Point p, List<Zone> obstacles) {
-        double min = Double.MAX_VALUE;
+        double minimum = Double.MAX_VALUE;
+
         for (Zone zone : obstacles) {
-            min = Math.min(min, signedDist(zone, p));
+            minimum = Math.min(minimum, signedDist(zone, p));
         }
-        return min;
+
+        return minimum;
     }
 
+    /** Returns {@code true} if {@code p} is inside any obstacle. */
     private static boolean insideObstacle(Point p, List<Zone> obstacles) {
         for (Zone zone : obstacles) {
             if (zone.contains(p)) {
                 return true;
             }
         }
+
         return false;
     }
 
+    /**
+     * Checks that a single point keeps enough distance from every obstacle.
+     *
+     * @param relaxCap upper bound on how much the required margin may be relaxed
+     */
     private static boolean isPointClear(Point p, double heading, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
         for (Zone zone : obstacles) {
-            double req = Math.min(requiredMargin(p, heading, zone, config, extra), relaxCap);
-            if (signedDist(zone, p) < req - 1e-6) {
+            double requiredClearance = Math.min(requiredMargin(p, heading, zone, config, extra), relaxCap);
+
+            if (signedDist(zone, p) < requiredClearance - 1e-6) {
                 return false;
             }
         }
+
         return true;
     }
 
-    private static boolean isSegmentClear(Point a, Point b, List<Zone> obstacles, PathConfig config, double extra) {
-        return isSegmentClear(a, b, obstacles, config, extra, Double.MAX_VALUE);
+    /** Checks a segment without relaxing the clearance. */
+    private static boolean isSegmentClear(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
+        return isSegmentClear(start, end, obstacles, config, extra, Double.MAX_VALUE);
     }
 
-    private static boolean isSegmentClear(Point a, Point b, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
-        double heading = Math.atan2(b.getY() - a.getY(), b.getX() - a.getX());
+    /**
+     * Checks a segment by sampling it and testing each sample point.
+     *
+     * @param relaxCap upper bound on the relaxed margin, or {@link Double#MAX_VALUE}
+     */
+    private static boolean isSegmentClear(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
+        double heading = Math.atan2(end.getY() - start.getY(), end.getX() - start.getX());
+
         for (int i = 0; i <= SEGMENT_CHECKS; i++) {
-            double t = (double) i / SEGMENT_CHECKS;
-            Point p = new Point(a.getX() + (b.getX() - a.getX()) * t, a.getY() + (b.getY() - a.getY()) * t);
-            if (!isPointClear(p, heading, obstacles, config, extra, relaxCap)) {
+            double progress = (double) i / SEGMENT_CHECKS;
+
+            Point point = new Point(
+                    start.getX() + (end.getX() - start.getX()) * progress,
+                    start.getY() + (end.getY() - start.getY()) * progress);
+
+            if (!isPointClear(point, heading, obstacles, config, extra, relaxCap)) {
                 return false;
             }
         }
+
         return true;
     }
 
+    /**
+     * Checks that a fitted curve stays clear of every obstacle.
+     * <p>
+     * Waypoints close to an obstacle are allowed a relaxed margin, so the path can
+     * hug a corner it was deliberately routed around.
+     */
     private static boolean isCurveClear(PathCurve curve, List<Zone> obstacles, PathConfig config, List<Point> waypoints) {
-        List<PathCurve> segs = curve.toCubicSegments();
-        for (int si = 0; si < segs.size(); si++) {
-            PathCurve seg = segs.get(si);
-            double relaxCap = Double.MAX_VALUE;
-            if (si < waypoints.size()) relaxCap = Math.min(relaxCap, relaxDistance(waypoints.get(si), obstacles, config));
-            if (si + 1 < waypoints.size()) relaxCap = Math.min(relaxCap, relaxDistance(waypoints.get(si + 1), obstacles, config));
+        List<PathCurve> cubicSegments = curve.toCubicSegments();
 
-            List<Point> pts = seg.sample(SMOOTH_SAMPLES);
-            for (int i = 0; i < pts.size(); i++) {
-                double t = pts.size() > 1 ? (double) i / (pts.size() - 1) : 0.0;
-                double heading = seg.getHeading(t);
-                if (!isPointClear(pts.get(i), heading, obstacles, config, 0.0, relaxCap)) {
+        for (int segmentIndex = 0; segmentIndex < cubicSegments.size(); segmentIndex++) {
+            PathCurve segment = cubicSegments.get(segmentIndex);
+
+            // The relaxation cap is the tightest limit allowed by either endpoint of
+            // this cubic, so a segment only relaxes near a waypoint it actually touches.
+            double relaxationCap = Double.MAX_VALUE;
+
+            if (segmentIndex < waypoints.size()) {
+                relaxationCap = Math.min(relaxationCap, relaxDistance(waypoints.get(segmentIndex), obstacles, config));
+            }
+
+            if (segmentIndex + 1 < waypoints.size()) {
+                relaxationCap = Math.min(relaxationCap,
+                        relaxDistance(waypoints.get(segmentIndex + 1), obstacles, config));
+            }
+
+            List<Point> samplePoints = segment.sample(SMOOTH_SAMPLES);
+
+            for (int i = 0; i < samplePoints.size(); i++) {
+                double progress = samplePoints.size() > 1 ? (double) i / (samplePoints.size() - 1) : 0.0;
+                double heading = segment.getHeading(progress);
+
+                if (!isPointClear(samplePoints.get(i), heading, obstacles, config, 0.0, relaxationCap)) {
                     return false;
                 }
             }
         }
+
         return true;
     }
 
+    /**
+     * Returns the relaxed clearance allowed near a waypoint. Waypoints that already
+     * sit inside the nominal margin get a small reduction; all others are unlimited.
+     */
     private static double relaxDistance(Point waypoint, List<Zone> obstacles, PathConfig config) {
         double nominal = worstCaseMargin(config);
-        double d = minSignedDist(waypoint, obstacles);
-        return (d < nominal) ? Math.max(0.0, d - nominal * 0.2) : Double.MAX_VALUE;
+        double distance = minSignedDist(waypoint, obstacles);
+
+        return (distance < nominal) ? Math.max(0.0, distance - nominal * 0.2) : Double.MAX_VALUE;
     }
 
+    /** Returns the signed distance to a zone's boundary; negative when inside. */
     private static double signedDist(Zone zone, Point p) {
-        double d = zone.distanceToBoundary(p);
-        return zone.contains(p) ? -Math.abs(d) : d;
+        double distance = zone.distanceToBoundary(p);
+
+        return zone.contains(p) ? -Math.abs(distance) : distance;
     }
 
+    /**
+     * Samples candidate waypoints around the boundary of an obstacle, offset far
+     * enough out that the robot footprint plus clearance fits.
+     * <p>
+     * Circles are sampled uniformly. Polygons get points around each corner
+     * (sweeping the exterior angle) plus one point at each edge midpoint. Composite
+     * zones are sampled recursively.
+     *
+     * @param heading approximate travel direction, used to size the footprint offset
+     * @param extra   additional padding
+     */
     private static List<Point> sampleBoundary(Zone zone, double heading, PathConfig config, double extra) {
-        List<Point> pts = new ArrayList<>();
+        List<Point> points = new ArrayList<>();
         double clearance = config.getClearance();
+
         if (zone instanceof CircleZone) {
-            CircleZone c = (CircleZone) zone;
-            Point center = c.getPosition();
+            CircleZone circle = (CircleZone) zone;
+            Point center = circle.getPosition();
+
             for (int i = 0; i < CIRCLE_SAMPLES; i++) {
-                double a = 2.0 * Math.PI * i / CIRCLE_SAMPLES;
-                double offset = footprintRadius(a - heading, config) + clearance + extra + SEED_PAD;
-                double r = (c.getRadius() + offset) / Math.cos(Math.PI / CIRCLE_SAMPLES);
-                pts.add(new Point(center.getX() + r * Math.cos(a), center.getY() + r * Math.sin(a)));
+                double angle = 2.0 * Math.PI * i / CIRCLE_SAMPLES;
+                double offset = footprintRadius(angle - heading, config) + clearance + extra + SEED_PAD;
+
+                // Divide by cos so samples on the circumscribed polygon still enclose the circle.
+                double radius = (circle.getRadius() + offset) / Math.cos(Math.PI / CIRCLE_SAMPLES);
+                points.add(new Point(center.getX() + radius * Math.cos(angle),
+                        center.getY() + radius * Math.sin(angle)));
             }
         } else if (zone instanceof PolygonZone) {
-            PolygonZone poly = (PolygonZone) zone;
-            Point[] corners = poly.getCorners();
-            Point center = poly.getPosition();
-            int n = corners.length;
-            for (int i = 0; i < n; i++) {
-                Point prev = corners[(i - 1 + n) % n];
-                Point cur = corners[i];
-                Point next = corners[(i + 1) % n];
-                Point n1 = outwardNormal(prev, cur, center);
-                Point n2 = outwardNormal(cur, next, center);
-                double a1 = Math.atan2(n1.getY(), n1.getX());
-                double a2 = Math.atan2(n2.getY(), n2.getX());
-                double sweep = a2 - a1;
-                while (sweep <= 0) sweep += 2 * Math.PI;
+            PolygonZone polygon = (PolygonZone) zone;
+            Point[] corners = polygon.getCorners();
+            Point center = polygon.getPosition();
+            int cornerCount = corners.length;
+
+            // Fan of samples around each corner, covering the exterior turn.
+            for (int i = 0; i < cornerCount; i++) {
+                Point previousCorner = corners[(i - 1 + cornerCount) % cornerCount];
+                Point corner = corners[i];
+                Point nextCorner = corners[(i + 1) % cornerCount];
+
+                Point previousNormal = outwardNormal(previousCorner, corner, center);
+                Point nextNormal = outwardNormal(corner, nextCorner, center);
+
+                double previousAngle = Math.atan2(previousNormal.getY(), previousNormal.getX());
+                double nextAngle = Math.atan2(nextNormal.getY(), nextNormal.getX());
+
+                double sweep = nextAngle - previousAngle;
+                while (sweep <= 0) {
+                    sweep += 2 * Math.PI;
+                }
+
                 for (int k = 0; k <= CORNER_SAMPLES; k++) {
-                    double theta = a1 + sweep * k / CORNER_SAMPLES;
+                    double theta = previousAngle + sweep * k / CORNER_SAMPLES;
                     double offset = footprintRadius(theta - heading, config) + clearance + extra + SEED_PAD;
-                    pts.add(new Point(cur.getX() + offset * Math.cos(theta), cur.getY() + offset * Math.sin(theta)));
+
+                    points.add(new Point(corner.getX() + offset * Math.cos(theta),
+                            corner.getY() + offset * Math.sin(theta)));
                 }
             }
-            for (int i = 0; i < n; i++) {
-                Point a = corners[i], b = corners[(i + 1) % n];
-                Point mid = new Point((a.getX() + b.getX()) / 2.0, (a.getY() + b.getY()) / 2.0);
-                Point nrm = outwardNormal(a, b, center);
-                double normalAngle = Math.atan2(nrm.getY(), nrm.getX());
+
+            // One sample pushed straight out from each edge midpoint.
+            for (int i = 0; i < cornerCount; i++) {
+                Point a = corners[i];
+                Point b = corners[(i + 1) % cornerCount];
+
+                Point midpoint = new Point((a.getX() + b.getX()) / 2.0, (a.getY() + b.getY()) / 2.0);
+                Point normal = outwardNormal(a, b, center);
+
+                double normalAngle = Math.atan2(normal.getY(), normal.getX());
                 double offset = footprintRadius(normalAngle - heading, config) + clearance + extra + SEED_PAD;
-                pts.add(new Point(mid.getX() + offset * nrm.getX(), mid.getY() + offset * nrm.getY()));
+
+                points.add(new Point(midpoint.getX() + offset * normal.getX(),
+                        midpoint.getY() + offset * normal.getY()));
             }
         } else if (zone instanceof CompositeZone) {
-            for (Zone z : ((CompositeZone) zone).getZones()) {
-                pts.addAll(sampleBoundary(z, heading, config, extra));
+            for (Zone child : ((CompositeZone) zone).getZones()) {
+                points.addAll(sampleBoundary(child, heading, config, extra));
             }
         }
-        return pts;
+
+        return points;
     }
 
+    /**
+     * Returns the unit normal of edge {@code a -> b} that points away from
+     * {@code center}.
+     */
     private static Point outwardNormal(Point a, Point b, Point center) {
-        double dx = b.getX() - a.getX(), dy = b.getY() - a.getY();
-        double len = Math.hypot(dx, dy);
-        if (len < 1e-9) return new Point(0, 0);
-        double n1x = -dy / len, n1y = dx / len;
-        double n2x = dy / len, n2y = -dx / len;
-        double mx = (a.getX() + b.getX()) / 2.0, my = (a.getY() + b.getY()) / 2.0;
-        double cx = center.getX() - mx, cy = center.getY() - my;
-        if (n1x * cx + n1y * cy < 0) return new Point(n1x, n1y);
-        return new Point(n2x, n2y);
+        double edgeX = b.getX() - a.getX();
+        double edgeY = b.getY() - a.getY();
+        double edgeLength = Math.hypot(edgeX, edgeY);
+
+        if (edgeLength < 1e-9) {
+            return new Point(0, 0);
+        }
+
+        // The two candidate normals, one of which points outward.
+        double normalX = -edgeY / edgeLength;
+        double normalY = edgeX / edgeLength;
+        double altNormalX = edgeY / edgeLength;
+        double altNormalY = -edgeX / edgeLength;
+
+        double midpointX = (a.getX() + b.getX()) / 2.0;
+        double midpointY = (a.getY() + b.getY()) / 2.0;
+
+        double toCenterX = center.getX() - midpointX;
+        double toCenterY = center.getY() - midpointY;
+
+        // Pick the normal that points away from the polygon center.
+        if (normalX * toCenterX + normalY * toCenterY < 0) {
+            return new Point(normalX, normalY);
+        }
+
+        return new Point(altNormalX, altNormalY);
     }
 
-    private static List<Point> shortestPath(int startIdx, int endIdx, List<Point> nodes, List<Zone> obstacles, PathConfig config, double extra, double startRelax, double endRelax) {
-        int n = nodes.size();
+    /**
+     * Runs Dijkstra's algorithm over a visibility graph of {@code nodes}, where two
+     * nodes are connected when the segment between them is clear.
+     * <p>
+     * The start and end nodes are allowed a relaxed clearance so a route can escape
+     * a tight starting or ending position.
+     *
+     * @param startIdx    index of the start node (normally 0)
+     * @param endIdx      index of the end node (normally 1)
+     * @param startRelax  relaxed clearance allowed at the start
+     * @param endRelax    relaxed clearance allowed at the end
+     * @return the shortest route of points, or {@code null} if none exists
+     */
+    private static List<Point> shortestPath(int startIdx, int endIdx, List<Point> nodes, List<Zone> obstacles,
+                                            PathConfig config, double extra, double startRelax, double endRelax) {
+        int nodeCount = nodes.size();
         double nominal = worstCaseMargin(config) + extra;
+
         boolean startRelaxed = startRelax < nominal;
         boolean endRelaxed = endRelax < nominal;
-        boolean[][] visible = new boolean[n][n];
-        for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
+
+        // lineOfSight[i][j] is true when the straight segment i -> j is clear.
+        boolean[][] lineOfSight = new boolean[nodeCount][nodeCount];
+
+        for (int i = 0; i < nodeCount; i++) {
+            for (int j = i + 1; j < nodeCount; j++) {
                 boolean touchStart = (i == startIdx && startRelaxed) || (j == startIdx && startRelaxed);
                 boolean touchEnd = (i == endIdx && endRelaxed) || (j == endIdx && endRelaxed);
+
                 double relaxCap = Double.MAX_VALUE;
-                if (touchStart) relaxCap = Math.min(relaxCap, startRelax);
-                if (touchEnd) relaxCap = Math.min(relaxCap, endRelax);
-                visible[i][j] = visible[j][i] = isSegmentClear(nodes.get(i), nodes.get(j), obstacles, config, extra, relaxCap);
+                if (touchStart) {
+                    relaxCap = Math.min(relaxCap, startRelax);
+                }
+                if (touchEnd) {
+                    relaxCap = Math.min(relaxCap, endRelax);
+                }
+
+                boolean clear = isSegmentClear(nodes.get(i), nodes.get(j), obstacles, config, extra, relaxCap);
+                lineOfSight[i][j] = clear;
+                lineOfSight[j][i] = clear;
             }
         }
 
-        double[] dist = new double[n];
-        int[] prev = new int[n];
-        boolean[] visited = new boolean[n];
-        for (int i = 0; i < n; i++) {
-            dist[i] = Double.MAX_VALUE;
-            prev[i] = -1;
-        }
-        dist[startIdx] = 0;
+        double[] distances = new double[nodeCount];
+        int[] previousNode = new int[nodeCount];
+        boolean[] visited = new boolean[nodeCount];
 
-        for (int iter = 0; iter < n; iter++) {
-            int u = -1;
-            double best = Double.MAX_VALUE;
-            for (int i = 0; i < n; i++) {
-                if (!visited[i] && dist[i] < best) {
-                    best = dist[i];
-                    u = i;
+        for (int i = 0; i < nodeCount; i++) {
+            distances[i] = Double.MAX_VALUE;
+            previousNode[i] = -1;
+        }
+        distances[startIdx] = 0;
+
+        for (int iteration = 0; iteration < nodeCount; iteration++) {
+            // Pick the unvisited node with the smallest tentative distance.
+            int currentNode = -1;
+            double bestDistance = Double.MAX_VALUE;
+
+            for (int i = 0; i < nodeCount; i++) {
+                if (!visited[i] && distances[i] < bestDistance) {
+                    bestDistance = distances[i];
+                    currentNode = i;
                 }
             }
-            if (u < 0) break;
-            visited[u] = true;
-            if (u == endIdx) break;
 
-            for (int v = 0; v < n; v++) {
-                if (visited[v] || !visible[u][v]) continue;
-                double w = nodes.get(u).distanceTo(nodes.get(v));
-                if (dist[u] + w < dist[v]) {
-                    dist[v] = dist[u] + w;
-                    prev[v] = u;
+            if (currentNode < 0) {
+                break;
+            }
+
+            visited[currentNode] = true;
+
+            if (currentNode == endIdx) {
+                break;
+            }
+
+            // Relax every visible neighbour.
+            for (int neighbor = 0; neighbor < nodeCount; neighbor++) {
+                if (visited[neighbor] || !lineOfSight[currentNode][neighbor]) {
+                    continue;
+                }
+
+                double edgeLength = nodes.get(currentNode).distanceTo(nodes.get(neighbor));
+
+                if (distances[currentNode] + edgeLength < distances[neighbor]) {
+                    distances[neighbor] = distances[currentNode] + edgeLength;
+                    previousNode[neighbor] = currentNode;
                 }
             }
         }
 
-        if (prev[endIdx] == -1 && startIdx != endIdx) {
+        // No route reached the end.
+        if (previousNode[endIdx] == -1 && startIdx != endIdx) {
             return null;
         }
 
+        // Walk the predecessor chain backwards, then reverse it.
         List<Point> route = new ArrayList<>();
-        int cur = endIdx;
-        while (cur != -1) {
-            route.add(nodes.get(cur));
-            cur = prev[cur];
+        int current = endIdx;
+
+        while (current != -1) {
+            route.add(nodes.get(current));
+            current = previousNode[current];
         }
+
         Collections.reverse(route);
         return route;
     }
 
+    /**
+     * Fits a smooth cubic chain through the route. Interior headings are estimated
+     * from central differences; the supplied end headings override the outer ones
+     * when present.
+     */
     private static PathCurve fitSmooth(List<Point> route, double startHeading, double endHeading) {
-        int n = route.size();
-        List<Point> flat = new ArrayList<>();
-        for (int i = 0; i < n - 1; i++) {
-            Point p0 = route.get(i);
-            Point p1 = route.get(i + 1);
-            double d = p0.distanceTo(p1) / 3.0;
-            double h0 = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : headingAt(route, i);
-            double h1 = (i == n - 2 && !Double.isNaN(endHeading)) ? endHeading : headingAt(route, i + 1);
-            if (i == 0) flat.add(p0);
-            flat.add(new Point(p0.getX() + d * Math.cos(h0), p0.getY() + d * Math.sin(h0)));
-            flat.add(new Point(p1.getX() - d * Math.cos(h1), p1.getY() - d * Math.sin(h1)));
-            flat.add(p1);
+        int pointCount = route.size();
+        List<Point> controlPoints = new ArrayList<>();
+
+        for (int i = 0; i < pointCount - 1; i++) {
+            Point startPoint = route.get(i);
+            Point endPoint = route.get(i + 1);
+
+            double handleLength = startPoint.distanceTo(endPoint) / 3.0;
+
+            double firstHeading = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : headingAt(route, i);
+            double secondHeading = (i == pointCount - 2 && !Double.isNaN(endHeading))
+                    ? endHeading
+                    : headingAt(route, i + 1);
+
+            if (i == 0) {
+                controlPoints.add(startPoint);
+            }
+
+            controlPoints.add(new Point(
+                    startPoint.getX() + handleLength * Math.cos(firstHeading),
+                    startPoint.getY() + handleLength * Math.sin(firstHeading)));
+
+            controlPoints.add(new Point(
+                    endPoint.getX() - handleLength * Math.cos(secondHeading),
+                    endPoint.getY() - handleLength * Math.sin(secondHeading)));
+
+            controlPoints.add(endPoint);
         }
-        return new PathCurve(flat);
+
+        return new PathCurve(controlPoints);
     }
 
+    /**
+     * Fits a cubic chain through the route using each segment's own direction as the
+     * tangent. This tracks the route more tightly than {@link #fitSmooth} but turns
+     * more abruptly.
+     */
     private static PathCurve buildPath(List<Point> route, double startHeading, double endHeading) {
-        int n = route.size();
-        List<Point> flat = new ArrayList<>();
-        for (int i = 0; i < n - 1; i++) {
-            Point p0 = route.get(i);
-            Point p1 = route.get(i + 1);
-            double d = p0.distanceTo(p1) / 3.0;
-            double segHeading = Math.atan2(p1.getY() - p0.getY(), p1.getX() - p0.getX());
-            double h0 = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : segHeading;
-            double h1 = (i == n - 2 && !Double.isNaN(endHeading)) ? endHeading : segHeading;
-            if (i == 0) flat.add(p0);
-            flat.add(new Point(p0.getX() + d * Math.cos(h0), p0.getY() + d * Math.sin(h0)));
-            flat.add(new Point(p1.getX() - d * Math.cos(h1), p1.getY() - d * Math.sin(h1)));
-            flat.add(p1);
+        int pointCount = route.size();
+        List<Point> controlPoints = new ArrayList<>();
+
+        for (int i = 0; i < pointCount - 1; i++) {
+            Point startPoint = route.get(i);
+            Point endPoint = route.get(i + 1);
+
+            double handleLength = startPoint.distanceTo(endPoint) / 3.0;
+            double segmentHeading = Math.atan2(endPoint.getY() - startPoint.getY(),
+                    endPoint.getX() - startPoint.getX());
+
+            double firstHeading = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : segmentHeading;
+            double secondHeading = (i == pointCount - 2 && !Double.isNaN(endHeading)) ? endHeading : segmentHeading;
+
+            if (i == 0) {
+                controlPoints.add(startPoint);
+            }
+
+            controlPoints.add(new Point(
+                    startPoint.getX() + handleLength * Math.cos(firstHeading),
+                    startPoint.getY() + handleLength * Math.sin(firstHeading)));
+
+            controlPoints.add(new Point(
+                    endPoint.getX() - handleLength * Math.cos(secondHeading),
+                    endPoint.getY() - handleLength * Math.sin(secondHeading)));
+
+            controlPoints.add(endPoint);
         }
-        return new PathCurve(flat);
+
+        return new PathCurve(controlPoints);
     }
 
+    /**
+     * Estimates the heading at route point {@code i} from its neighbors. End points
+     * use the single adjacent segment; interior points use a central difference.
+     */
     private static double headingAt(List<Point> route, int i) {
         if (i == 0) {
-            return Math.atan2(route.get(1).getY() - route.get(0).getY(), route.get(1).getX() - route.get(0).getX());
+            return Math.atan2(route.get(1).getY() - route.get(0).getY(),
+                    route.get(1).getX() - route.get(0).getX());
         }
+
         if (i == route.size() - 1) {
-            return Math.atan2(route.get(i).getY() - route.get(i - 1).getY(), route.get(i).getX() - route.get(i - 1).getX());
+            return Math.atan2(route.get(i).getY() - route.get(i - 1).getY(),
+                    route.get(i).getX() - route.get(i - 1).getX());
         }
-        return Math.atan2(route.get(i + 1).getY() - route.get(i - 1).getY(), route.get(i + 1).getX() - route.get(i - 1).getX());
+
+        return Math.atan2(route.get(i + 1).getY() - route.get(i - 1).getY(),
+                route.get(i + 1).getX() - route.get(i - 1).getX());
     }
 }

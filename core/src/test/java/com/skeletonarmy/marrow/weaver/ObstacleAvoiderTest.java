@@ -15,6 +15,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Tests {@link ObstacleAvoider} routing and smoothing against circle, polygon, and
+ * composite obstacles.
+ */
 public class ObstacleAvoiderTest {
 
     private static final double EPS = 1e-6;

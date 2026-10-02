@@ -10,10 +10,35 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+/**
+ * Builds the geometric path (a chain of cubic Bézier curves) that a robot should
+ * follow to visit targets or reach a destination.
+ *
+ * <p>The generator works in two distinct modes:
+ * <ul>
+ *     <li><b>Intake mode</b> - when one or more targets are supplied. Targets are
+ *     ordered (optionally), clustered into rows that fit the intake, and connected
+ *     by a Hermite curve whose tangents follow the intake heading so the robot can
+ *     sweep them up.</li>
+ *     <li><b>Avoidance mode</b> - when only a destination is supplied. A straight-ish
+ *     seed path is generated and then bent around obstacles by {@link ObstacleAvoider}.</li>
+ * </ul>
+ */
 public final class WeaverGenerator {
-    private WeaverGenerator() {
-    }
+    private WeaverGenerator() {}
 
+    /**
+     * Generates a path from the given inputs.
+     *
+     * @param startPose        where the robot starts (pose and heading)
+     * @param destinationPose  goal pose in avoidance mode; may be {@code null} when targets exist
+     * @param targets          intake targets to visit; may be empty
+     * @param obstacles        zones the robot must not cut through; may be {@code null}
+     * @param reorder          {@code true} to let {@link TargetOrderer} pick the visit order
+     * @param config           geometry and tuning parameters
+     * @return the generated route plus metadata
+     * @throws IllegalStateException if neither targets nor a destination are provided
+     */
     public static PathResult generate(PathPose startPose, PathPose destinationPose,
                                       List<PathPose> targets, List<Zone> obstacles,
                                       boolean reorder, PathConfig config) {
@@ -33,76 +58,150 @@ public final class WeaverGenerator {
         throw new IllegalStateException("Either targets or a destination must be set");
     }
 
+    /**
+     * Tests whether {@code target} lies inside the robot's intake mouth.
+     * <p>
+     * The target is projected into the robot's local frame (forward axis and
+     * lateral axis). It is captured when it is (almost) exactly on the forward axis
+     * and within half the intake width sideways.
+     *
+     * @param robotCenter  current robot position
+     * @param headingRad   robot heading in radians
+     * @param intakeWidth  total intake width; half is allowed to each side
+     * @param target       game element position
+     * @return {@code true} if the target is within the intake
+     */
     public static boolean isCapturedByIntake(Point robotCenter, double headingRad, double intakeWidth, Point target) {
-        double cos = Math.cos(headingRad), sin = Math.sin(headingRad);
-        double relX = target.getX() - robotCenter.getX(), relY = target.getY() - robotCenter.getY();
-        return Math.abs(relX * cos + relY * sin) < 1e-6 && Math.abs(relX * -sin + relY * cos) <= intakeWidth / 2.0 + 1e-6;
+        double cosHeading = Math.cos(headingRad);
+        double sinHeading = Math.sin(headingRad);
+
+        double relativeX = target.getX() - robotCenter.getX();
+        double relativeY = target.getY() - robotCenter.getY();
+
+        // Forward axis component of the target, zero means dead ahead.
+        double alongRobot = relativeX * cosHeading + relativeY * sinHeading;
+
+        // Lateral axis component, bounded by half the intake width.
+        double lateral = relativeX * -sinHeading + relativeY * cosHeading;
+
+        return Math.abs(alongRobot) < 1e-6 && Math.abs(lateral) <= intakeWidth / 2.0 + 1e-6;
     }
 
+    /**
+     * Convenience overload of {@link #isCapturedByIntake(Point, double, double, Point)}
+     * that reads the intake width from the config.
+     */
     public static boolean isCapturedByIntake(Point robotCenter, double headingRad, PathConfig config, Point target) {
         return isCapturedByIntake(robotCenter, headingRad, config.getWidth(), target);
     }
 
-    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, double robotWidth, double robotHeight, int samples) {
+    /**
+     * Samples a single curve and checks that the robot footprint keeps the required
+     * clearance from every obstacle.
+     *
+     * @param curve       curve to sample
+     * @param obstacles   zones to avoid
+     * @param clearance   extra distance to keep from obstacles
+     * @param robotWidth  footprint width along the forward axis
+     * @param robotHeight footprint height across the forward axis
+     * @param samples     number of points to test along the curve
+     * @return {@code true} if the whole curve is clear
+     */
+    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance,
+                                      double robotWidth, double robotHeight, int samples) {
         for (int i = 0; i < samples; i++) {
-            double t = samples == 1 ? 0 : (double) i / (samples - 1);
-            Point p = curve.get(t);
+            double progress = samples == 1 ? 0 : (double) i / (samples - 1);
+            Point samplePoint = curve.get(progress);
+
             if (robotWidth <= 0 || robotHeight <= 0) {
-                for (Zone zone : obstacles) if (zone.contains(p) || zone.distanceToBoundary(p) < clearance) return false;
+                for (Zone zone : obstacles) {
+                    if (zone.contains(samplePoint) || zone.distanceToBoundary(samplePoint) < clearance) {
+                        return false;
+                    }
+                }
             } else {
-                Zone footprint = new PolygonZone(p, robotWidth, robotHeight, curve.getHeading(t));
-                for (Zone zone : obstacles) if (zone.isInside(footprint) || zone.distanceTo(footprint) < clearance) return false;
+                Zone footprint = new PolygonZone(samplePoint, robotWidth, robotHeight, curve.getHeading(progress));
+
+                for (Zone zone : obstacles) {
+                    if (zone.isInside(footprint) || zone.distanceTo(footprint) < clearance) {
+                        return false;
+                    }
+                }
             }
         }
+
         return true;
     }
 
+    /** Config-based overload of {@link #isPathClear(PathCurve, List, double, double, double, int)} for a whole route. */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, PathConfig config, int samplesPerSegment) {
-        return isPathClear(path, obstacles, config.getClearance(), config.getRobotWidth(), config.getRobotHeight(), samplesPerSegment);
+        return isPathClear(path, obstacles, config.getClearance(), config.getRobotWidth(),
+                config.getRobotHeight(), samplesPerSegment);
     }
 
+    /** Config-based overload of {@link #isPathClear(PathCurve, List, double, double, double, int)}. */
     public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, PathConfig config, int samples) {
-        return isPathClear(curve, obstacles, config.getClearance(), config.getRobotWidth(), config.getRobotHeight(), samples);
+        return isPathClear(curve, obstacles, config.getClearance(), config.getRobotWidth(),
+                config.getRobotHeight(), samples);
     }
 
+    /** Checks a whole route using the config and 100 samples per segment. */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, PathConfig config) {
         return isPathClear(path, obstacles, config, 100);
     }
 
+    /** Checks a single curve using the config and 100 samples. */
     public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, PathConfig config) {
         return isPathClear(curve, obstacles, config, 100);
     }
 
+    /**
+     * Checks that every segment of a route is clear.
+     *
+     * @see #isPathClear(PathCurve, List, double, double, double, int)
+     */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotWidth, double robotHeight, int samplesPerSegment) {
-        for (PathCurve segment : path.getSegments()) if (!isPathClear(segment, obstacles, clearance, robotWidth, robotHeight, samplesPerSegment)) return false;
+        for (PathCurve segment : path.getSegments()) {
+            if (!isPathClear(segment, obstacles, clearance, robotWidth, robotHeight, samplesPerSegment)) {
+                return false;
+            }
+        }
+
         return true;
     }
 
+    /** Checks a route against point clearance (no robot footprint). */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, int samplesPerSegment) {
         return isPathClear(path, obstacles, clearance, 0.0, 0.0, samplesPerSegment);
     }
 
+    /** Checks a single curve against point clearance (no robot footprint). */
     public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, int samples) {
         return isPathClear(curve, obstacles, clearance, 0.0, 0.0, samples);
     }
 
+    /** Orders and clusters targets, then builds one smooth curve that sweeps through them. */
     private static PathResult generateIntakeResult(PathPose start, List<PathPose> targets,
                                                    List<Zone> obstacles, boolean reorder,
                                                    PathConfig config) {
         Point startPoint = new Point(start.getX(), start.getY());
-        List<PathPose> ordered = reorder
+
+        List<PathPose> orderedTargets = reorder
                 ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
                 : new ArrayList<>(targets);
 
         if (config.isExcludeBlockedTargets()) {
-            ordered = excludeBlockedTargets(startPoint, ordered, obstacles, config);
+            orderedTargets = excludeBlockedTargets(startPoint, orderedTargets, obstacles, config);
         }
-        int skippedTargets = targets.size() - ordered.size();
 
-        if (ordered.isEmpty()) {
-            PathRoute idle = finish(new PathRoute(Collections.singletonList(
+        int skippedTargets = targets.size() - orderedTargets.size();
+
+        // No reachable target left: produce a stationary path at the start pose.
+        if (orderedTargets.isEmpty()) {
+            PathRoute idlePath = finish(new PathRoute(Collections.singletonList(
                     new PathCurve(Arrays.asList(startPoint, startPoint)))), obstacles, config);
-            return new PathResult(idle, Collections.singletonList(start.getHeadingRad()), skippedTargets);
+
+            return new PathResult(idlePath, Collections.singletonList(start.getHeadingRad()), skippedTargets);
         }
 
         List<Point> keyPoints = new ArrayList<>();
@@ -111,244 +210,409 @@ public final class WeaverGenerator {
         keyPoints.add(startPoint);
         headings.add(start.getHeadingRad());
 
-        double effectiveHalfWidth = config.getWidth() / 2.0;
-        List<int[]> groups = groupTargets(startPoint, ordered, config.getWidth());
-        Point prevRaw = startPoint;
+        // The robot can only sweep multiple targets at once if the intake has width.
+        double intakeHalfWidth = config.getWidth() / 2.0;
+        List<int[]> targetGroups = groupTargets(startPoint, orderedTargets, config.getWidth());
 
-        for (int g = 0; g < groups.size(); g++) {
-            int[] indices = groups.get(g);
-            if (indices.length > 1 && effectiveHalfWidth > 1e-9) {
-                prevRaw = addMergedGroup(ordered, indices, prevRaw, keyPoints, headings);
+        Point previousRawTarget = startPoint;
+
+        for (int groupIndex = 0; groupIndex < targetGroups.size(); groupIndex++) {
+            int[] groupIndices = targetGroups.get(groupIndex);
+
+            // A merged group (several targets in one intake pass) is handled separately.
+            if (groupIndices.length > 1 && intakeHalfWidth > 1e-9) {
+                previousRawTarget = addMergedGroup(orderedTargets, groupIndices, previousRawTarget, keyPoints, headings);
                 continue;
             }
 
-            PathPose first = ordered.get(indices[0]);
-            Point target = new Point(first.getX(), first.getY());
-            double heading = !Double.isNaN(first.getHeadingRad()) ? first.getHeadingRad()
-                    : Math.atan2(target.getY() - prevRaw.getY(), target.getX() - prevRaw.getX());
+            PathPose firstPose = orderedTargets.get(groupIndices[0]);
+            Point target = new Point(firstPose.getX(), firstPose.getY());
+
+            double heading = !Double.isNaN(firstPose.getHeadingRad())
+                    ? firstPose.getHeadingRad()
+                    : Math.atan2(target.getY() - previousRawTarget.getY(),
+                                 target.getX() - previousRawTarget.getX());
 
             Point robotCenter;
-            if (effectiveHalfWidth <= 1e-9 || g == groups.size() - 1) {
+
+            // The last target is reached dead-on; earlier ones may be offset so the
+            // intake mouth lines up with the target while the body stays on the path.
+            if (intakeHalfWidth <= 1e-9 || groupIndex == targetGroups.size() - 1) {
                 robotCenter = target;
             } else {
-                Point nextRepresentative = groupRepresentative(ordered, groups.get(g + 1));
-                robotCenter = solveIntakeCapturePoint(target, heading,
-                        effectiveHalfWidth, prevRaw, nextRepresentative);
+                Point nextGroupRepresentative = groupRepresentative(orderedTargets, targetGroups.get(groupIndex + 1));
+                robotCenter = solveIntakeCapturePoint(target, heading, intakeHalfWidth,
+                        previousRawTarget, nextGroupRepresentative);
             }
 
             keyPoints.add(robotCenter);
             headings.add(heading);
-            prevRaw = target;
+            previousRawTarget = target;
         }
 
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
         PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles, config);
+
         return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)), skippedTargets);
     }
 
+    /** Seeds a straight line of control points between start and end, then lets {@link ObstacleAvoider} bend and smooth it. */
     private static PathResult generateAvoidanceResult(Point start, Point end,
                                                       List<Zone> obstacles, PathConfig config) {
-        int controlPointCount = 6;
-        List<Point> biased = new ArrayList<>();
-        for (int i = 0; i < controlPointCount; i++) {
-            double t = (double) i / (controlPointCount - 1);
-            biased.add(new Point(start.getX() + (end.getX() - start.getX()) * t, start.getY() + (end.getY() - start.getY()) * t));
+        // Number of control points used to seed the curve before avoidance.
+        int seedControlPointCount = 6;
+
+        List<Point> seedPoints = new ArrayList<>();
+
+        for (int i = 0; i < seedControlPointCount; i++) {
+            double progress = (double) i / (seedControlPointCount - 1);
+            seedPoints.add(new Point(
+                    start.getX() + (end.getX() - start.getX()) * progress,
+                    start.getY() + (end.getY() - start.getY()) * progress));
         }
 
-        PathCurve curve = new PathCurve(biased);
-        PathRoute asPath = new PathRoute(Collections.singletonList(curve));
-        PathRoute finished = finish(asPath, obstacles, config);
+        PathCurve curve = new PathCurve(seedPoints);
+        PathRoute seedPath = new PathRoute(Collections.singletonList(curve));
+        PathRoute finished = finish(seedPath, obstacles, config);
 
         return new PathResult(finished, Collections.singletonList(finished.getHeading(1.0)), 0);
     }
 
+    /**
+     * Applies the optional smoothing and obstacle-avoidance passes to a route.
+     *
+     * @param path      route to post-process
+     * @param obstacles zones to avoid; may be {@code null}
+     * @param config    geometry and tuning parameters
+     * @return the processed route (possibly the same instance)
+     */
     private static PathRoute finish(PathRoute path, List<Zone> obstacles, PathConfig config) {
         if (config.isSmoothing()) {
             path = ObstacleAvoider.smooth(path);
         }
+
         if (obstacles != null && !obstacles.isEmpty()) {
             path = ObstacleAvoider.avoid(path, obstacles, config);
         }
+
         return path;
     }
 
+    /**
+     * Splits an ordered target list into groups that can each be collected in a
+     * single straight pass of the intake.
+     * <p>
+     * Starting at the current key point, consecutive targets are added while they
+     * stay within {@code width} of the line running through the first target. A target
+     * with an explicit heading always ends the group.
+     *
+     * @param startPoint point the first group starts from
+     * @param targets    ordered targets
+     * @param width      usable intake width; non-positive disables grouping
+     * @return each group as an array of indices into {@code targets}
+     */
     private static List<int[]> groupTargets(Point startPoint, List<PathPose> targets, double width) {
         List<int[]> groups = new ArrayList<>();
-        int n = targets.size();
+        int targetCount = targets.size();
 
+        // Without width there is no benefit in merging; every target is its own group.
         if (width <= 1e-9) {
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < targetCount; i++) {
                 groups.add(new int[]{i});
             }
+
             return groups;
         }
 
-        Point prevKey = startPoint;
-        int i = 0;
-        while (i < n) {
-            int first = i;
-            PathPose firstPose = targets.get(i);
-            double dx = firstPose.getX() - prevKey.getX();
-            double dy = firstPose.getY() - prevKey.getY();
-            double len = Math.hypot(dx, dy);
-            double ux = len > 1e-9 ? dx / len : 1.0;
-            double uy = len > 1e-9 ? dy / len : 0.0;
+        Point previousKeyPoint = startPoint;
+        int groupStart = 0;
 
-            double minLateral = 0, maxLateral = 0;
-            int j = i + 1;
-            while (j < n) {
-                PathPose a = targets.get(j - 1);
-                PathPose b = targets.get(j);
-                if (!Double.isNaN(a.getHeadingRad()) || !Double.isNaN(b.getHeadingRad())) {
+        while (groupStart < targetCount) {
+            PathPose firstPose = targets.get(groupStart);
+
+            // Direction from the previous key point to the first target of this group.
+            double deltaX = firstPose.getX() - previousKeyPoint.getX();
+            double deltaY = firstPose.getY() - previousKeyPoint.getY();
+            double distance = Math.hypot(deltaX, deltaY);
+
+            double directionX = distance > 1e-9 ? deltaX / distance : 1.0;
+            double directionY = distance > 1e-9 ? deltaY / distance : 0.0;
+
+            double minLateralOffset = 0;
+            double maxLateralOffset = 0;
+
+            int groupEnd = groupStart + 1;
+
+            while (groupEnd < targetCount) {
+                PathPose previousPose = targets.get(groupEnd - 1);
+                PathPose candidatePose = targets.get(groupEnd);
+
+                // An explicit heading on either target means they cannot be merged.
+                if (!Double.isNaN(previousPose.getHeadingRad()) || !Double.isNaN(candidatePose.getHeadingRad())) {
                     break;
                 }
-                double wx = b.getX() - firstPose.getX();
-                double wy = b.getY() - firstPose.getY();
-                double lateral = wx * -uy + wy * ux;
-                double nextMin = Math.min(minLateral, lateral);
-                double nextMax = Math.max(maxLateral, lateral);
-                if (nextMax - nextMin > width) {
+
+                double offsetX = candidatePose.getX() - firstPose.getX();
+                double offsetY = candidatePose.getY() - firstPose.getY();
+
+                // Perpendicular distance from the group's base line.
+                double lateralOffset = offsetX * -directionY + offsetY * directionX;
+
+                double candidateMin = Math.min(minLateralOffset, lateralOffset);
+                double candidateMax = Math.max(maxLateralOffset, lateralOffset);
+
+                // Stop before the row would no longer fit the intake.
+                if (candidateMax - candidateMin > width) {
                     break;
                 }
-                minLateral = nextMin;
-                maxLateral = nextMax;
-                j++;
+
+                minLateralOffset = candidateMin;
+                maxLateralOffset = candidateMax;
+                groupEnd++;
             }
 
-            int[] group = new int[j - first];
-            for (int k = 0; k < group.length; k++) {
-                group[k] = first + k;
+            int[] groupIndices = new int[groupEnd - groupStart];
+
+            for (int k = 0; k < groupIndices.length; k++) {
+                groupIndices[k] = groupStart + k;
             }
-            groups.add(group);
-            prevKey = groupRepresentative(targets, group);
-            i = j;
+
+            groups.add(groupIndices);
+            previousKeyPoint = groupRepresentative(targets, groupIndices);
+            groupStart = groupEnd;
         }
+
         return groups;
     }
 
-    private static Point addMergedGroup(List<PathPose> targets, int[] indices, Point from,
-                                        List<Point> keyPoints, List<Double> headings) {
-        PathPose first = targets.get(indices[0]);
-        double dx = first.getX() - from.getX();
-        double dy = first.getY() - from.getY();
-        double len = Math.hypot(dx, dy);
-        double ux = len > 1e-9 ? dx / len : 1.0;
-        double uy = len > 1e-9 ? dy / len : 0.0;
-        double px = -uy, py = ux;
-        double heading = len > 1e-9 ? Math.atan2(dy, dx) : headings.get(headings.size() - 1);
+    /**
+     * Appends the sweep points for a group that is collected in one pass.
+     * <p>
+     * The group's targets are sorted along the travel direction and placed on a
+     * line centered laterally within the group, so the intake passes over all of them.
+     *
+     * @return the last key point added
+     */
+    private static Point addMergedGroup(List<PathPose> targets, int[] groupIndices, Point previousPoint, List<Point> keyPoints, List<Double> headings) {
+        PathPose firstPose = targets.get(groupIndices[0]);
 
-        final double[] projections = new double[indices.length];
-        Integer[] order = new Integer[indices.length];
-        double minLateral = Double.MAX_VALUE, maxLateral = -Double.MAX_VALUE;
-        for (int k = 0; k < indices.length; k++) {
-            PathPose pose = targets.get(indices[k]);
-            double wx = pose.getX() - from.getX();
-            double wy = pose.getY() - from.getY();
-            double lateral = wx * px + wy * py;
-            minLateral = Math.min(minLateral, lateral);
-            maxLateral = Math.max(maxLateral, lateral);
-            projections[k] = wx * ux + wy * uy;
-            order[k] = k;
+        double deltaX = firstPose.getX() - previousPoint.getX();
+        double deltaY = firstPose.getY() - previousPoint.getY();
+        double distance = Math.hypot(deltaX, deltaY);
+
+        double directionX = distance > 1e-9 ? deltaX / distance : 1.0;
+        double directionY = distance > 1e-9 ? deltaY / distance : 0.0;
+
+        // Perpendicular to the travel direction.
+        double perpendicularX = -directionY;
+        double perpendicularY = directionX;
+
+        double heading = distance > 1e-9
+                ? Math.atan2(deltaY, deltaX)
+                : headings.get(headings.size() - 1);
+
+        double[] longitudinalOffsets = new double[groupIndices.length];
+        Integer[] visitOrder = new Integer[groupIndices.length];
+
+        double minLateralOffset = Double.MAX_VALUE;
+        double maxLateralOffset = -Double.MAX_VALUE;
+
+        for (int k = 0; k < groupIndices.length; k++) {
+            PathPose pose = targets.get(groupIndices[k]);
+
+            double offsetX = pose.getX() - previousPoint.getX();
+            double offsetY = pose.getY() - previousPoint.getY();
+
+            double lateralOffset = offsetX * perpendicularX + offsetY * perpendicularY;
+            minLateralOffset = Math.min(minLateralOffset, lateralOffset);
+            maxLateralOffset = Math.max(maxLateralOffset, lateralOffset);
+
+            longitudinalOffsets[k] = offsetX * directionX + offsetY * directionY;
+            visitOrder[k] = k;
         }
-        Arrays.sort(order, Comparator.comparingDouble(a -> projections[a]));
 
-        double centerLateral = (minLateral + maxLateral) / 2.0;
-        Point last = from;
-        for (int k : order) {
-            last = new Point(
-                    from.getX() + projections[k] * ux + centerLateral * px,
-                    from.getY() + projections[k] * uy + centerLateral * py);
-            keyPoints.add(last);
+        // Visit the group's targets in the order they appear along the travel direction.
+        Arrays.sort(visitOrder, Comparator.comparingDouble(a -> longitudinalOffsets[a]));
+
+        double centerLateralOffset = (minLateralOffset + maxLateralOffset) / 2.0;
+        Point lastPoint = previousPoint;
+
+        for (int k : visitOrder) {
+            lastPoint = new Point(
+                    previousPoint.getX() + longitudinalOffsets[k] * directionX + centerLateralOffset * perpendicularX,
+                    previousPoint.getY() + longitudinalOffsets[k] * directionY + centerLateralOffset * perpendicularY);
+
+            keyPoints.add(lastPoint);
             headings.add(heading);
         }
-        return last;
+
+        return lastPoint;
     }
 
+    /** Returns the average of the target positions at the given indices. */
     private static Point groupRepresentative(List<PathPose> targets, int[] indices) {
-        double x = 0, y = 0;
+        double sumX = 0;
+        double sumY = 0;
+
         for (int index : indices) {
-            x += targets.get(index).getX();
-            y += targets.get(index).getY();
+            sumX += targets.get(index).getX();
+            sumY += targets.get(index).getY();
         }
-        return new Point(x / indices.length, y / indices.length);
+
+        return new Point(sumX / indices.length, sumY / indices.length);
     }
 
-    private static Point solveIntakeCapturePoint(Point target, double heading, double halfWidth,
-                                                 Point prevRaw, Point nextRaw) {
-        double cos = Math.cos(heading), sin = Math.sin(heading);
-        double ux = sin, uy = -cos, vx = nextRaw.getX() - prevRaw.getX(), vy = nextRaw.getY() - prevRaw.getY();
-        double denom = ux * vy - uy * vx, s = 0;
-        if (Math.abs(denom) > 1e-9) s = ((prevRaw.getX() - target.getX()) * vy - (prevRaw.getY() - target.getY()) * vx) / denom;
-        s = Math.max(-halfWidth, Math.min(halfWidth, s));
-        return new Point(target.getX() + s * ux, target.getY() + s * uy);
+    /**
+     * Finds the robot-center point that lines the intake mouth up with a target.
+     * <p>
+     * The robot center is offset sideways from the target along the axis
+     * perpendicular to its heading. The offset is chosen so the line through the
+     * previous and next raw targets also crosses that offset line, and is clamped to
+     * the intake half width.
+     *
+     * @param target      target the intake should cover
+     * @param heading     robot heading at the target
+     * @param halfWidth   maximum sideways offset the intake allows
+     * @param previousRaw previous raw target point
+     * @param nextRaw     next raw target point
+     * @return the computed robot center
+     */
+    private static Point solveIntakeCapturePoint(Point target, double heading, double halfWidth, Point previousRaw, Point nextRaw) {
+        double cosHeading = Math.cos(heading);
+        double sinHeading = Math.sin(heading);
+
+        // Lateral axis of the intake, perpendicular to the heading.
+        double lateralAxisX = sinHeading;
+        double lateralAxisY = -cosHeading;
+
+        // Direction of travel through the surrounding targets.
+        double travelX = nextRaw.getX() - previousRaw.getX();
+        double travelY = nextRaw.getY() - previousRaw.getY();
+
+        // Intersection of the lateral axis through the target with the travel line.
+        double denominator = lateralAxisX * travelY - lateralAxisY * travelX;
+        double lateralOffset = 0;
+
+        if (Math.abs(denominator) > 1e-9) {
+            lateralOffset = ((previousRaw.getX() - target.getX()) * travelY
+                    - (previousRaw.getY() - target.getY()) * travelX) / denominator;
+        }
+
+        // Never step further sideways than the intake can reach.
+        lateralOffset = Math.max(-halfWidth, Math.min(halfWidth, lateralOffset));
+
+        return new Point(target.getX() + lateralOffset * lateralAxisX,
+                target.getY() + lateralOffset * lateralAxisY);
     }
 
+    /**
+     * Drops targets that an obstacle prevents the robot from reaching.
+     *
+     * @return a new list containing only reachable targets
+     */
     private static List<PathPose> excludeBlockedTargets(Point startPoint, List<PathPose> targets,
                                                         List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
             return targets;
         }
 
-        List<PathPose> reachable = new ArrayList<>();
-        Point prev = startPoint;
+        List<PathPose> reachableTargets = new ArrayList<>();
+        Point previousPoint = startPoint;
+
         for (PathPose target : targets) {
-            if (!isTargetBlocked(target, prev, obstacles, config)) {
-                reachable.add(target);
-                prev = new Point(target.getX(), target.getY());
+            if (!isTargetBlocked(target, previousPoint, obstacles, config)) {
+                reachableTargets.add(target);
+                previousPoint = new Point(target.getX(), target.getY());
             }
         }
-        return reachable;
+
+        return reachableTargets;
     }
 
+    /** Checks whether stopping at {@code target} would put the robot inside or too close to an obstacle. */
     private static boolean isTargetBlocked(PathPose target, Point from, List<Zone> obstacles, PathConfig config) {
-        Point p = new Point(target.getX(), target.getY());
+        Point targetPoint = new Point(target.getX(), target.getY());
+
         double heading = !Double.isNaN(target.getHeadingRad())
                 ? target.getHeadingRad()
-                : Math.atan2(p.getY() - from.getY(), p.getX() - from.getX());
+                : Math.atan2(targetPoint.getY() - from.getY(), targetPoint.getX() - from.getX());
 
+        // Point-clearance test when the robot has no meaningful footprint.
         if (config.getRobotWidth() <= 0 || config.getRobotHeight() <= 0) {
             for (Zone zone : obstacles) {
-                if (zone.contains(p) || zone.distanceToBoundary(p) < config.getClearance()) return true;
+                if (zone.contains(targetPoint) || zone.distanceToBoundary(targetPoint) < config.getClearance()) {
+                    return true;
+                }
             }
+
             return false;
         }
 
-        Zone footprint = new PolygonZone(p, config.getRobotWidth(), config.getRobotHeight(), heading);
+        Zone footprint = new PolygonZone(targetPoint, config.getRobotWidth(), config.getRobotHeight(), heading);
+
         for (Zone zone : obstacles) {
-            if (zone.isInside(footprint) || zone.distanceTo(footprint) < config.getClearance()) return true;
+            if (zone.isInside(footprint) || zone.distanceTo(footprint) < config.getClearance()) {
+                return true;
+            }
         }
+
         return false;
     }
 
+    /** Builds a single cubic Bezier from start to end, with control handles pointing along the supplied headings and one third of the distance long. */
     private static PathCurve twoPointCubic(Point start, Point end, double startHeading, double endHeading) {
-        double d = start.distanceTo(end) / 3.0;
+        double handleLength = start.distanceTo(end) / 3.0;
+
         return new PathCurve(Arrays.asList(
                 start,
-                new Point(start.getX() + d * Math.cos(startHeading), start.getY() + d * Math.sin(startHeading)),
-                new Point(end.getX() - d * Math.cos(endHeading), end.getY() - d * Math.sin(endHeading)),
+                new Point(start.getX() + handleLength * Math.cos(startHeading),
+                          start.getY() + handleLength * Math.sin(startHeading)),
+                new Point(end.getX() - handleLength * Math.cos(endHeading),
+                          end.getY() - handleLength * Math.sin(endHeading)),
                 end));
     }
 
-    private static PathCurve cubicHermiteChain(List<Point> pts, List<Double> headings) {
-        int n = pts.size();
-        if (n == 2) {
-            return twoPointCubic(pts.get(0), pts.get(1), headings.get(0), headings.get(1));
+    /**
+     * Smooths a sequence of key points into a chain of cubic Bezier segments.
+     * <p>
+     * Each segment's control handles are aligned with the heading stored for its
+     * key point, giving continuous tangents across the whole chain.
+     */
+    private static PathCurve cubicHermiteChain(List<Point> points, List<Double> headings) {
+        int pointCount = points.size();
+
+        // A two-point chain is the simple single-cubic case.
+        if (pointCount == 2) {
+            return twoPointCubic(points.get(0), points.get(1), headings.get(0), headings.get(1));
         }
 
-        List<Point> flat = new ArrayList<>();
-        for (int i = 0; i < n - 1; i++) {
-            Point p0 = pts.get(i);
-            Point p1 = pts.get(i + 1);
-            double d = p0.distanceTo(p1) / 3.0;
-            double h0 = headings.get(i);
-            double h1 = headings.get(i + 1);
-            Point cp1 = new Point(p0.getX() + d * Math.cos(h0), p0.getY() + d * Math.sin(h0));
-            Point cp2 = new Point(p1.getX() - d * Math.cos(h1), p1.getY() - d * Math.sin(h1));
-            if (i == 0) flat.add(p0);
-            flat.add(cp1);
-            flat.add(cp2);
-            flat.add(p1);
+        List<Point> controlPoints = new ArrayList<>();
+
+        for (int i = 0; i < pointCount - 1; i++) {
+            Point startPoint = points.get(i);
+            Point endPoint = points.get(i + 1);
+
+            double handleLength = startPoint.distanceTo(endPoint) / 3.0;
+            double startHeading = headings.get(i);
+            double endHeading = headings.get(i + 1);
+
+            Point firstControlPoint = new Point(
+                    startPoint.getX() + handleLength * Math.cos(startHeading),
+                    startPoint.getY() + handleLength * Math.sin(startHeading));
+
+            Point secondControlPoint = new Point(
+                    endPoint.getX() - handleLength * Math.cos(endHeading),
+                    endPoint.getY() - handleLength * Math.sin(endHeading));
+
+            if (i == 0) {
+                controlPoints.add(startPoint);
+            }
+
+            controlPoints.add(firstControlPoint);
+            controlPoints.add(secondControlPoint);
+            controlPoints.add(endPoint);
         }
-        return new PathCurve(flat);
+
+        return new PathCurve(controlPoints);
     }
 }

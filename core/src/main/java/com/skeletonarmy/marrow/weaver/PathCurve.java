@@ -7,152 +7,251 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * An immutable Bézier curve defined by a list of control points.
+ */
 public class PathCurve {
-
     private final List<Point> controlPoints;
-    private final int cubicSegments;
+    private final int cubicSegmentCount;
 
+    /**
+     * Creates a curve from its control points.
+     *
+     * @param controlPoints at least two points, stored in order
+     * @throws IllegalArgumentException if fewer than two points are supplied
+     */
     public PathCurve(List<Point> controlPoints) {
         if (controlPoints == null || controlPoints.size() < 2) {
             throw new IllegalArgumentException();
         }
+
         this.controlPoints = new ArrayList<>(controlPoints);
-        int n = this.controlPoints.size();
-        this.cubicSegments = (n >= 4 && (n - 1) % 3 == 0) ? (n - 1) / 3 : 0;
+        int pointCount = this.controlPoints.size();
+
+        // A cubic chain needs a multiple of 3 points plus the final endpoint.
+        this.cubicSegmentCount = (pointCount >= 4 && (pointCount - 1) % 3 == 0) ? (pointCount - 1) / 3 : 0;
     }
 
+    /** Returns the control points, in order. */
     public List<Point> getControlPoints() {
         return Collections.unmodifiableList(controlPoints);
     }
 
+    /** Returns {@code true} when this curve is a chain of cubic segments. */
     public boolean isComposite() {
-        return cubicSegments > 0;
+        return cubicSegmentCount > 0;
     }
 
+    /**
+     * Splits a composite curve into its individual cubic segments. A non-composite
+     * curve is returned as a single-element list.
+     */
     public List<PathCurve> toCubicSegments() {
         if (!isComposite()) {
             return Collections.singletonList(this);
         }
+
         List<PathCurve> segments = new ArrayList<>();
+
+        // Each cubic consumes three new control points plus the shared endpoint.
         for (int i = 0; i + 3 < controlPoints.size(); i += 3) {
             segments.add(new PathCurve(Arrays.asList(
-                    controlPoints.get(i), controlPoints.get(i + 1), controlPoints.get(i + 2), controlPoints.get(i + 3))));
+                    controlPoints.get(i),
+                    controlPoints.get(i + 1),
+                    controlPoints.get(i + 2),
+                    controlPoints.get(i + 3))));
         }
+
         return segments;
     }
 
+    /**
+     * Recombines cubic segments into a single composite curve, dropping the
+     * duplicated shared endpoints.
+     */
     public static PathCurve fromCubicSegments(List<PathCurve> segments) {
         if (segments.size() == 1) {
             return segments.get(0);
         }
-        List<Point> flat = new ArrayList<>();
+
+        List<Point> combined = new ArrayList<>();
+
         for (int i = 0; i < segments.size(); i++) {
-            List<Point> cps = segments.get(i).getControlPoints();
-            if (i == 0) flat.add(cps.get(0));
-            flat.add(cps.get(1));
-            flat.add(cps.get(2));
-            flat.add(cps.get(3));
+            List<Point> controlPoints = segments.get(i).getControlPoints();
+
+            // Only the first segment contributes its start point; the rest share the
+            // previous segment's end point.
+            if (i == 0) {
+                combined.add(controlPoints.get(0));
+            }
+
+            combined.add(controlPoints.get(1));
+            combined.add(controlPoints.get(2));
+            combined.add(controlPoints.get(3));
         }
-        return new PathCurve(flat);
+
+        return new PathCurve(combined);
     }
 
+    /** Returns the polynomial degree of the curve (3 for a cubic chain). */
     public int getDegree() {
-        return cubicSegments > 0 ? 3 : controlPoints.size() - 1;
+        return cubicSegmentCount > 0 ? 3 : controlPoints.size() - 1;
     }
 
+    /**
+     * Evaluates the curve at parameter {@code t}.
+     *
+     * @param t parameter in {@code [0, 1]}
+     * @return the point on the curve
+     */
     public Point get(double t) {
-        if (cubicSegments == 0) {
+        if (cubicSegmentCount == 0) {
             return polynomialPoint(t);
         }
-        int index = segmentIndex(t);
-        double localT = (Math.max(0, Math.min(t, 1)) * cubicSegments) - index;
-        int base = index * 3;
-        Point p0 = controlPoints.get(base);
-        Point p1 = controlPoints.get(base + 1);
-        Point p2 = controlPoints.get(base + 2);
-        Point p3 = controlPoints.get(base + 3);
-        double mt = 1 - localT;
-        double a = mt * mt * mt;
-        double b = 3 * mt * mt * localT;
-        double c = 3 * mt * localT * localT;
-        double d = localT * localT * localT;
-        return new Point(a * p0.getX() + b * p1.getX() + c * p2.getX() + d * p3.getX(),
-                a * p0.getY() + b * p1.getY() + c * p2.getY() + d * p3.getY());
+
+        int segmentIndex = segmentIndex(t);
+        double localProgress = (Math.max(0, Math.min(t, 1)) * cubicSegmentCount) - segmentIndex;
+        int controlPointBase = segmentIndex * 3;
+
+        Point startPoint = controlPoints.get(controlPointBase);
+        Point firstControl = controlPoints.get(controlPointBase + 1);
+        Point secondControl = controlPoints.get(controlPointBase + 2);
+        Point endPoint = controlPoints.get(controlPointBase + 3);
+
+        double oneMinusT = 1 - localProgress;
+
+        // Standard cubic Bernstein basis weights.
+        double startWeight = oneMinusT * oneMinusT * oneMinusT;
+        double firstWeight = 3 * oneMinusT * oneMinusT * localProgress;
+        double secondWeight = 3 * oneMinusT * localProgress * localProgress;
+        double endWeight = localProgress * localProgress * localProgress;
+
+        return new Point(
+                startWeight * startPoint.getX() + firstWeight * firstControl.getX()
+                        + secondWeight * secondControl.getX() + endWeight * endPoint.getX(),
+                startWeight * startPoint.getY() + firstWeight * firstControl.getY()
+                        + secondWeight * secondControl.getY() + endWeight * endPoint.getY());
     }
 
+    /**
+     * Evaluates the curve's derivative (tangent) at parameter {@code t}.
+     */
     public Point derivative(double t) {
-        if (cubicSegments == 0) {
+        if (cubicSegmentCount == 0) {
             return polynomialDerivative(t);
         }
-        int index = segmentIndex(t);
-        double localT = (Math.max(0, Math.min(t, 1)) * cubicSegments) - index;
-        int base = index * 3;
-        Point p0 = controlPoints.get(base);
-        Point p1 = controlPoints.get(base + 1);
-        Point p2 = controlPoints.get(base + 2);
-        Point p3 = controlPoints.get(base + 3);
-        double mt = 1 - localT;
-        double ax = 3 * ((p1.getX() - p0.getX()) * mt * mt
-                + 2 * (p2.getX() - p1.getX()) * mt * localT
-                + (p3.getX() - p2.getX()) * localT * localT);
-        double ay = 3 * ((p1.getY() - p0.getY()) * mt * mt
-                + 2 * (p2.getY() - p1.getY()) * mt * localT
-                + (p3.getY() - p2.getY()) * localT * localT);
-        return new Point(ax, ay);
+
+        int segmentIndex = segmentIndex(t);
+        double localProgress = (Math.max(0, Math.min(t, 1)) * cubicSegmentCount) - segmentIndex;
+        int controlPointBase = segmentIndex * 3;
+
+        Point startPoint = controlPoints.get(controlPointBase);
+        Point firstControl = controlPoints.get(controlPointBase + 1);
+        Point secondControl = controlPoints.get(controlPointBase + 2);
+        Point endPoint = controlPoints.get(controlPointBase + 3);
+
+        double oneMinusT = 1 - localProgress;
+
+        double derivativeX = 3 * (
+                (firstControl.getX() - startPoint.getX()) * oneMinusT * oneMinusT
+                        + 2 * (secondControl.getX() - firstControl.getX()) * oneMinusT * localProgress
+                        + (endPoint.getX() - secondControl.getX()) * localProgress * localProgress);
+
+        double derivativeY = 3 * (
+                (firstControl.getY() - startPoint.getY()) * oneMinusT * oneMinusT
+                        + 2 * (secondControl.getY() - firstControl.getY()) * oneMinusT * localProgress
+                        + (endPoint.getY() - secondControl.getY()) * localProgress * localProgress);
+
+        return new Point(derivativeX, derivativeY);
     }
 
+    /** Returns the tangent heading at parameter {@code t}, in radians. */
     public double getHeading(double t) {
-        Point d = derivative(t);
-        return Math.atan2(d.getY(), d.getX());
+        Point tangent = derivative(t);
+
+        return Math.atan2(tangent.getY(), tangent.getX());
     }
 
+    /**
+     * Samples the curve into {@code numPoints} evenly spaced points.
+     */
     public List<Point> sample(int numPoints) {
-        List<Point> pts = new ArrayList<>();
+        List<Point> points = new ArrayList<>();
+
         for (int i = 0; i < numPoints; i++) {
-            pts.add(get(numPoints == 1 ? 0 : (double) i / (numPoints - 1)));
+            double t = numPoints == 1 ? 0 : (double) i / (numPoints - 1);
+            points.add(get(t));
         }
-        return pts;
+
+        return points;
     }
 
+    /**
+     * Approximates the curve length by summing the distances between {@code samples}
+     * sampled points.
+     */
     public double approxLength(int samples) {
-        List<Point> pts = sample(Math.max(samples, 2));
+        List<Point> points = sample(Math.max(samples, 2));
         double length = 0;
-        for (int i = 1; i < pts.size(); i++) {
-            length += pts.get(i - 1).distanceTo(pts.get(i));
+
+        for (int i = 1; i < points.size(); i++) {
+            length += points.get(i - 1).distanceTo(points.get(i));
         }
+
         return length;
     }
 
+    /** Maps a global parameter to the index of the cubic segment it falls on. */
     private int segmentIndex(double t) {
-        double segT = Math.max(0, Math.min(t, 1)) * cubicSegments;
-        int index = (int) segT;
-        return index >= cubicSegments ? cubicSegments - 1 : index;
+        double scaled = Math.max(0, Math.min(t, 1)) * cubicSegmentCount;
+        int index = (int) scaled;
+
+        return index >= cubicSegmentCount ? cubicSegmentCount - 1 : index;
     }
 
+    /**
+     * Evaluates a non-composite curve with the de Casteljau algorithm.
+     */
     private Point polynomialPoint(double t) {
         List<Point> points = new ArrayList<>(controlPoints);
-        int n = points.size();
-        for (int k = 1; k < n; k++) {
-            for (int i = 0; i < n - k; i++) {
+        int pointCount = points.size();
+
+        // Repeatedly interpolate neighboring points until one remains.
+        for (int level = 1; level < pointCount; level++) {
+            for (int i = 0; i < pointCount - level; i++) {
                 Point a = points.get(i);
                 Point b = points.get(i + 1);
-                points.set(i, new Point((1 - t) * a.getX() + t * b.getX(), (1 - t) * a.getY() + t * b.getY()));
+                points.set(i, new Point(
+                        (1 - t) * a.getX() + t * b.getX(),
+                        (1 - t) * a.getY() + t * b.getY()));
             }
         }
+
         return points.get(0);
     }
 
+    /**
+     * Evaluates the derivative of a non-composite curve by differentiating its
+     * control points once and evaluating the resulting lower-degree curve.
+     */
     private Point polynomialDerivative(double t) {
-        int n = controlPoints.size() - 1;
-        List<Point> diffPoints = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
+        int degree = controlPoints.size() - 1;
+        List<Point> differencePoints = new ArrayList<>();
+
+        for (int i = 0; i < degree; i++) {
             Point p = controlPoints.get(i);
             Point pNext = controlPoints.get(i + 1);
-            diffPoints.add(new Point(n * (pNext.getX() - p.getX()), n * (pNext.getY() - p.getY())));
+
+            differencePoints.add(new Point(
+                    degree * (pNext.getX() - p.getX()),
+                    degree * (pNext.getY() - p.getY())));
         }
-        if (diffPoints.size() == 1) {
-            return diffPoints.get(0);
+
+        // The derivative of a line is a constant vector.
+        if (differencePoints.size() == 1) {
+            return differencePoints.get(0);
         }
-        return new PathCurve(diffPoints).get(t);
+
+        return new PathCurve(differencePoints).get(t);
     }
 }
