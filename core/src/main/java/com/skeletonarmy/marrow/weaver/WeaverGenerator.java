@@ -92,7 +92,7 @@ public final class WeaverGenerator {
      * that reads the intake width from the config.
      */
     public static boolean isCapturedByIntake(Point robotCenter, double headingRad, PathConfig config, Point target) {
-        return isCapturedByIntake(robotCenter, headingRad, config.getWidth(), target);
+        return isCapturedByIntake(robotCenter, headingRad, config.getIntakeWidth(), target);
     }
 
     /**
@@ -211,8 +211,8 @@ public final class WeaverGenerator {
         headings.add(start.getHeadingRad());
 
         // The robot can only sweep multiple targets at once if the intake has width.
-        double intakeHalfWidth = config.getWidth() / 2.0;
-        List<int[]> targetGroups = groupTargets(startPoint, orderedTargets, config.getWidth());
+        double intakeHalfWidth = config.getIntakeWidth() / 2.0;
+        List<int[]> targetGroups = groupTargets(startPoint, orderedTargets, config.getIntakeWidth());
 
         Point previousRawTarget = startPoint;
 

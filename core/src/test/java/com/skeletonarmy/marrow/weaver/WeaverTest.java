@@ -42,32 +42,32 @@ public class WeaverTest {
 
         // Assert
         assertNotNull(actual);
-        assertEquals(0.0, actual.getWidth(), EPS);
+        assertEquals(0.0, actual.getIntakeWidth(), EPS);
     }
 
     @Test
     public void setConfig_customConfig_replacesGlobalConfig() {
         // Arrange
-        PathConfig custom = new PathConfig().width(99);
+        PathConfig custom = new PathConfig().intakeWidth(99);
 
         // Act
         Weaver.setConfig(custom);
 
         // Assert
         assertSame(custom, Weaver.getConfig());
-        assertEquals(99.0, Weaver.getConfig().getWidth(), EPS);
+        assertEquals(99.0, Weaver.getConfig().getIntakeWidth(), EPS);
     }
 
     @Test
     public void resetToDefaults_afterCustomConfig_restoresDefaultConfig() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(99));
+        Weaver.setConfig(new PathConfig().intakeWidth(99));
 
         // Act
         Weaver.resetToDefaults();
 
         // Assert
-        assertEquals(0.0, Weaver.getConfig().getWidth(), EPS);
+        assertEquals(0.0, Weaver.getConfig().getIntakeWidth(), EPS);
     }
 
     // --- Builder argument validation ---
@@ -149,7 +149,7 @@ public class WeaverTest {
     @Test
     public void generate_singleTarget_endsAtTarget() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0));
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
         PathPose target = new PathPose(START_X + 20, START_Y);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -201,7 +201,7 @@ public class WeaverTest {
     @Test
     public void generate_zeroWidth_passesThroughEveryTarget() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0));
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
         PathPose first = new PathPose(START_X + 20, START_Y + 5);
         PathPose second = new PathPose(START_X + 50, START_Y - 5);
         WeaverBuilder builder = Weaver.builder()
@@ -223,7 +223,7 @@ public class WeaverTest {
     @Test
     public void generate_wideIntake_clustersPerpendicularTargets_keepsPathStraight() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(18));
+        Weaver.setConfig(new PathConfig().intakeWidth(18));
         List<PathPose> targets = Arrays.asList(
                 new PathPose(START_X + 20, START_Y),
                 new PathPose(START_X + 40, START_Y - 5),
@@ -246,7 +246,7 @@ public class WeaverTest {
     @Test
     public void generate_wideIntake_separateTargets_solvesCapturePoints() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(18));
+        Weaver.setConfig(new PathConfig().intakeWidth(18));
         PathPose first = new PathPose(START_X + 40, START_Y - 30);
         PathPose second = new PathPose(START_X + 80, START_Y + 30);
         WeaverBuilder builder = Weaver.builder()
@@ -268,7 +268,7 @@ public class WeaverTest {
     @Test
     public void generate_allTargetsBlocked_returnsIdlePathAtStart() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0));
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -288,7 +288,7 @@ public class WeaverTest {
     @Test
     public void generate_allTargetsBlocked_reportsSkippedTargets() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0));
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -306,7 +306,7 @@ public class WeaverTest {
     @Test
     public void generate_someTargetsBlocked_reportsSkippedTargets() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0));
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -324,7 +324,7 @@ public class WeaverTest {
     @Test
     public void generate_blockedTargetExclusionDisabled_reportsNoSkippedTargets() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0).excludeBlockedTargets(false));
+        Weaver.setConfig(new PathConfig().intakeWidth(0).excludeBlockedTargets(false));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -356,7 +356,7 @@ public class WeaverTest {
     @Test
     public void generate_blockedTargetExclusionDisabled_reachesBlockedTarget() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0).excludeBlockedTargets(false));
+        Weaver.setConfig(new PathConfig().intakeWidth(0).excludeBlockedTargets(false));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -375,7 +375,7 @@ public class WeaverTest {
     @Test
     public void generate_someTargetsBlocked_reachesFreeTarget() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0));
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))
@@ -568,7 +568,7 @@ public class WeaverTest {
         // Arrange
         Point center = new Point(0, 0);
         Point target = new Point(0, 5);
-        PathConfig config = new PathConfig().width(12.0);
+        PathConfig config = new PathConfig().intakeWidth(12.0);
 
         // Act & Assert
         assertTrue(WeaverGenerator.isCapturedByIntake(center, 0, config, target));
@@ -599,7 +599,7 @@ public class WeaverTest {
     @Test
     public void generate_smoothingDisabled_endsAtTarget() {
         // Arrange
-        Weaver.setConfig(new PathConfig().width(0).smoothing(false));
+        Weaver.setConfig(new PathConfig().intakeWidth(0).smoothing(false));
         PathPose target = new PathPose(START_X + 20, START_Y);
         WeaverBuilder builder = Weaver.builder()
                 .start(new PathPose(START_X, START_Y, 0))

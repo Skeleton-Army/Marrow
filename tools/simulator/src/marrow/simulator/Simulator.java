@@ -55,7 +55,7 @@ public class Simulator extends JPanel {
 
     private Point start = new Point(24, 24);
     private double obstacleRadius = 6.0;
-    private double width = DEFAULT_CONFIG.getWidth();
+    private double width = DEFAULT_CONFIG.getIntakeWidth();
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private int polygonSides = 4;
     private boolean reorder = true;
@@ -245,7 +245,7 @@ public class Simulator extends JPanel {
         }
 
         try {
-            Weaver.setConfig(new PathConfig().width(width));
+            Weaver.setConfig(new PathConfig().intakeWidth(width));
 
             WeaverBuilder b = Weaver.builder()
                     .start(new PathPose(start.getX(), start.getY(), 0));

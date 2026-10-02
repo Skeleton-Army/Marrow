@@ -6,7 +6,7 @@ package com.skeletonarmy.marrow.weaver;
  * Example usage:
  * <pre>{@code
  * PathConfig config = new PathConfig()
- *         .width(13.0)
+ *         .intakeWidth(13.0)
  *         .robotWidth(16.0)
  *         .clearance(3.0);
  * }</pre>
@@ -18,7 +18,7 @@ public class PathConfig {
      * Intake width used when reaching targets. Set to 0 to stop with the robot center
      * on the target. Set to the real intake width to sweep up game elements.
      */
-    private double width = 0.0;
+    private double intakeWidth = 0.0;
 
     /**
      * Robot footprint width, measured along the robot's forward axis.
@@ -64,8 +64,8 @@ public class PathConfig {
      */
     private int bruteForceOrderLimit = 8;
 
-    public double getWidth() { return width; }
-    public PathConfig width(double v) { this.width = v; return this; }
+    public double getIntakeWidth() { return intakeWidth; }
+    public PathConfig intakeWidth(double v) { this.intakeWidth = v; return this; }
 
     public double getRobotWidth() { return robotWidth; }
     public PathConfig robotWidth(double v) { this.robotWidth = v; return this; }
