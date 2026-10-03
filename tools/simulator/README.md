@@ -29,27 +29,27 @@ rest of the project.
 
 ### Mouse
 
-| Action | Result |
-| --- | --- |
+| Action                 | Result                                                   |
+|------------------------|----------------------------------------------------------|
 | Left-click empty space | Add the current mode's item (target, obstacle, or start) |
-| Right-click | Remove the nearest target or obstacle |
-| Drag an obstacle body | Move it |
-| Drag an edge handle | Resize it |
-| Drag a polygon corner | Rotate it |
+| Right-click            | Remove the nearest target or obstacle                    |
+| Drag an obstacle body  | Move it                                                  |
+| Drag an edge handle    | Resize it                                                |
+| Drag a polygon corner  | Rotate it                                                |
 
 ### Keyboard
 
-| Key | Action |
-| --- | --- |
-| `T` | Target mode |
-| `O` | Obstacle mode |
-| `S` | Start mode |
-| `R` | Toggle target reordering |
-| `C` | Clear all targets and obstacles |
-| `P` | Toggle obstacle shape (circle / polygon) |
+| Key       | Action                                        |
+|-----------|-----------------------------------------------|
+| `T`       | Target mode                                   |
+| `O`       | Obstacle mode                                 |
+| `S`       | Start mode                                    |
+| `R`       | Toggle target reordering                      |
+| `C`       | Clear all targets and obstacles               |
+| `P`       | Toggle obstacle shape (circle / polygon)      |
 | `[` / `]` | Decrease / increase polygon side count (3-12) |
-| `A` / `D` | Decrease / increase intake width |
-| `+` / `-` | Increase / decrease obstacle size |
+| `A` / `D` | Decrease / increase intake width              |
+| `+` / `-` | Increase / decrease obstacle size             |
 
 ## Notes
 
