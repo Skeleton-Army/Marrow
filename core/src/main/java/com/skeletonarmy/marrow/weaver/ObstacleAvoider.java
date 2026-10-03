@@ -46,6 +46,11 @@ public class ObstacleAvoider {
 
     /**
      * Routes every segment of {@code path} around the given obstacles.
+     *
+     * @param path      route to reroute
+     * @param obstacles zones to avoid; when {@code null} or empty the route is returned unchanged
+     * @param config    geometry and tuning parameters
+     * @return the rerouted path
      */
     public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
@@ -67,6 +72,9 @@ public class ObstacleAvoider {
      * Re-fits every segment through its original keypoints using continuous,
      * central-difference tangents. Obstacle routing already smooths as a side
      * effect of fitting; this applies the same treatment to obstacle-free paths.
+     *
+     * @param path route to smooth
+     * @return the smoothed path
      */
     public static PathRoute smooth(PathRoute path) {
         List<PathCurve> smoothedSegments = new ArrayList<>();
@@ -83,6 +91,9 @@ public class ObstacleAvoider {
     /**
      * Smooths a single curve by extracting its keypoints and re-fitting them with
      * central-difference tangents.
+     *
+     * @param curve curve to smooth
+     * @return the smoothed curve
      */
     private static PathCurve smoothCurve(PathCurve curve) {
         List<PathCurve> cubicSegments = curve.toCubicSegments();
@@ -101,6 +112,10 @@ public class ObstacleAvoider {
     /**
      * Returns the radius of the robot footprint in the direction of
      * {@code relativeAngle}, measured from the robot center.
+     *
+     * @param relativeAngle direction to measure, relative to the robot heading
+     * @param config        geometry parameters
+     * @return the footprint radius in that direction
      */
     private static double footprintRadius(double relativeAngle, PathConfig config) {
         double halfWidth = config.getRobotWidth() / 2.0;
@@ -112,6 +127,9 @@ public class ObstacleAvoider {
     /**
      * Returns the largest distance any point of the robot could need from an
      * obstacle: the half diagonal of the footprint plus the clearance.
+     *
+     * @param config geometry parameters
+     * @return the worst-case margin
      */
     private static double worstCaseMargin(PathConfig config) {
         return Math.hypot(config.getRobotWidth(), config.getRobotHeight()) / 2.0 + config.getClearance();
@@ -121,6 +139,8 @@ public class ObstacleAvoider {
      * Estimates the direction pointing away from the obstacle at point {@code p}
      * using a central-difference gradient of the signed distance.
      *
+     * @param zone obstacle being measured
+     * @param p    point to evaluate at
      * @return the outward angle in radians
      */
     private static double obstacleDirection(Zone zone, Point p) {
@@ -141,6 +161,13 @@ public class ObstacleAvoider {
      * Computes how far {@code p} must be from {@code zone}, given the robot heading.
      * The footprint radius is measured toward the obstacle, so the required margin
      * grows when the robot presents a corner rather than a flat side.
+     *
+     * @param p       robot-center point to test
+     * @param heading robot heading in radians
+     * @param zone    obstacle to clear
+     * @param config  geometry parameters
+     * @param extra   additional padding added to the margin
+     * @return the required clearance
      */
     private static double requiredMargin(Point p, double heading, Zone zone, PathConfig config, double extra) {
         double relativeAngle = obstacleDirection(zone, p) - heading;
@@ -154,6 +181,11 @@ public class ObstacleAvoider {
      * Candidate waypoints are collected around the obstacle boundaries and a
      * smooth path is fitted through the shortest visible route. If the fitted curve
      * still clips an obstacle, the padding is increased and the attempt repeated.
+     *
+     * @param sourceCurve curve to reroute
+     * @param obstacles   zones to avoid
+     * @param config      geometry and tuning parameters
+     * @return the rerouted curve, or the original curve when routing fails
      */
     private static PathCurve routeCurve(PathCurve sourceCurve, List<Zone> obstacles, PathConfig config) {
         double startHeading = sourceCurve.getHeading(0.0);
@@ -199,6 +231,10 @@ public class ObstacleAvoider {
      * Builds a full list of waypoints by routing each original keypoint-to-keypoint
      * segment and concatenating the pieces.
      *
+     * @param keypoints original key points to connect, in order
+     * @param obstacles zones to avoid
+     * @param config    geometry and tuning parameters
+     * @param extra     additional padding to keep from obstacles
      * @return the combined waypoints, or {@code null} if any segment cannot be routed
      */
     private static List<Point> collectWaypoints(List<Point> keypoints, List<Zone> obstacles,
@@ -231,6 +267,13 @@ public class ObstacleAvoider {
      * <p>
      * If either endpoint is inside an obstacle, or the segment is already clear,
      * the segment endpoints are returned unchanged.
+     *
+     * @param start     segment start point
+     * @param end       segment end point
+     * @param obstacles zones to avoid
+     * @param config    geometry and tuning parameters
+     * @param extra     additional padding to keep from obstacles
+     * @return the waypoints of the routed segment, or {@code null} if no route exists
      */
     private static List<Point> routeSegmentWaypoints(Point start, Point end, List<Zone> obstacles,
                                                      PathConfig config, double extra) {
@@ -261,7 +304,13 @@ public class ObstacleAvoider {
         return shortestPath(0, 1, nodes, obstacles, config, extra, startRelaxDistance, endRelaxDistance);
     }
 
-    /** Returns the smallest signed distance from {@code p} to any obstacle. */
+    /**
+     * Returns the smallest signed distance from {@code p} to any obstacle.
+     *
+     * @param p         point to measure
+     * @param obstacles zones to measure against
+     * @return the smallest signed distance; negative when inside an obstacle
+     */
     private static double minSignedDist(Point p, List<Zone> obstacles) {
         double minimum = Double.MAX_VALUE;
 
@@ -272,7 +321,13 @@ public class ObstacleAvoider {
         return minimum;
     }
 
-    /** Returns {@code true} if {@code p} is inside any obstacle. */
+    /**
+     * Returns whether {@code p} is inside any obstacle.
+     *
+     * @param p         point to test
+     * @param obstacles zones to test against
+     * @return {@code true} if the point is inside an obstacle
+     */
     private static boolean insideObstacle(Point p, List<Zone> obstacles) {
         for (Zone zone : obstacles) {
             if (zone.contains(p)) {
@@ -286,7 +341,13 @@ public class ObstacleAvoider {
     /**
      * Checks that a single point keeps enough distance from every obstacle.
      *
+     * @param p        robot-center point to test
+     * @param heading  robot heading in radians
+     * @param obstacles zones to test against
+     * @param config   geometry parameters
+     * @param extra    additional padding to keep
      * @param relaxCap upper bound on how much the required margin may be relaxed
+     * @return {@code true} if the point has enough clearance
      */
     private static boolean isPointClear(Point p, double heading, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
         for (Zone zone : obstacles) {
@@ -300,7 +361,16 @@ public class ObstacleAvoider {
         return true;
     }
 
-    /** Checks a segment without relaxing the clearance. */
+    /**
+     * Checks a segment without relaxing the clearance.
+     *
+     * @param start     segment start point
+     * @param end       segment end point
+     * @param obstacles zones to test against
+     * @param config    geometry parameters
+     * @param extra     additional padding to keep
+     * @return {@code true} if the whole segment is clear
+     */
     private static boolean isSegmentClear(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
         return isSegmentClear(start, end, obstacles, config, extra, Double.MAX_VALUE);
     }
@@ -308,7 +378,13 @@ public class ObstacleAvoider {
     /**
      * Checks a segment by sampling it and testing each sample point.
      *
+     * @param start    segment start point
+     * @param end      segment end point
+     * @param obstacles zones to test against
+     * @param config   geometry parameters
+     * @param extra    additional padding to keep
      * @param relaxCap upper bound on the relaxed margin, or {@link Double#MAX_VALUE}
+     * @return {@code true} if every sample is clear
      */
     private static boolean isSegmentClear(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
         double heading = Math.atan2(end.getY() - start.getY(), end.getX() - start.getX());
@@ -333,6 +409,12 @@ public class ObstacleAvoider {
      * <p>
      * Waypoints close to an obstacle are allowed a relaxed margin, so the path can
      * hug a corner it was deliberately routed around.
+     *
+     * @param curve     curve to test
+     * @param obstacles zones to test against
+     * @param config    geometry parameters
+     * @param waypoints waypoints the curve was fitted through
+     * @return {@code true} if the curve stays clear
      */
     private static boolean isCurveClear(PathCurve curve, List<Zone> obstacles, PathConfig config, List<Point> waypoints) {
         List<PathCurve> cubicSegments = curve.toCubicSegments();
@@ -371,6 +453,11 @@ public class ObstacleAvoider {
     /**
      * Returns the relaxed clearance allowed near a waypoint. Waypoints that already
      * sit inside the nominal margin get a small reduction; all others are unlimited.
+     *
+     * @param waypoint  waypoint to evaluate
+     * @param obstacles zones to measure against
+     * @param config    geometry parameters
+     * @return the relaxed clearance, or {@link Double#MAX_VALUE} when unlimited
      */
     private static double relaxDistance(Point waypoint, List<Zone> obstacles, PathConfig config) {
         double nominal = worstCaseMargin(config);
@@ -379,7 +466,13 @@ public class ObstacleAvoider {
         return (distance < nominal) ? Math.max(0.0, distance - nominal * 0.2) : Double.MAX_VALUE;
     }
 
-    /** Returns the signed distance to a zone's boundary; negative when inside. */
+    /**
+     * Returns the signed distance to a zone's boundary; negative when inside.
+     *
+     * @param zone zone to measure against
+     * @param p    point to measure
+     * @return the signed distance
+     */
     private static double signedDist(Zone zone, Point p) {
         double distance = zone.distanceToBoundary(p);
 
@@ -394,8 +487,11 @@ public class ObstacleAvoider {
      * (sweeping the exterior angle) plus one point at each edge midpoint. Composite
      * zones are sampled recursively.
      *
+     * @param zone    obstacle whose boundary is sampled
      * @param heading approximate travel direction, used to size the footprint offset
+     * @param config  geometry parameters
      * @param extra   additional padding
+     * @return the sampled boundary waypoints
      */
     private static List<Point> sampleBoundary(Zone zone, double heading, PathConfig config, double extra) {
         List<Point> points = new ArrayList<>();
@@ -472,6 +568,11 @@ public class ObstacleAvoider {
     /**
      * Returns the unit normal of edge {@code a -> b} that points away from
      * {@code center}.
+     *
+     * @param a      edge start point
+     * @param b      edge end point
+     * @param center polygon center used to choose the outward direction
+     * @return the outward unit normal, or {@code (0, 0)} for a degenerate edge
      */
     private static Point outwardNormal(Point a, Point b, Point center) {
         double edgeX = b.getX() - a.getX();
@@ -511,6 +612,10 @@ public class ObstacleAvoider {
      *
      * @param startIdx    index of the start node (normally 0)
      * @param endIdx      index of the end node (normally 1)
+     * @param nodes       visibility-graph nodes
+     * @param obstacles   zones to test line of sight against
+     * @param config      geometry parameters
+     * @param extra       additional padding to keep
      * @param startRelax  relaxed clearance allowed at the start
      * @param endRelax    relaxed clearance allowed at the end
      * @return the shortest route of points, or {@code null} if none exists
@@ -614,6 +719,11 @@ public class ObstacleAvoider {
      * Fits a smooth cubic chain through the route. Interior headings are estimated
      * from central differences; the supplied end headings override the outer ones
      * when present.
+     *
+     * @param route        waypoints to fit through
+     * @param startHeading start heading in radians, or {@link Double#NaN} to estimate it
+     * @param endHeading   end heading in radians, or {@link Double#NaN} to estimate it
+     * @return the fitted smooth curve
      */
     private static PathCurve fitSmooth(List<Point> route, double startHeading, double endHeading) {
         int pointCount = route.size();
@@ -652,6 +762,11 @@ public class ObstacleAvoider {
      * Fits a cubic chain through the route using each segment's own direction as the
      * tangent. This tracks the route more tightly than {@link #fitSmooth} but turns
      * more abruptly.
+     *
+     * @param route        waypoints to fit through
+     * @param startHeading start heading in radians, or {@link Double#NaN} to estimate it
+     * @param endHeading   end heading in radians, or {@link Double#NaN} to estimate it
+     * @return the fitted curve
      */
     private static PathCurve buildPath(List<Point> route, double startHeading, double endHeading) {
         int pointCount = route.size();
@@ -689,6 +804,10 @@ public class ObstacleAvoider {
     /**
      * Estimates the heading at route point {@code i} from its neighbors. End points
      * use the single adjacent segment; interior points use a central difference.
+     *
+     * @param route waypoints
+     * @param i     index of the point to evaluate
+     * @return the estimated heading in radians
      */
     private static double headingAt(List<Point> route, int i) {
         if (i == 0) {

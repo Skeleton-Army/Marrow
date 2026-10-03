@@ -62,7 +62,12 @@ public final class PedroPathingConverter {
         return toPath(new PathRoute(Collections.singletonList(curve)));
     }
 
-    /** Wraps one cubic in an atomic, tangent-following path. */
+    /**
+     * Wraps one cubic in an atomic, tangent-following path.
+     *
+     * @param curve cubic curve to wrap
+     * @return the atomic Pedro path
+     */
     private static Path atomicPath(PathCurve curve) {
         return new AtomicPath(curve(curve)).tangent();
     }
@@ -70,6 +75,9 @@ public final class PedroPathingConverter {
     /**
      * Converts a curve into the matching Pedro primitive: a {@link Line} for two
      * control points, otherwise a {@link BezierCurve}.
+     *
+     * @param sourceCurve curve to convert
+     * @return the matching Pedro primitive
      */
     private static Curve curve(PathCurve sourceCurve) {
         List<Point> points = sourceCurve.getControlPoints();
@@ -87,7 +95,12 @@ public final class PedroPathingConverter {
         return new BezierCurve(controlPoints);
     }
 
-    /** Converts one Marrow point into a Pedro {@link Vector2D}. */
+    /**
+     * Converts one Marrow point into a Pedro {@link Vector2D}.
+     *
+     * @param point point to convert
+     * @return the equivalent Pedro vector
+     */
     private static Vector2D vector(Point point) {
         return Vector2D.cartesian(point.getX(), point.getY());
     }

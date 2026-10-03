@@ -32,12 +32,20 @@ public class PathCurve {
         this.cubicSegmentCount = (pointCount >= 4 && (pointCount - 1) % 3 == 0) ? (pointCount - 1) / 3 : 0;
     }
 
-    /** Returns the control points, in order. */
+    /**
+     * Returns the control points, in order.
+     *
+     * @return an unmodifiable view of the control points
+     */
     public List<Point> getControlPoints() {
         return Collections.unmodifiableList(controlPoints);
     }
 
-    /** Returns {@code true} when this curve is a chain of cubic segments. */
+    /**
+     * Returns whether this curve is a chain of cubic segments.
+     *
+     * @return {@code true} when the control points form a multiple cubic chain
+     */
     public boolean isComposite() {
         return cubicSegmentCount > 0;
     }
@@ -45,6 +53,8 @@ public class PathCurve {
     /**
      * Splits a composite curve into its individual cubic segments. A non-composite
      * curve is returned as a single-element list.
+     *
+     * @return the cubic segments, or a single-element list when not composite
      */
     public List<PathCurve> toCubicSegments() {
         if (!isComposite()) {
@@ -68,6 +78,9 @@ public class PathCurve {
     /**
      * Recombines cubic segments into a single composite curve, dropping the
      * duplicated shared endpoints.
+     *
+     * @param segments cubic segments to combine, in order
+     * @return the combined composite curve
      */
     public static PathCurve fromCubicSegments(List<PathCurve> segments) {
         if (segments.size() == 1) {
@@ -93,7 +106,11 @@ public class PathCurve {
         return new PathCurve(combined);
     }
 
-    /** Returns the polynomial degree of the curve (3 for a cubic chain). */
+    /**
+     * Returns the polynomial degree of the curve.
+     *
+     * @return {@code 3} for a cubic chain, otherwise the control point count minus one
+     */
     public int getDegree() {
         return cubicSegmentCount > 0 ? 3 : controlPoints.size() - 1;
     }
@@ -135,6 +152,9 @@ public class PathCurve {
 
     /**
      * Evaluates the curve's derivative (tangent) at parameter {@code t}.
+     *
+     * @param t parameter in {@code [0, 1]}
+     * @return the tangent vector at {@code t}
      */
     public Point derivative(double t) {
         if (cubicSegmentCount == 0) {
@@ -165,7 +185,12 @@ public class PathCurve {
         return new Point(derivativeX, derivativeY);
     }
 
-    /** Returns the tangent heading at parameter {@code t}, in radians. */
+    /**
+     * Returns the tangent heading at parameter {@code t}.
+     *
+     * @param t parameter in {@code [0, 1]}
+     * @return the tangent heading in radians
+     */
     public double getHeading(double t) {
         Point tangent = derivative(t);
 
@@ -173,7 +198,10 @@ public class PathCurve {
     }
 
     /**
-     * Samples the curve into {@code numPoints} evenly spaced points.
+     * Samples the curve into evenly spaced points.
+     *
+     * @param numPoints number of points to sample
+     * @return the sampled points, from {@code t = 0} to {@code t = 1}
      */
     public List<Point> sample(int numPoints) {
         List<Point> points = new ArrayList<>();
@@ -187,8 +215,10 @@ public class PathCurve {
     }
 
     /**
-     * Approximates the curve length by summing the distances between {@code samples}
-     * sampled points.
+     * Approximates the curve length by summing the distances between sampled points.
+     *
+     * @param samples number of points to sample; at least two are used
+     * @return the approximate length
      */
     public double approxLength(int samples) {
         List<Point> points = sample(Math.max(samples, 2));
@@ -201,7 +231,12 @@ public class PathCurve {
         return length;
     }
 
-    /** Maps a global parameter to the index of the cubic segment it falls on. */
+    /**
+     * Maps a global parameter to the index of the cubic segment it falls on.
+     *
+     * @param t global parameter in {@code [0, 1]}
+     * @return the zero-based cubic segment index
+     */
     private int segmentIndex(double t) {
         double scaled = Math.max(0, Math.min(t, 1)) * cubicSegmentCount;
         int index = (int) scaled;
@@ -211,6 +246,9 @@ public class PathCurve {
 
     /**
      * Evaluates a non-composite curve with the de Casteljau algorithm.
+     *
+     * @param t parameter in {@code [0, 1]}
+     * @return the point on the curve
      */
     private Point polynomialPoint(double t) {
         List<Point> points = new ArrayList<>(controlPoints);
@@ -233,6 +271,9 @@ public class PathCurve {
     /**
      * Evaluates the derivative of a non-composite curve by differentiating its
      * control points once and evaluating the resulting lower-degree curve.
+     *
+     * @param t parameter in {@code [0, 1]}
+     * @return the tangent vector at {@code t}
      */
     private Point polynomialDerivative(double t) {
         int degree = controlPoints.size() - 1;

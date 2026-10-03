@@ -90,6 +90,12 @@ public final class WeaverGenerator {
     /**
      * Convenience overload of {@link #isCapturedByIntake(Point, double, double, Point)}
      * that reads the intake width from the config.
+     *
+     * @param robotCenter current robot position
+     * @param headingRad  robot heading in radians
+     * @param config      configuration supplying the intake width
+     * @param target      game element position
+     * @return {@code true} if the target is within the intake
      */
     public static boolean isCapturedByIntake(Point robotCenter, double headingRad, PathConfig config, Point target) {
         return isCapturedByIntake(robotCenter, headingRad, config.getIntakeWidth(), target);
@@ -133,24 +139,56 @@ public final class WeaverGenerator {
         return true;
     }
 
-    /** Config-based overload of {@link #isPathClear(PathCurve, List, double, double, double, int)} for a whole route. */
+    /**
+     * Config-based overload of
+     * {@link #isPathClear(PathCurve, List, double, double, double, int)} for a whole route.
+     *
+     * @param path              route to test
+     * @param obstacles         zones to avoid
+     * @param config            configuration supplying clearance and footprint
+     * @param samplesPerSegment number of points to test along each segment
+     * @return {@code true} if every segment of the route is clear
+     */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, PathConfig config, int samplesPerSegment) {
         return isPathClear(path, obstacles, config.getClearance(), config.getRobotWidth(),
                 config.getRobotHeight(), samplesPerSegment);
     }
 
-    /** Config-based overload of {@link #isPathClear(PathCurve, List, double, double, double, int)}. */
+    /**
+     * Config-based overload of
+     * {@link #isPathClear(PathCurve, List, double, double, double, int)}.
+     *
+     * @param curve     curve to test
+     * @param obstacles zones to avoid
+     * @param config    configuration supplying clearance and footprint
+     * @param samples   number of points to test along the curve
+     * @return {@code true} if the whole curve is clear
+     */
     public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, PathConfig config, int samples) {
         return isPathClear(curve, obstacles, config.getClearance(), config.getRobotWidth(),
                 config.getRobotHeight(), samples);
     }
 
-    /** Checks a whole route using the config and 100 samples per segment. */
+    /**
+     * Checks a whole route using the config and 100 samples per segment.
+     *
+     * @param path      route to test
+     * @param obstacles zones to avoid
+     * @param config    configuration supplying clearance and footprint
+     * @return {@code true} if every segment of the route is clear
+     */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, PathConfig config) {
         return isPathClear(path, obstacles, config, 100);
     }
 
-    /** Checks a single curve using the config and 100 samples. */
+    /**
+     * Checks a single curve using the config and 100 samples.
+     *
+     * @param curve     curve to test
+     * @param obstacles zones to avoid
+     * @param config    configuration supplying clearance and footprint
+     * @return {@code true} if the whole curve is clear
+     */
     public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, PathConfig config) {
         return isPathClear(curve, obstacles, config, 100);
     }
@@ -158,6 +196,13 @@ public final class WeaverGenerator {
     /**
      * Checks that every segment of a route is clear.
      *
+     * @param path              route to test
+     * @param obstacles         zones to avoid
+     * @param clearance         extra distance to keep from obstacles
+     * @param robotWidth        footprint width along the forward axis
+     * @param robotHeight       footprint height across the forward axis
+     * @param samplesPerSegment number of points to test along each segment
+     * @return {@code true} if every segment of the route is clear
      * @see #isPathClear(PathCurve, List, double, double, double, int)
      */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotWidth, double robotHeight, int samplesPerSegment) {
@@ -170,17 +215,43 @@ public final class WeaverGenerator {
         return true;
     }
 
-    /** Checks a route against point clearance (no robot footprint). */
+    /**
+     * Checks a route against point clearance (no robot footprint).
+     *
+     * @param path               route to test
+     * @param obstacles          zones to avoid
+     * @param clearance          extra distance to keep from obstacles
+     * @param samplesPerSegment  number of points to test along each segment
+     * @return {@code true} if every segment of the route is clear
+     */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, int samplesPerSegment) {
         return isPathClear(path, obstacles, clearance, 0.0, 0.0, samplesPerSegment);
     }
 
-    /** Checks a single curve against point clearance (no robot footprint). */
+    /**
+     * Checks a single curve against point clearance (no robot footprint).
+     *
+     * @param curve     curve to test
+     * @param obstacles zones to avoid
+     * @param clearance extra distance to keep from obstacles
+     * @param samples   number of points to test along the curve
+     * @return {@code true} if the whole curve is clear
+     */
     public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance, int samples) {
         return isPathClear(curve, obstacles, clearance, 0.0, 0.0, samples);
     }
 
-    /** Orders and clusters targets, then builds one smooth curve that sweeps through them. */
+    /**
+     * Orders and clusters targets, then builds one smooth curve that sweeps through
+     * them.
+     *
+     * @param start     robot start pose
+     * @param targets   targets to visit
+     * @param obstacles zones to avoid; may be {@code null}
+     * @param reorder   {@code true} to let {@link TargetOrderer} pick the visit order
+     * @param config    geometry and tuning parameters
+     * @return the generated route plus metadata
+     */
     private static PathResult generateIntakeResult(PathPose start, List<PathPose> targets,
                                                    List<Zone> obstacles, boolean reorder,
                                                    PathConfig config) {
@@ -256,7 +327,16 @@ public final class WeaverGenerator {
         return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)), skippedTargets);
     }
 
-    /** Seeds a straight line of control points between start and end, then lets {@link ObstacleAvoider} bend and smooth it. */
+    /**
+     * Seeds a straight line of control points between start and end, then lets
+     * {@link ObstacleAvoider} bend and smooth it.
+     *
+     * @param start     start position
+     * @param end       destination position
+     * @param obstacles zones to avoid; may be {@code null}
+     * @param config    geometry and tuning parameters
+     * @return the generated route plus metadata
+     */
     private static PathResult generateAvoidanceResult(Point start, Point end,
                                                       List<Zone> obstacles, PathConfig config) {
         // Number of control points used to seed the curve before avoidance.
@@ -391,6 +471,11 @@ public final class WeaverGenerator {
      * The group's targets are sorted along the travel direction and placed on a
      * line centered laterally within the group, so the intake passes over all of them.
      *
+     * @param targets       ordered targets being visited
+     * @param groupIndices  indices of the targets in this group
+     * @param previousPoint key point the group starts from
+     * @param keyPoints     key point list to append to
+     * @param headings      heading list to append to
      * @return the last key point added
      */
     private static Point addMergedGroup(List<PathPose> targets, int[] groupIndices, Point previousPoint, List<Point> keyPoints, List<Double> headings) {
@@ -449,7 +534,13 @@ public final class WeaverGenerator {
         return lastPoint;
     }
 
-    /** Returns the average of the target positions at the given indices. */
+    /**
+     * Returns the average of the target positions at the given indices.
+     *
+     * @param targets ordered targets
+     * @param indices indices of the targets to average
+     * @return the average position
+     */
     private static Point groupRepresentative(List<PathPose> targets, int[] indices) {
         double sumX = 0;
         double sumY = 0;
@@ -508,6 +599,10 @@ public final class WeaverGenerator {
     /**
      * Drops targets that an obstacle prevents the robot from reaching.
      *
+     * @param startPoint point the robot moves from
+     * @param targets    ordered targets to filter
+     * @param obstacles  zones to avoid; may be {@code null}
+     * @param config     geometry and tuning parameters
      * @return a new list containing only reachable targets
      */
     private static List<PathPose> excludeBlockedTargets(Point startPoint, List<PathPose> targets,
@@ -529,7 +624,16 @@ public final class WeaverGenerator {
         return reachableTargets;
     }
 
-    /** Checks whether stopping at {@code target} would put the robot inside or too close to an obstacle. */
+    /**
+     * Checks whether stopping at {@code target} would put the robot inside or too
+     * close to an obstacle.
+     *
+     * @param target    target pose to test
+     * @param from      point the robot arrives from
+     * @param obstacles zones to avoid
+     * @param config    geometry and tuning parameters
+     * @return {@code true} if the target is blocked
+     */
     private static boolean isTargetBlocked(PathPose target, Point from, List<Zone> obstacles, PathConfig config) {
         Point targetPoint = new Point(target.getX(), target.getY());
 
@@ -559,7 +663,16 @@ public final class WeaverGenerator {
         return false;
     }
 
-    /** Builds a single cubic Bezier from start to end, with control handles pointing along the supplied headings and one third of the distance long. */
+    /**
+     * Builds a single cubic Bezier from start to end, with control handles pointing
+     * along the supplied headings and one third of the distance long.
+     *
+     * @param start        start point
+     * @param end          end point
+     * @param startHeading start heading in radians
+     * @param endHeading   end heading in radians
+     * @return the single cubic curve
+     */
     private static PathCurve twoPointCubic(Point start, Point end, double startHeading, double endHeading) {
         double handleLength = start.distanceTo(end) / 3.0;
 
@@ -577,6 +690,10 @@ public final class WeaverGenerator {
      * <p>
      * Each segment's control handles are aligned with the heading stored for its
      * key point, giving continuous tangents across the whole chain.
+     *
+     * @param points   key points to connect, in order
+     * @param headings heading in radians for each key point
+     * @return the fitted cubic chain
      */
     private static PathCurve cubicHermiteChain(List<Point> points, List<Double> headings) {
         int pointCount = points.size();

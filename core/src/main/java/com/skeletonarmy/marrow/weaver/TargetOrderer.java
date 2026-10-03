@@ -82,6 +82,12 @@ public class TargetOrderer {
 
     /**
      * Exhaustively tries every permutation and returns the cheapest order.
+     *
+     * @param startPos     robot start position
+     * @param startHeading robot start heading in radians
+     * @param targets      targets to order
+     * @param config       ordering parameters
+     * @return the cheapest visit order
      */
     private static List<PathPose> bruteForce(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
         List<PathPose> working = new ArrayList<>(targets);
@@ -103,6 +109,12 @@ public class TargetOrderer {
 
     /**
      * Repeatedly visits the cheapest remaining target.
+     *
+     * @param startPos     robot start position
+     * @param startHeading robot start heading in radians
+     * @param targets      targets to order
+     * @param config       ordering parameters
+     * @return the greedy visit order
      */
     private static List<PathPose> greedy(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
         List<PathPose> remaining = new ArrayList<>(targets);
@@ -148,7 +160,12 @@ public class TargetOrderer {
         return result;
     }
 
-    /** Wraps an angle into the range {@code (-pi, pi]}. */
+    /**
+     * Wraps an angle into the range {@code (-pi, pi]}.
+     *
+     * @param angle angle in radians
+     * @return the equivalent angle in {@code (-pi, pi]}
+     */
     private static double normalizeAngle(double angle) {
         while (angle > Math.PI) {
             angle -= 2 * Math.PI;
@@ -163,12 +180,21 @@ public class TargetOrderer {
 
     /** Callback used by {@link #permute}. */
     private interface PermutationVisitor {
+        /**
+         * Called once for each complete ordering.
+         *
+         * @param permutation the complete permutation
+         */
         void visit(List<PathPose> permutation);
     }
 
     /**
      * Generates every permutation of {@code arr} by swapping elements recursively,
      * calling the visitor for each complete ordering.
+     *
+     * @param arr     list being permuted in place
+     * @param k       index the permutation starts from
+     * @param visitor callback invoked for each complete ordering
      */
     private static void permute(List<PathPose> arr, int k, PermutationVisitor visitor) {
         if (k == arr.size()) {

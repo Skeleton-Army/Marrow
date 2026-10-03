@@ -20,13 +20,23 @@ public class WeaverBuilder {
     private final List<Zone> obstacles = new ArrayList<>();
     private boolean reorder = true;
 
-    /** Sets the robot's start pose. */
+    /**
+     * Sets the robot's start pose.
+     *
+     * @param start the start pose
+     * @return this builder, for chaining
+     */
     public WeaverBuilder start(PathPose start) {
         this.startPose = start;
         return this;
     }
 
-    /** Replaces all previously added targets. */
+    /**
+     * Replaces all previously added targets.
+     *
+     * @param newTargets the targets to visit; may be {@code null} to clear them
+     * @return this builder, for chaining
+     */
     public WeaverBuilder targets(List<PathPose> newTargets) {
         this.targets.clear();
 
@@ -37,7 +47,12 @@ public class WeaverBuilder {
         return this;
     }
 
-    /** Replaces all previously added targets. */
+    /**
+     * Replaces all previously added targets.
+     *
+     * @param newTargets the targets to visit; may be {@code null} to clear them
+     * @return this builder, for chaining
+     */
     public WeaverBuilder targets(PathPose... newTargets) {
         this.targets.clear();
 
@@ -48,25 +63,45 @@ public class WeaverBuilder {
         return this;
     }
 
-    /** Appends one target. */
+    /**
+     * Appends one target.
+     *
+     * @param target the target to append
+     * @return this builder, for chaining
+     */
     public WeaverBuilder addTarget(PathPose target) {
         this.targets.add(target);
         return this;
     }
 
-    /** Keeps the targets in the order they were added instead of letting the weaver reorder them. */
+    /**
+     * Keeps the targets in the order they were added instead of letting the weaver
+     * reorder them.
+     *
+     * @return this builder, for chaining
+     */
     public WeaverBuilder ordered() {
         this.reorder = false;
         return this;
     }
 
-    /** Sets the destination pose for avoidance mode. */
+    /**
+     * Sets the destination pose for avoidance mode.
+     *
+     * @param destination the destination pose
+     * @return this builder, for chaining
+     */
     public WeaverBuilder end(PathPose destination) {
         this.destinationPose = destination;
         return this;
     }
 
-    /** Replaces all previously added obstacles. */
+    /**
+     * Replaces all previously added obstacles.
+     *
+     * @param newObstacles the obstacles to avoid; may be {@code null} to clear them
+     * @return this builder, for chaining
+     */
     public WeaverBuilder obstacles(List<Zone> newObstacles) {
         this.obstacles.clear();
 
@@ -77,7 +112,12 @@ public class WeaverBuilder {
         return this;
     }
 
-    /** Replaces all previously added obstacles with the given ones. */
+    /**
+     * Replaces all previously added obstacles with the given ones.
+     *
+     * @param newObstacles the obstacles to avoid; may be {@code null} to clear them
+     * @return this builder, for chaining
+     */
     public WeaverBuilder obstacles(Zone... newObstacles) {
         this.obstacles.clear();
 
@@ -88,7 +128,12 @@ public class WeaverBuilder {
         return this;
     }
 
-    /** Appends one obstacle. */
+    /**
+     * Appends one obstacle.
+     *
+     * @param obstacle the obstacle to append
+     * @return this builder, for chaining
+     */
     public WeaverBuilder addObstacle(Zone obstacle) {
         this.obstacles.add(obstacle);
         return this;
