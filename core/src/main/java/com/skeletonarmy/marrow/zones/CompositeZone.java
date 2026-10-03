@@ -22,6 +22,10 @@ public class CompositeZone implements Zone {
         this.zones = Collections.unmodifiableList(Arrays.asList(zones));
     }
 
+    public List<Zone> getZones() {
+        return zones;
+    }
+
     /**
      * Gets the approximate geometric center (centroid) of the complex zone,
      * calculated as the average center of its component zones.
