@@ -54,13 +54,7 @@ public class WeaverBuilder {
      * @return this builder, for chaining
      */
     public WeaverBuilder targets(PathPose... newTargets) {
-        this.targets.clear();
-
-        if (newTargets != null) {
-            this.targets.addAll(Arrays.asList(newTargets));
-        }
-
-        return this;
+        return targets(Arrays.asList(newTargets));
     }
 
     /**
@@ -119,13 +113,7 @@ public class WeaverBuilder {
      * @return this builder, for chaining
      */
     public WeaverBuilder obstacles(Zone... newObstacles) {
-        this.obstacles.clear();
-
-        if (newObstacles != null) {
-            this.obstacles.addAll(Arrays.asList(newObstacles));
-        }
-
-        return this;
+        return obstacles(Arrays.asList(newObstacles));
     }
 
     /**
