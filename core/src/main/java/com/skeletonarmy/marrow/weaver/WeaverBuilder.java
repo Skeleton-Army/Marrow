@@ -152,4 +152,15 @@ public class WeaverBuilder {
                 Weaver.getConfig()
         );
     }
+
+    /**
+     * Generates the path from the configured inputs.
+     *
+     * @return the generated path and metadata
+     * @throws IllegalStateException if no start pose, or neither targets nor a
+     *                               destination, were supplied
+     */
+    public PathResult build() {
+        return generate();
+    }
 }
