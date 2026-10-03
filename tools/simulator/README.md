@@ -9,17 +9,28 @@ library and exists purely to sanity-check Weaver behavior by hand.
 
 ## Running
 
-Requires a JDK on your `PATH`/`JAVA_HOME` (the simulator is compiled with
-`javac` against the `core` sources).
+In Android Studio, open the **Weaver Simulator** run configuration, or run the
+Gradle task directly:
 
 ```sh
-./gradlew runWeaverSimulator
+./gradlew :tools:simulator:run
 ```
 
 On Windows:
 
 ```powershell
-.\gradlew.bat runWeaverSimulator
+.\gradlew.bat :tools:simulator:run
+```
+
+This module depends on `:core`, so it needs the Android SDK configured like the
+rest of the project.
+
+If you only need to launch it from the command line, the lightweight
+`runWeaverSimulator` task compiles against the `core` sources with `javac` and
+needs nothing but a JDK:
+
+```sh
+./gradlew runWeaverSimulator
 ```
 
 ## Controls

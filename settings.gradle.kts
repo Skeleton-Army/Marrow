@@ -14,3 +14,4 @@ plugins {
 rootProject.name = "Marrow"
 
 include(":core")
+include(":tools:simulator")

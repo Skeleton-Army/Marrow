@@ -4,6 +4,9 @@ plugins {
 }
 
 subprojects {
+    // tools/* are plain JVM modules, not Android libraries.
+    if (path.startsWith(":tools")) return@subprojects
+
     apply(plugin = "com.android.library")
     apply(plugin = "io.deepmedia.tools.deployer")
 
@@ -55,6 +58,8 @@ subprojects {
     }
 }
 
+val publishedSubprojects = subprojects.filterNot { it.path.startsWith(":tools") }
+
 tasks.named<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
     delete(subprojects.map { it.layout.buildDirectory })
@@ -64,18 +69,18 @@ tasks.register("deployCentralPortal") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Central."
     dependsOn("clean")
-    dependsOn(subprojects.map { it.tasks.named("deployCentralPortal") })
+    dependsOn(publishedSubprojects.map { it.tasks.named("deployCentralPortal") })
 }
 
 tasks.register("deployNexusSnapshot") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Central Snapshots."
     dependsOn("clean")
-    dependsOn(subprojects.map { it.tasks.named("deployNexusSnapshot") })
+    dependsOn(publishedSubprojects.map { it.tasks.named("deployNexusSnapshot") })
 }
 
 tasks.register("deployLocal") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Local."
-    dependsOn(subprojects.map { it.tasks.named("deployLocal") })
+    dependsOn(publishedSubprojects.map { it.tasks.named("deployLocal") })
 }
