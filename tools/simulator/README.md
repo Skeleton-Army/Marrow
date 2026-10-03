@@ -25,14 +25,6 @@ On Windows:
 This module depends on `:core`, so it needs the Android SDK configured like the
 rest of the project.
 
-If you only need to launch it from the command line, the lightweight
-`runWeaverSimulator` task compiles against the `core` sources with `javac` and
-needs nothing but a JDK:
-
-```sh
-./gradlew runWeaverSimulator
-```
-
 ## Controls
 
 ### Mouse

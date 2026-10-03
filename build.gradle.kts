@@ -1,6 +1,5 @@
 plugins {
     base // provides the clean task
-    id("weaver-simulator")
 }
 
 subprojects {
