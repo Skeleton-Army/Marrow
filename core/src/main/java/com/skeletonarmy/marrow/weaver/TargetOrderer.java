@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,7 +27,8 @@ public class TargetOrderer {
      * @param config          ordering parameters
      * @return a new ordered list
      */
-    public static List<PathPose> order(Point startPos, double startHeadingRad, List<PathPose> targets, PathConfig config) {
+    public static List<PathPose> order(
+            Point startPos, double startHeadingRad, List<PathPose> targets, PathConfig config) {
         if (targets.size() <= 1) {
             return new ArrayList<>(targets);
         }
@@ -89,7 +89,8 @@ public class TargetOrderer {
      * @param config       ordering parameters
      * @return the cheapest visit order
      */
-    private static List<PathPose> bruteForce(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
+    private static List<PathPose> bruteForce(
+            Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
         List<PathPose> working = new ArrayList<>(targets);
         final List<PathPose> bestOrder = new ArrayList<>(targets);
         final double[] minCost = {pathCost(startPos, startHeading, working, config.getTurnCostWeight())};
@@ -116,7 +117,8 @@ public class TargetOrderer {
      * @param config       ordering parameters
      * @return the greedy visit order
      */
-    private static List<PathPose> greedy(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
+    private static List<PathPose> greedy(
+            Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
         List<PathPose> remaining = new ArrayList<>(targets);
         List<PathPose> result = new ArrayList<>();
 

@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.telemetry;
 
 import android.text.TextUtils;
-
 import com.skeletonarmy.marrow.telemetry.modifiers.AlignmentModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.BackgroundColorModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.BoldModifier;
@@ -18,14 +17,12 @@ import com.skeletonarmy.marrow.telemetry.modifiers.StrikethroughModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.SubscriptModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.UnderlineModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.UnorderedListModifier;
-
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 @SuppressWarnings("unused")
 public class FormatBuilder {
@@ -55,6 +52,7 @@ public class FormatBuilder {
         this.base = String.valueOf(base);
         return this;
     }
+
     public FormatBuilder setColor(String hex) {
         modifiers.add(new ColorModifier(hex));
         return this;
@@ -80,12 +78,14 @@ public class FormatBuilder {
         return this;
     }
 
-    public FormatBuilder addConditional(BooleanSupplier condition, TelemetryModifier onTrue, TelemetryModifier onFalse) {
+    public FormatBuilder addConditional(
+            BooleanSupplier condition, TelemetryModifier onTrue, TelemetryModifier onFalse) {
         modifiers.add(new ConditionalModifier(condition, onTrue, onFalse));
         return this;
     }
 
-    public FormatBuilder addMultiConditional(Supplier<Integer> supplier, TelemetryModifier defaultModifier, TelemetryModifier... modifiers) {
+    public FormatBuilder addMultiConditional(
+            Supplier<Integer> supplier, TelemetryModifier defaultModifier, TelemetryModifier... modifiers) {
         this.modifiers.add(new MultiConditionalModifier(supplier, defaultModifier, modifiers));
         return this;
     }
@@ -95,7 +95,8 @@ public class FormatBuilder {
         return this;
     }
 
-    // Kinda useless for a builder, but it's probably better it's here than not. it also helps shuts up Android Studio when commiting
+    // Kinda useless for a builder, but it's probably better it's here than not. it also helps shuts up Android Studio
+    // when commiting
     public FormatBuilder addNewline() {
         modifiers.add(new NewlineModifier());
         return this;

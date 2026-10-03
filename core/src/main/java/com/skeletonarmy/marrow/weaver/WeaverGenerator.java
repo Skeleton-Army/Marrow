@@ -3,7 +3,6 @@ package com.skeletonarmy.marrow.weaver;
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -39,9 +38,13 @@ public final class WeaverGenerator {
      * @return the generated route plus metadata
      * @throws IllegalStateException if neither targets nor a destination are provided
      */
-    public static PathResult generate(PathPose startPose, PathPose destinationPose,
-                                      List<PathPose> targets, List<Zone> obstacles,
-                                      boolean reorder, PathConfig config) {
+    public static PathResult generate(
+            PathPose startPose,
+            PathPose destinationPose,
+            List<PathPose> targets,
+            List<Zone> obstacles,
+            boolean reorder,
+            PathConfig config) {
         if (!targets.isEmpty()) {
             return generateIntakeResult(startPose, targets, obstacles, reorder, config);
         }
@@ -51,8 +54,7 @@ public final class WeaverGenerator {
                     new Point(startPose.getX(), startPose.getY()),
                     new Point(destinationPose.getX(), destinationPose.getY()),
                     obstacles,
-                    config
-            );
+                    config);
         }
 
         throw new IllegalStateException("Either targets or a destination must be set");
@@ -113,8 +115,13 @@ public final class WeaverGenerator {
      * @param samples     number of points to test along the curve
      * @return {@code true} if the whole curve is clear
      */
-    public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, double clearance,
-                                      double robotWidth, double robotHeight, int samples) {
+    public static boolean isPathClear(
+            PathCurve curve,
+            List<Zone> obstacles,
+            double clearance,
+            double robotWidth,
+            double robotHeight,
+            int samples) {
         for (int i = 0; i < samples; i++) {
             double progress = samples == 1 ? 0 : (double) i / (samples - 1);
             Point samplePoint = curve.get(progress);
@@ -150,8 +157,13 @@ public final class WeaverGenerator {
      * @return {@code true} if every segment of the route is clear
      */
     public static boolean isPathClear(PathRoute path, List<Zone> obstacles, PathConfig config, int samplesPerSegment) {
-        return isPathClear(path, obstacles, config.getClearance(), config.getRobotWidth(),
-                config.getRobotHeight(), samplesPerSegment);
+        return isPathClear(
+                path,
+                obstacles,
+                config.getClearance(),
+                config.getRobotWidth(),
+                config.getRobotHeight(),
+                samplesPerSegment);
     }
 
     /**
@@ -165,8 +177,8 @@ public final class WeaverGenerator {
      * @return {@code true} if the whole curve is clear
      */
     public static boolean isPathClear(PathCurve curve, List<Zone> obstacles, PathConfig config, int samples) {
-        return isPathClear(curve, obstacles, config.getClearance(), config.getRobotWidth(),
-                config.getRobotHeight(), samples);
+        return isPathClear(
+                curve, obstacles, config.getClearance(), config.getRobotWidth(), config.getRobotHeight(), samples);
     }
 
     /**
@@ -205,7 +217,13 @@ public final class WeaverGenerator {
      * @return {@code true} if every segment of the route is clear
      * @see #isPathClear(PathCurve, List, double, double, double, int)
      */
-    public static boolean isPathClear(PathRoute path, List<Zone> obstacles, double clearance, double robotWidth, double robotHeight, int samplesPerSegment) {
+    public static boolean isPathClear(
+            PathRoute path,
+            List<Zone> obstacles,
+            double clearance,
+            double robotWidth,
+            double robotHeight,
+            int samplesPerSegment) {
         for (PathCurve segment : path.getSegments()) {
             if (!isPathClear(segment, obstacles, clearance, robotWidth, robotHeight, samplesPerSegment)) {
                 return false;
@@ -252,9 +270,8 @@ public final class WeaverGenerator {
      * @param config    geometry and tuning parameters
      * @return the generated route plus metadata
      */
-    private static PathResult generateIntakeResult(PathPose start, List<PathPose> targets,
-                                                   List<Zone> obstacles, boolean reorder,
-                                                   PathConfig config) {
+    private static PathResult generateIntakeResult(
+            PathPose start, List<PathPose> targets, List<Zone> obstacles, boolean reorder, PathConfig config) {
         Point startPoint = new Point(start.getX(), start.getY());
 
         List<PathPose> orderedTargets = reorder
@@ -269,8 +286,10 @@ public final class WeaverGenerator {
 
         // No reachable target left: produce a stationary path at the start pose.
         if (orderedTargets.isEmpty()) {
-            PathRoute idlePath = finish(new PathRoute(Collections.singletonList(
-                    new PathCurve(Arrays.asList(startPoint, startPoint)))), obstacles, config);
+            PathRoute idlePath = finish(
+                    new PathRoute(Collections.singletonList(new PathCurve(Arrays.asList(startPoint, startPoint)))),
+                    obstacles,
+                    config);
 
             return new PathResult(idlePath, Collections.singletonList(start.getHeadingRad()), skippedTargets);
         }
@@ -292,7 +311,8 @@ public final class WeaverGenerator {
 
             // A merged group (several targets in one intake pass) is handled separately.
             if (groupIndices.length > 1 && intakeHalfWidth > 1e-9) {
-                previousRawTarget = addMergedGroup(orderedTargets, groupIndices, previousRawTarget, keyPoints, headings);
+                previousRawTarget =
+                        addMergedGroup(orderedTargets, groupIndices, previousRawTarget, keyPoints, headings);
                 continue;
             }
 
@@ -301,8 +321,7 @@ public final class WeaverGenerator {
 
             double heading = !Double.isNaN(firstPose.getHeadingRad())
                     ? firstPose.getHeadingRad()
-                    : Math.atan2(target.getY() - previousRawTarget.getY(),
-                                 target.getX() - previousRawTarget.getX());
+                    : Math.atan2(target.getY() - previousRawTarget.getY(), target.getX() - previousRawTarget.getX());
 
             Point robotCenter;
 
@@ -312,8 +331,8 @@ public final class WeaverGenerator {
                 robotCenter = target;
             } else {
                 Point nextGroupRepresentative = groupRepresentative(orderedTargets, targetGroups.get(groupIndex + 1));
-                robotCenter = solveIntakeCapturePoint(target, heading, intakeHalfWidth,
-                        previousRawTarget, nextGroupRepresentative);
+                robotCenter = solveIntakeCapturePoint(
+                        target, heading, intakeHalfWidth, previousRawTarget, nextGroupRepresentative);
             }
 
             keyPoints.add(robotCenter);
@@ -337,8 +356,7 @@ public final class WeaverGenerator {
      * @param config    geometry and tuning parameters
      * @return the generated route plus metadata
      */
-    private static PathResult generateAvoidanceResult(Point start, Point end,
-                                                      List<Zone> obstacles, PathConfig config) {
+    private static PathResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles, PathConfig config) {
         // Number of control points used to seed the curve before avoidance.
         int seedControlPointCount = 6;
 
@@ -398,7 +416,7 @@ public final class WeaverGenerator {
         // Without width there is no benefit in merging; every target is its own group.
         if (width <= 1e-9) {
             for (int i = 0; i < targetCount; i++) {
-                groups.add(new int[]{i});
+                groups.add(new int[] {i});
             }
 
             return groups;
@@ -478,7 +496,12 @@ public final class WeaverGenerator {
      * @param headings      heading list to append to
      * @return the last key point added
      */
-    private static Point addMergedGroup(List<PathPose> targets, int[] groupIndices, Point previousPoint, List<Point> keyPoints, List<Double> headings) {
+    private static Point addMergedGroup(
+            List<PathPose> targets,
+            int[] groupIndices,
+            Point previousPoint,
+            List<Point> keyPoints,
+            List<Double> headings) {
         PathPose firstPose = targets.get(groupIndices[0]);
 
         double deltaX = firstPose.getX() - previousPoint.getX();
@@ -492,9 +515,7 @@ public final class WeaverGenerator {
         double perpendicularX = -directionY;
         double perpendicularY = directionX;
 
-        double heading = distance > 1e-9
-                ? Math.atan2(deltaY, deltaX)
-                : headings.get(headings.size() - 1);
+        double heading = distance > 1e-9 ? Math.atan2(deltaY, deltaX) : headings.get(headings.size() - 1);
 
         double[] longitudinalOffsets = new double[groupIndices.length];
         Integer[] visitOrder = new Integer[groupIndices.length];
@@ -568,7 +589,8 @@ public final class WeaverGenerator {
      * @param nextRaw     next raw target point
      * @return the computed robot center
      */
-    private static Point solveIntakeCapturePoint(Point target, double heading, double halfWidth, Point previousRaw, Point nextRaw) {
+    private static Point solveIntakeCapturePoint(
+            Point target, double heading, double halfWidth, Point previousRaw, Point nextRaw) {
         double cosHeading = Math.cos(heading);
         double sinHeading = Math.sin(heading);
 
@@ -585,15 +607,15 @@ public final class WeaverGenerator {
         double lateralOffset = 0;
 
         if (Math.abs(denominator) > 1e-9) {
-            lateralOffset = ((previousRaw.getX() - target.getX()) * travelY
-                    - (previousRaw.getY() - target.getY()) * travelX) / denominator;
+            lateralOffset =
+                    ((previousRaw.getX() - target.getX()) * travelY - (previousRaw.getY() - target.getY()) * travelX)
+                            / denominator;
         }
 
         // Never step further sideways than the intake can reach.
         lateralOffset = Math.max(-halfWidth, Math.min(halfWidth, lateralOffset));
 
-        return new Point(target.getX() + lateralOffset * lateralAxisX,
-                target.getY() + lateralOffset * lateralAxisY);
+        return new Point(target.getX() + lateralOffset * lateralAxisX, target.getY() + lateralOffset * lateralAxisY);
     }
 
     /**
@@ -605,8 +627,8 @@ public final class WeaverGenerator {
      * @param config     geometry and tuning parameters
      * @return a new list containing only reachable targets
      */
-    private static List<PathPose> excludeBlockedTargets(Point startPoint, List<PathPose> targets,
-                                                        List<Zone> obstacles, PathConfig config) {
+    private static List<PathPose> excludeBlockedTargets(
+            Point startPoint, List<PathPose> targets, List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
             return targets;
         }
@@ -678,10 +700,12 @@ public final class WeaverGenerator {
 
         return new PathCurve(Arrays.asList(
                 start,
-                new Point(start.getX() + handleLength * Math.cos(startHeading),
-                          start.getY() + handleLength * Math.sin(startHeading)),
-                new Point(end.getX() - handleLength * Math.cos(endHeading),
-                          end.getY() - handleLength * Math.sin(endHeading)),
+                new Point(
+                        start.getX() + handleLength * Math.cos(startHeading),
+                        start.getY() + handleLength * Math.sin(startHeading)),
+                new Point(
+                        end.getX() - handleLength * Math.cos(endHeading),
+                        end.getY() - handleLength * Math.sin(endHeading)),
                 end));
     }
 

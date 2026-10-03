@@ -3,9 +3,6 @@ package com.skeletonarmy.marrow.prompts;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
-
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -16,6 +13,8 @@ import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class Prompter {
     private final OpMode opMode;
@@ -80,7 +79,9 @@ public class Prompter {
     public <T> T get(String key) {
         requireValidKey(key);
         ensureCompleted();
-        if (!results.containsKey(key)) throw new NoSuchElementException("No result found for key '" + key + "'. Ensure prompts have been executed, or use getOrDefault() if the result may be absent.");
+        if (!results.containsKey(key))
+            throw new NoSuchElementException("No result found for key '" + key
+                    + "'. Ensure prompts have been executed, or use getOrDefault() if the result may be absent.");
         return (T) results.get(key);
     }
 
@@ -125,7 +126,8 @@ public class Prompter {
      * Runs the prompt queue. Should be called in a loop.
      */
     public void run() {
-        // Must be called every loop, even after completion, so the display clears properly once the transmission interval elapses
+        // Must be called every loop, even after completion, so the display clears properly once the transmission
+        // interval elapses
         opMode.telemetry.update();
 
         if (isCompleted) return;
@@ -183,9 +185,10 @@ public class Prompter {
             }
 
             String display = value instanceof List
-                    ? ((List<?>) value).stream()
-                    .map(o -> o != null ? o.toString() : "null")
-                    .collect(java.util.stream.Collectors.joining(", "))
+                    ? ((List<?>) value)
+                            .stream()
+                                    .map(o -> o != null ? o.toString() : "null")
+                                    .collect(Collectors.joining(", "))
                     : value != null ? value.toString() : "null";
 
             opMode.telemetry.addData(finalLabel, display);
@@ -399,13 +402,14 @@ public class Prompter {
         }
 
         BooleanSupplier removeLastCondition() {
-            if (conditions.isEmpty()) throw new IllegalStateException("No conditions to remove for key '" + key + "'. Call showIf() before or().");
+            if (conditions.isEmpty())
+                throw new IllegalStateException(
+                        "No conditions to remove for key '" + key + "'. Call showIf() before or().");
             return conditions.remove(conditions.size() - 1);
         }
 
         boolean isVisible() {
-            for (BooleanSupplier c : conditions)
-                if (!c.getAsBoolean()) return false;
+            for (BooleanSupplier c : conditions) if (!c.getAsBoolean()) return false;
             return true;
         }
 

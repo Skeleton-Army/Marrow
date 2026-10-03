@@ -1,15 +1,12 @@
 package com.skeletonarmy.marrow;
 
 import android.app.Activity;
-
 import androidx.annotation.NonNull;
-
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.robot.RobotState;
-
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
@@ -24,13 +21,15 @@ public class OpModeManager {
         Activity activity = AppUtil.getInstance().getActivity();
 
         if (activity == null) {
-            throw new IllegalStateException("OpModeManager called before activity is available. Ensure this runs after the robot is initialized.");
+            throw new IllegalStateException(
+                    "OpModeManager called before activity is available. Ensure this runs after the robot is initialized.");
         }
 
         OpModeManagerImpl internalManager = OpModeManagerImpl.getOpModeManagerOfActivity(activity);
 
         if (internalManager == null) {
-            throw new IllegalStateException("OpModeManagerImpl is null. The OpMode system may not be fully initialized.");
+            throw new IllegalStateException(
+                    "OpModeManagerImpl is null. The OpMode system may not be fully initialized.");
         }
 
         return internalManager;

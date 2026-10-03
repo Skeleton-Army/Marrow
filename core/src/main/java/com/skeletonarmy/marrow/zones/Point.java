@@ -1,8 +1,7 @@
 package com.skeletonarmy.marrow.zones;
 
-import java.util.Locale;
-
 import androidx.annotation.NonNull;
+import java.util.Locale;
 
 public class Point {
     private final double x;

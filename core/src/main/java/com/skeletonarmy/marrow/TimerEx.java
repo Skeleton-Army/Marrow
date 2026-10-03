@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
-
 import java.util.concurrent.TimeUnit;
 
 public class TimerEx {

@@ -1,15 +1,13 @@
 package com.skeletonarmy.marrow.internal;
 
 import android.os.Environment;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.qualcomm.robotcore.util.RobotLog;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -57,8 +55,10 @@ public class FileHandler {
     public static void saveToFile(Map<String, Object> map, String filePath) {
         File file = handleFilePath(filePath);
 
-        if (!Objects.requireNonNull(file.getParentFile()).exists() && !file.getParentFile().mkdirs()) {
-            RobotLog.addGlobalWarningMessage("Error: Could not create directory: " + file.getParentFile().getAbsolutePath());
+        if (!Objects.requireNonNull(file.getParentFile()).exists()
+                && !file.getParentFile().mkdirs()) {
+            RobotLog.addGlobalWarningMessage(
+                    "Error: Could not create directory: " + file.getParentFile().getAbsolutePath());
             return;
         }
 

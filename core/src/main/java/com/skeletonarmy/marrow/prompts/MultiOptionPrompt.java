@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.skeletonarmy.marrow.internal.Button;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,9 +17,11 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
     private String errorMessage = "";
 
     @SafeVarargs
-    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, int maxSelections, T... options) {
+    public MultiOptionPrompt(
+            String header, boolean requireSelection, boolean ordered, int maxSelections, T... options) {
         if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
-        if (options == null || options.length == 0) throw new IllegalArgumentException("Options cannot be null or empty.");
+        if (options == null || options.length == 0)
+            throw new IllegalArgumentException("Options cannot be null or empty.");
 
         if (maxSelections <= 0) maxSelections = options.length;
 
@@ -33,7 +34,12 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
     }
 
     @SuppressWarnings("unchecked")
-    public MultiOptionPrompt(String header, boolean requireSelection, boolean ordered, int maxSelections, Class<? extends Enum<?>> options) {
+    public MultiOptionPrompt(
+            String header,
+            boolean requireSelection,
+            boolean ordered,
+            int maxSelections,
+            Class<? extends Enum<?>> options) {
         this(header, requireSelection, ordered, maxSelections, (T[]) options.getEnumConstants());
     }
 
