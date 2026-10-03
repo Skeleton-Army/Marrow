@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.settings;
 
 import com.skeletonarmy.marrow.internal.FileHandler;
-
 import java.util.HashMap;
 import java.util.Map;
 

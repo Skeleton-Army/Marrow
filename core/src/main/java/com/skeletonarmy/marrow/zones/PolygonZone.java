@@ -11,7 +11,8 @@ public class PolygonZone implements Zone {
     private boolean centroidDirty;
 
     public PolygonZone(Point... points) {
-        if (points.length < 3) throw new IllegalArgumentException("Not enough points to create a polygon. Minimum is 3.");
+        if (points.length < 3)
+            throw new IllegalArgumentException("Not enough points to create a polygon. Minimum is 3.");
         this.corners = points;
         this.rotation = 0.0;
         this.centroidDirty = true;
@@ -22,10 +23,10 @@ public class PolygonZone implements Zone {
         double halfHeight = height / 2.0;
 
         this.corners = new Point[] {
-                new Point(-halfWidth, -halfHeight),
-                new Point(halfWidth, -halfHeight),
-                new Point(halfWidth, halfHeight),
-                new Point(-halfWidth, halfHeight)
+            new Point(-halfWidth, -halfHeight),
+            new Point(halfWidth, -halfHeight),
+            new Point(halfWidth, halfHeight),
+            new Point(-halfWidth, halfHeight)
         };
         this.rotation = 0.0;
         this.centroidDirty = true;
@@ -38,10 +39,10 @@ public class PolygonZone implements Zone {
         double centerY = center.getY();
 
         this.corners = new Point[] {
-                new Point(-halfWidth + centerX, -halfHeight + centerY),
-                new Point(halfWidth + centerX, -halfHeight + centerY),
-                new Point(halfWidth + centerX, halfHeight + centerY),
-                new Point(-halfWidth + centerX, halfHeight + centerY)
+            new Point(-halfWidth + centerX, -halfHeight + centerY),
+            new Point(halfWidth + centerX, -halfHeight + centerY),
+            new Point(halfWidth + centerX, halfHeight + centerY),
+            new Point(-halfWidth + centerX, halfHeight + centerY)
         };
         this.rotation = 0.0;
         this.cachedCentroid = center;
@@ -55,19 +56,16 @@ public class PolygonZone implements Zone {
         double centerY = center.getY();
 
         Point[] baseCorners = new Point[] {
-                new Point(-halfWidth, -halfHeight),
-                new Point(halfWidth, -halfHeight),
-                new Point(halfWidth, halfHeight),
-                new Point(-halfWidth, halfHeight)
+            new Point(-halfWidth, -halfHeight),
+            new Point(halfWidth, -halfHeight),
+            new Point(halfWidth, halfHeight),
+            new Point(-halfWidth, halfHeight)
         };
 
         Point[] rotatedCorners = rotatePolygon(baseCorners, angle);
         Point[] finalCorners = new Point[rotatedCorners.length];
         for (int i = 0; i < rotatedCorners.length; i++) {
-            finalCorners[i] = new Point(
-                    rotatedCorners[i].getX() + centerX,
-                    rotatedCorners[i].getY() + centerY
-            );
+            finalCorners[i] = new Point(rotatedCorners[i].getX() + centerX, rotatedCorners[i].getY() + centerY);
         }
 
         this.corners = finalCorners;
@@ -87,10 +85,10 @@ public class PolygonZone implements Zone {
         double py = dx * (thickness / 2) / length;
 
         this.corners = new Point[] {
-                new Point(point1.getX() + px, point1.getY() + py),
-                new Point(point1.getX() - px, point1.getY() - py),
-                new Point(point2.getX() - px, point2.getY() - py),
-                new Point(point2.getX() + px, point2.getY() + py)
+            new Point(point1.getX() + px, point1.getY() + py),
+            new Point(point1.getX() - px, point1.getY() - py),
+            new Point(point2.getX() - px, point2.getY() - py),
+            new Point(point2.getX() + px, point2.getY() + py)
         };
         this.rotation = 0.0;
         this.centroidDirty = true;
@@ -290,7 +288,7 @@ public class PolygonZone implements Zone {
 
     /**
      * Calculates the shortest distance from the given point to the zone's boundary.
-     * 
+     *
      * @param point The point to measure to
      * @return The minimum distance to the boundary
      */
@@ -465,8 +463,8 @@ public class PolygonZone implements Zone {
             return dx * dx + dy * dy;
         }
 
-        double t = ((p.getX() - a.getX()) * (b.getX() - a.getX()) +
-                (p.getY() - a.getY()) * (b.getY() - a.getY())) / segmentLengthSq;
+        double t = ((p.getX() - a.getX()) * (b.getX() - a.getX()) + (p.getY() - a.getY()) * (b.getY() - a.getY()))
+                / segmentLengthSq;
 
         Point closest;
         if (t < 0.0) {
@@ -474,10 +472,7 @@ public class PolygonZone implements Zone {
         } else if (t > 1.0) {
             closest = b;
         } else {
-            closest = new Point(
-                    a.getX() + t * (b.getX() - a.getX()),
-                    a.getY() + t * (b.getY() - a.getY())
-            );
+            closest = new Point(a.getX() + t * (b.getX() - a.getX()), a.getY() + t * (b.getY() - a.getY()));
         }
 
         double dx = p.getX() - closest.getX();
@@ -519,7 +514,8 @@ public class PolygonZone implements Zone {
 
         // Vector AB: (bx - ax, by - ay)
         // Vector AP: (px - ax, py - ay)
-        double t = ((p.getX() - a.getX()) * (b.getX() - a.getX()) + (p.getY() - a.getY()) * (b.getY() - a.getY())) / segmentLengthSq;
+        double t = ((p.getX() - a.getX()) * (b.getX() - a.getX()) + (p.getY() - a.getY()) * (b.getY() - a.getY()))
+                / segmentLengthSq;
 
         // Find the closest point on the line *segment*
         Point closest;
@@ -529,10 +525,7 @@ public class PolygonZone implements Zone {
             closest = b;
         } else {
             // Point is between a and b. Project P onto line AB.
-            closest = new Point(
-                    a.getX() + t * (b.getX() - a.getX()),
-                    a.getY() + t * (b.getY() - a.getY())
-            );
+            closest = new Point(a.getX() + t * (b.getX() - a.getX()), a.getY() + t * (b.getY() - a.getY()));
         }
 
         return p.distanceTo(closest);
@@ -555,16 +548,15 @@ public class PolygonZone implements Zone {
     }
 
     private static int orientation(Point a, Point b, Point c) {
-        double val = (b.getY() - a.getY()) * (c.getX() - b.getX()) -
-                (b.getX() - a.getX()) * (c.getY() - b.getY());
+        double val = (b.getY() - a.getY()) * (c.getX() - b.getX()) - (b.getX() - a.getX()) * (c.getY() - b.getY());
         if (Math.abs(val) <= 1e-12) return 0;
         return (val > 0) ? 1 : 2;
     }
 
     private static boolean onSegment(Point a, Point b, Point c) {
-        return b.getX() <= Math.max(a.getX(), c.getX()) + 1e-12 &&
-                b.getX() + 1e-12 >= Math.min(a.getX(), c.getX()) &&
-                b.getY() <= Math.max(a.getY(), c.getY()) + 1e-12 &&
-                b.getY() + 1e-12 >= Math.min(a.getY(), c.getY());
+        return b.getX() <= Math.max(a.getX(), c.getX()) + 1e-12
+                && b.getX() + 1e-12 >= Math.min(a.getX(), c.getX())
+                && b.getY() <= Math.max(a.getY(), c.getY()) + 1e-12
+                && b.getY() + 1e-12 >= Math.min(a.getY(), c.getY());
     }
 }

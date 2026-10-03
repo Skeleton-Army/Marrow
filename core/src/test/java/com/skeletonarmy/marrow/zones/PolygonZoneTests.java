@@ -1,10 +1,11 @@
 package com.skeletonarmy.marrow.zones;
 
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+
+import org.junit.Test;
 
 public class PolygonZoneTests {
     private static final double DELTA = 0.0001;
@@ -14,12 +15,7 @@ public class PolygonZoneTests {
      * Vertices: (-2, 2), (2, 2), (2, -2), (-2, -2).
      */
     private PolygonZone createUnitSquareZone() {
-        return new PolygonZone(
-                new Point(-2, 2),
-                new Point(2, 2),
-                new Point(2, -2),
-                new Point(-2, -2)
-        );
+        return new PolygonZone(new Point(-2, 2), new Point(2, 2), new Point(2, -2), new Point(-2, -2));
     }
 
     /**
@@ -27,12 +23,7 @@ public class PolygonZoneTests {
      * Vertices: (8, 2), (12, 2), (12, -2), (8, -2).
      */
     private PolygonZone createShiftedSquareZone() {
-        return new PolygonZone(
-                new Point(8, 2),
-                new Point(12, 2),
-                new Point(12, -2),
-                new Point(8, -2)
-        );
+        return new PolygonZone(new Point(8, 2), new Point(12, 2), new Point(12, -2), new Point(8, -2));
     }
 
     /**
@@ -40,11 +31,7 @@ public class PolygonZoneTests {
      * Vertices: (0, 0), (4, 0), (2, 3).
      */
     private PolygonZone createSimpleTriangleZone() {
-        return new PolygonZone(
-                new Point(0, 0),
-                new Point(4, 0),
-                new Point(2, 3)
-        );
+        return new PolygonZone(new Point(0, 0), new Point(4, 0), new Point(2, 3));
     }
 
     // --- Tests for contains(Point) ---
@@ -212,7 +199,7 @@ public class PolygonZoneTests {
         PolygonZone p1 = createUnitSquareZone(); // Extent [ -2, 2]
         PolygonZone p2 = new PolygonZone(
                 new Point(2, 2), new Point(4, 2), new Point(4, -2), new Point(2, -2) // Square from x=2 to x=4
-        );
+                );
 
         // Act
         // They share the edge at x=2, distance is 0.0, so they intersect.
@@ -228,7 +215,7 @@ public class PolygonZoneTests {
         PolygonZone p1 = createUnitSquareZone();
         PolygonZone p2 = new PolygonZone(
                 new Point(-1, 1), new Point(1, 1), new Point(1, -1), new Point(-1, -1) // Inner square
-        );
+                );
 
         // Act
         boolean isInside = p1.isInside(p2); // p1 intersects p2, p2 is inside p1
@@ -256,7 +243,7 @@ public class PolygonZoneTests {
         PolygonZone outerSquare = createUnitSquareZone();
         PolygonZone innerSquare = new PolygonZone(
                 new Point(-1, 1), new Point(1, 1), new Point(1, -1), new Point(-1, -1) // Inner square
-        );
+                );
 
         // Act
         boolean isFullyInside = innerSquare.isFullyInside(outerSquare);
@@ -270,8 +257,11 @@ public class PolygonZoneTests {
         // Arrange
         PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
         PolygonZone innerTouchingSquare = new PolygonZone(
-                new Point(-2, 0), new Point(0, 0), new Point(0, -2), new Point(-2, -2) // Bottom-left quadrant, sharing two edges
-        );
+                new Point(-2, 0),
+                new Point(0, 0),
+                new Point(0, -2),
+                new Point(-2, -2) // Bottom-left quadrant, sharing two edges
+                );
 
         // Act
         boolean isFullyInside = innerTouchingSquare.isFullyInside(outerSquare);
@@ -286,7 +276,7 @@ public class PolygonZoneTests {
         PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
         PolygonZone protrudingSquare = new PolygonZone(
                 new Point(1, 1), new Point(3, 1), new Point(3, -1), new Point(1, -1) // Protrudes on the right side
-        );
+                );
 
         // Act
         boolean isFullyInside = protrudingSquare.isFullyInside(outerSquare);
@@ -299,11 +289,7 @@ public class PolygonZoneTests {
     public void isInside_vertexBarelyInsideOtherPolygon_returnsTrue() {
         // Arrange
         PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
-        PolygonZone triangle = new PolygonZone(
-                new Point(1.9999, 0),
-                new Point(-3, 2),
-                new Point(-3, -2)
-        );
+        PolygonZone triangle = new PolygonZone(new Point(1.9999, 0), new Point(-3, 2), new Point(-3, -2));
 
         // Act
         boolean isInside = outerSquare.isInside(triangle);
@@ -316,11 +302,7 @@ public class PolygonZoneTests {
     public void isInside_triangleEdgesCrossSquareNoVerticesInside_returnsTrue() {
         // Arrange
         PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
-        PolygonZone triangle = new PolygonZone(
-                new Point(5, 0),
-                new Point(-5, 2),
-                new Point(-5, -2)
-        );
+        PolygonZone triangle = new PolygonZone(new Point(5, 0), new Point(-5, 2), new Point(-5, -2));
 
         // Act
         boolean isInside = outerSquare.isInside(triangle);
@@ -337,8 +319,7 @@ public class PolygonZoneTests {
         PolygonZone triangle = new PolygonZone(
                 new Point(2, 0), // on boundary
                 new Point(4, 3),
-                new Point(4, -3)
-        );
+                new Point(4, -3));
 
         // Act
         boolean isInside = outerSquare.isInside(triangle);
@@ -354,9 +335,9 @@ public class PolygonZoneTests {
         // Triangle with one edge lying along the square's top edge
         PolygonZone triangle = new PolygonZone(
                 new Point(-3, 2), // colinear beyond left
-                new Point(3, 2),  // colinear beyond right
-                new Point(0, 4)   // above
-        );
+                new Point(3, 2), // colinear beyond right
+                new Point(0, 4) // above
+                );
 
         // Act
         boolean isInside = outerSquare.isInside(triangle);
@@ -371,11 +352,7 @@ public class PolygonZoneTests {
         PolygonZone outerSquare = createUnitSquareZone(); // Extent [-2, 2]
         // Triangle whose closest vertex is just outside the right edge by epsilon
         double eps = 1e-6; // larger than boundary epsilon inside PolygonZone.contains
-        PolygonZone triangle = new PolygonZone(
-                new Point(2 + eps, 0),
-                new Point(4 + eps, 3),
-                new Point(4 + eps, -3)
-        );
+        PolygonZone triangle = new PolygonZone(new Point(2 + eps, 0), new Point(4 + eps, 3), new Point(4 + eps, -3));
 
         // Act
         boolean isInside = outerSquare.isInside(triangle);
@@ -510,17 +487,18 @@ public class PolygonZoneTests {
         // After 90° rotation: (-1, -2), (-1, 2), (1, 2), (1, -2)
         Point[] corners = rotatedRectangle.getCorners();
         assertEquals(4, corners.length);
-        
+
         // Check that all corners are present (order may vary due to floating point precision)
         boolean foundCorner1 = false, foundCorner2 = false, foundCorner3 = false, foundCorner4 = false;
-        
+
         for (Point corner : corners) {
-            if (Math.abs(corner.getX() - (-1.0)) < DELTA && Math.abs(corner.getY() - (-2.0)) < DELTA) foundCorner1 = true;
+            if (Math.abs(corner.getX() - (-1.0)) < DELTA && Math.abs(corner.getY() - (-2.0)) < DELTA)
+                foundCorner1 = true;
             if (Math.abs(corner.getX() - (-1.0)) < DELTA && Math.abs(corner.getY() - 2.0) < DELTA) foundCorner2 = true;
             if (Math.abs(corner.getX() - 1.0) < DELTA && Math.abs(corner.getY() - 2.0) < DELTA) foundCorner3 = true;
             if (Math.abs(corner.getX() - 1.0) < DELTA && Math.abs(corner.getY() - (-2.0)) < DELTA) foundCorner4 = true;
         }
-        
+
         assertTrue("Missing corner (-1, -2)", foundCorner1);
         assertTrue("Missing corner (-1, 2)", foundCorner2);
         assertTrue("Missing corner (1, 2)", foundCorner3);
@@ -711,16 +689,16 @@ public class PolygonZoneTests {
     @Test
     public void testMoveBy() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move the zone by (3, 4)
         zone.moveBy(3, 4);
-        
+
         // Check that the zone is now at the new position
         assertTrue(zone.contains(new Point(1, 6))); // (-2,2) + (3,4) = (1,6)
         assertTrue(zone.contains(new Point(5, 6))); // (2,2) + (3,4) = (5,6)
         assertTrue(zone.contains(new Point(5, 2))); // (2,-2) + (3,4) = (5,2)
         assertTrue(zone.contains(new Point(1, 2))); // (-2,-2) + (3,4) = (1,2)
-        
+
         // Original position should no longer be contained
         assertFalse(zone.contains(new Point(0, 0)));
     }
@@ -728,17 +706,17 @@ public class PolygonZoneTests {
     @Test
     public void testSetPosition() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move the zone to center at (10, 5)
         zone.setPosition(10, 5);
-        
+
         // Check that the zone is now centered at (10, 5)
         assertTrue(zone.contains(new Point(10, 5))); // Center
         assertTrue(zone.contains(new Point(8, 7))); // Top-left
         assertTrue(zone.contains(new Point(12, 7))); // Top-right
         assertTrue(zone.contains(new Point(12, 3))); // Bottom-right
         assertTrue(zone.contains(new Point(8, 3))); // Bottom-left
-        
+
         // Original position should no longer be contained
         assertFalse(zone.contains(new Point(0, 0)));
     }
@@ -746,10 +724,10 @@ public class PolygonZoneTests {
     @Test
     public void testRotateBy() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate 90 degrees clockwise (π/2 radians)
         zone.rotateBy(Math.PI / 2);
-        
+
         // Check that the square has been rotated
         // Original square: (-2,2), (2,2), (2,-2), (-2,-2)
         // After 90° rotation: (2,2), (2,-2), (-2,-2), (-2,2)
@@ -757,7 +735,7 @@ public class PolygonZoneTests {
         assertTrue(zone.contains(new Point(2, -2))); // Bottom-right corner
         assertTrue(zone.contains(new Point(-2, -2))); // Bottom-left corner
         assertTrue(zone.contains(new Point(-2, 2))); // Top-left corner
-        
+
         // Check rotation tracking
         assertEquals(Math.PI / 2, zone.getRotation(), DELTA);
         assertEquals(90.0, zone.getRotationDegrees(), DELTA);
@@ -766,10 +744,10 @@ public class PolygonZoneTests {
     @Test
     public void testRotateByDegrees() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate 45 degrees
         zone.rotateByDegrees(45);
-        
+
         // Check rotation tracking
         assertEquals(Math.PI / 4, zone.getRotation(), DELTA);
         assertEquals(45.0, zone.getRotationDegrees(), DELTA);
@@ -778,17 +756,17 @@ public class PolygonZoneTests {
     @Test
     public void testSetRotation() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Set rotation to 180 degrees
         zone.setRotationDegrees(180);
-        
+
         // Check rotation tracking
         assertEquals(Math.PI, zone.getRotation(), DELTA);
         assertEquals(180.0, zone.getRotationDegrees(), DELTA);
-        
+
         // Set rotation to 90 degrees (should rotate by -90 degrees from current 180)
         zone.setRotationDegrees(90);
-        
+
         // Check rotation tracking
         assertEquals(Math.PI / 2, zone.getRotation(), DELTA);
         assertEquals(90.0, zone.getRotationDegrees(), DELTA);
@@ -797,16 +775,16 @@ public class PolygonZoneTests {
     @Test
     public void testRotationPreservesCenter() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate 90 degrees
         zone.rotateByDegrees(90);
-        
+
         // Center should still be at (0, 0)
         assertTrue(zone.contains(new Point(0, 0)));
-        
+
         // Rotate another 90 degrees
         zone.rotateByDegrees(90);
-        
+
         // Center should still be at (0, 0)
         assertTrue(zone.contains(new Point(0, 0)));
     }
@@ -817,17 +795,17 @@ public class PolygonZoneTests {
         PolygonZone zone1 = createUnitSquareZone();
         assertEquals(0.0, zone1.getRotation(), DELTA);
         assertEquals(0.0, zone1.getRotationDegrees(), DELTA);
-        
+
         // Test constructor with center, width, height - should have 0 rotation
         PolygonZone zone2 = new PolygonZone(new Point(0, 0), 10, 5);
         assertEquals(0.0, zone2.getRotation(), DELTA);
         assertEquals(0.0, zone2.getRotationDegrees(), DELTA);
-        
+
         // Test constructor with center, width, height, angle - should have specified rotation
         PolygonZone zone3 = new PolygonZone(new Point(0, 0), 10, 5, Math.PI / 4);
         assertEquals(Math.PI / 4, zone3.getRotation(), DELTA);
         assertEquals(45.0, zone3.getRotationDegrees(), DELTA);
-        
+
         // Test constructor with two points and thickness - should have 0 rotation
         PolygonZone zone4 = new PolygonZone(new Point(0, 0), new Point(5, 0), 2.0);
         assertEquals(0.0, zone4.getRotation(), DELTA);
@@ -839,12 +817,12 @@ public class PolygonZoneTests {
     @Test
     public void testMoveByMultipleTimes() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move multiple times
         zone.moveBy(1, 1);
         zone.moveBy(2, 3);
         zone.moveBy(-1, 0);
-        
+
         // Total movement: (1+2-1, 1+3+0) = (2, 4)
         assertTrue(zone.contains(new Point(2, 4))); // Center should be at (2, 4)
         assertFalse(zone.contains(new Point(0, 0))); // Original center should not be contained
@@ -854,10 +832,10 @@ public class PolygonZoneTests {
     public void testMoveByZero() {
         PolygonZone zone = createUnitSquareZone();
         Point[] originalCorners = zone.getCorners();
-        
+
         // Move by zero
         zone.moveBy(0, 0);
-        
+
         // Should remain unchanged
         Point[] newCorners = zone.getCorners();
         assertEquals(originalCorners.length, newCorners.length);
@@ -870,10 +848,10 @@ public class PolygonZoneTests {
     @Test
     public void testMoveByNegative() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move by negative values
         zone.moveBy(-5, -3);
-        
+
         // Check new position
         assertTrue(zone.contains(new Point(-5, -3))); // Center should be at (-5, -3)
         assertFalse(zone.contains(new Point(0, 0))); // Original center should not be contained
@@ -882,11 +860,11 @@ public class PolygonZoneTests {
     @Test
     public void testSetPositionMultipleTimes() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move to different positions
         zone.setPosition(10, 5);
         assertTrue(zone.contains(new Point(10, 5)));
-        
+
         zone.setPosition(-3, 7);
         assertTrue(zone.contains(new Point(-3, 7)));
         assertFalse(zone.contains(new Point(10, 5))); // Previous position should not be contained
@@ -896,10 +874,10 @@ public class PolygonZoneTests {
     public void testSetPositionSamePosition() {
         PolygonZone zone = createUnitSquareZone();
         Point[] originalCorners = zone.getCorners();
-        
+
         // Move to same position
         zone.setPosition(0, 0);
-        
+
         // Should remain unchanged
         Point[] newCorners = zone.getCorners();
         assertEquals(originalCorners.length, newCorners.length);
@@ -912,20 +890,20 @@ public class PolygonZoneTests {
     @Test
     public void testMoveByPreservesShape() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move the zone
         zone.moveBy(5, 3);
-        
+
         // Check that shape is preserved (corners should maintain relative positions)
         Point[] corners = zone.getCorners();
         assertEquals(4, corners.length);
-        
+
         // Verify it's still a square by checking distances between corners
         double sideLength1 = corners[0].distanceTo(corners[1]);
         double sideLength2 = corners[1].distanceTo(corners[2]);
         double sideLength3 = corners[2].distanceTo(corners[3]);
         double sideLength4 = corners[3].distanceTo(corners[0]);
-        
+
         assertEquals(sideLength1, sideLength2, DELTA);
         assertEquals(sideLength2, sideLength3, DELTA);
         assertEquals(sideLength3, sideLength4, DELTA);
@@ -936,12 +914,12 @@ public class PolygonZoneTests {
     @Test
     public void testRotateByMultipleTimes() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate multiple times
         zone.rotateBy(Math.PI / 4); // 45 degrees
         zone.rotateBy(Math.PI / 4); // Another 45 degrees
         zone.rotateBy(-Math.PI / 2); // -90 degrees
-        
+
         // Total rotation: 45 + 45 - 90 = 0 degrees
         assertEquals(0.0, zone.getRotation(), DELTA);
         assertEquals(0.0, zone.getRotationDegrees(), DELTA);
@@ -951,10 +929,10 @@ public class PolygonZoneTests {
     public void testRotateByZero() {
         PolygonZone zone = createUnitSquareZone();
         Point[] originalCorners = zone.getCorners();
-        
+
         // Rotate by zero
         zone.rotateBy(0);
-        
+
         // Should remain unchanged
         Point[] newCorners = zone.getCorners();
         assertEquals(originalCorners.length, newCorners.length);
@@ -968,10 +946,10 @@ public class PolygonZoneTests {
     @Test
     public void testRotateByNegative() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate by negative angle
         zone.rotateBy(-Math.PI / 2); // -90 degrees
-        
+
         assertEquals(-Math.PI / 2, zone.getRotation(), DELTA);
         assertEquals(-90.0, zone.getRotationDegrees(), DELTA);
     }
@@ -979,12 +957,12 @@ public class PolygonZoneTests {
     @Test
     public void testRotateByDegreesMultipleTimes() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate by degrees multiple times
         zone.rotateByDegrees(30);
         zone.rotateByDegrees(60);
         zone.rotateByDegrees(-45);
-        
+
         // Total rotation: 30 + 60 - 45 = 45 degrees
         assertEquals(45.0, zone.getRotationDegrees(), DELTA);
         assertEquals(Math.PI / 4, zone.getRotation(), DELTA);
@@ -993,14 +971,14 @@ public class PolygonZoneTests {
     @Test
     public void testSetRotationMultipleTimes() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Set rotation to different values
         zone.setRotationDegrees(90);
         assertEquals(90.0, zone.getRotationDegrees(), DELTA);
-        
+
         zone.setRotationDegrees(180);
         assertEquals(180.0, zone.getRotationDegrees(), DELTA);
-        
+
         zone.setRotationDegrees(0);
         assertEquals(0.0, zone.getRotationDegrees(), DELTA);
     }
@@ -1008,14 +986,14 @@ public class PolygonZoneTests {
     @Test
     public void testSetRotationDegreesMultipleTimes() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Set rotation to different values using degrees
         zone.setRotationDegrees(45);
         assertEquals(45.0, zone.getRotationDegrees(), DELTA);
-        
+
         zone.setRotationDegrees(270);
         assertEquals(270.0, zone.getRotationDegrees(), DELTA);
-        
+
         zone.setRotationDegrees(360);
         assertEquals(360.0, zone.getRotationDegrees(), DELTA);
     }
@@ -1023,20 +1001,20 @@ public class PolygonZoneTests {
     @Test
     public void testRotateByPreservesShape() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate the zone
         zone.rotateByDegrees(45);
-        
+
         // Check that shape is preserved (corners should maintain relative distances)
         Point[] corners = zone.getCorners();
         assertEquals(4, corners.length);
-        
+
         // Verify it's still a square by checking distances between corners
         double sideLength1 = corners[0].distanceTo(corners[1]);
         double sideLength2 = corners[1].distanceTo(corners[2]);
         double sideLength3 = corners[2].distanceTo(corners[3]);
         double sideLength4 = corners[3].distanceTo(corners[0]);
-        
+
         assertEquals(sideLength1, sideLength2, DELTA);
         assertEquals(sideLength2, sideLength3, DELTA);
         assertEquals(sideLength3, sideLength4, DELTA);
@@ -1046,10 +1024,10 @@ public class PolygonZoneTests {
     public void testRotateByFullCircle() {
         PolygonZone zone = createUnitSquareZone();
         Point[] originalCorners = zone.getCorners();
-        
+
         // Rotate full circle (360 degrees)
         zone.rotateByDegrees(360);
-        
+
         // Should be back to original position (allowing for floating point precision)
         Point[] newCorners = zone.getCorners();
         assertEquals(originalCorners.length, newCorners.length);
@@ -1065,11 +1043,11 @@ public class PolygonZoneTests {
     @Test
     public void testMoveByThenRotateBy() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move then rotate
         zone.moveBy(5, 3);
         zone.rotateByDegrees(90);
-        
+
         // Check that both operations were applied
         assertTrue(zone.contains(new Point(5, 3))); // Center should be at moved position
         assertEquals(90.0, zone.getRotationDegrees(), DELTA);
@@ -1078,11 +1056,11 @@ public class PolygonZoneTests {
     @Test
     public void testRotateByThenMoveBy() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate then move
         zone.rotateByDegrees(45);
         zone.moveBy(2, 1);
-        
+
         // Check that both operations were applied
         assertTrue(zone.contains(new Point(2, 1))); // Center should be at moved position
         assertEquals(45.0, zone.getRotationDegrees(), DELTA);
@@ -1091,11 +1069,11 @@ public class PolygonZoneTests {
     @Test
     public void testSetPositionThenRotateBy() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move to specific position then rotate
         zone.setPosition(10, 5);
         zone.rotateByDegrees(180);
-        
+
         // Check that both operations were applied
         assertTrue(zone.contains(new Point(10, 5))); // Center should be at target position
         assertEquals(180.0, zone.getRotationDegrees(), DELTA);
@@ -1104,14 +1082,14 @@ public class PolygonZoneTests {
     @Test
     public void testComplexSequence() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Complex sequence of operations
         zone.moveBy(2, 1);
         zone.rotateByDegrees(30);
         zone.setPosition(5, 3);
         zone.rotateByDegrees(60);
         zone.moveBy(-1, 2);
-        
+
         // Check final state
         assertTrue(zone.contains(new Point(4, 5))); // Final center position
         assertEquals(90.0, zone.getRotationDegrees(), DELTA); // Total rotation: 30 + 60 = 90
@@ -1122,10 +1100,10 @@ public class PolygonZoneTests {
     @Test
     public void testMoveByVerySmallValues() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Move by very small values
         zone.moveBy(1e-10, 1e-10);
-        
+
         // Should still work correctly
         assertTrue(zone.contains(new Point(1e-10, 1e-10)));
     }
@@ -1133,10 +1111,10 @@ public class PolygonZoneTests {
     @Test
     public void testRotateByVerySmallValues() {
         PolygonZone zone = createUnitSquareZone();
-        
+
         // Rotate by very small values
         zone.rotateBy(1e-10);
-        
+
         // Should still work correctly
         assertEquals(1e-10, zone.getRotation(), DELTA);
     }

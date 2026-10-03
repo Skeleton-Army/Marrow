@@ -8,7 +8,6 @@ import com.pedropathing.paths.curves.Curve;
 import com.pedropathing.paths.curves.Line;
 import com.pedropathing.paths.curves.bezier.BezierCurve;
 import com.skeletonarmy.marrow.zones.Point;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

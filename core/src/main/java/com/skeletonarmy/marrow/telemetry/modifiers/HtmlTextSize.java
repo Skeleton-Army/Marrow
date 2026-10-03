@@ -1,6 +1,6 @@
 package com.skeletonarmy.marrow.telemetry.modifiers;
 
 public enum HtmlTextSize {
-    BIG, 
+    BIG,
     SMALL
 }

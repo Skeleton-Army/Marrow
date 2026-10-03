@@ -1,8 +1,6 @@
 package com.skeletonarmy.marrow;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
-
 import com.qualcomm.ftccommon.FtcEventLoop;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
@@ -10,10 +8,8 @@ import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerImpl;
 import com.qualcomm.robotcore.eventloop.opmode.OpModeManagerNotifier;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.RobotLog;
-
-import org.firstinspires.ftc.ftccommon.external.OnCreateEventLoop;
-
 import java.util.List;
+import org.firstinspires.ftc.ftccommon.external.OnCreateEventLoop;
 
 /**
  * Utility for managing REV Hub bulk caching.
@@ -90,7 +86,8 @@ public class LynxUtil {
             BulkCaching annotation = opMode.getClass().getAnnotation(BulkCaching.class);
 
             // Fallback to global setting (which defaults to OFF)
-            LynxModule.BulkCachingMode mode = (annotation != null) ? annotation.mode() : BulkCachingSettings.defaultMode;
+            LynxModule.BulkCachingMode mode =
+                    (annotation != null) ? annotation.mode() : BulkCachingSettings.defaultMode;
 
             if (mode != LynxModule.BulkCachingMode.OFF) {
                 setBulkCachingMode(opMode.hardwareMap, mode);

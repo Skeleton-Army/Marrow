@@ -1,21 +1,20 @@
 package com.skeletonarmy.marrow.weaver;
 
-import com.skeletonarmy.marrow.zones.CircleZone;
-import com.skeletonarmy.marrow.zones.Point;
-import com.skeletonarmy.marrow.zones.Zone;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+
+import com.skeletonarmy.marrow.zones.CircleZone;
+import com.skeletonarmy.marrow.zones.Point;
+import com.skeletonarmy.marrow.zones.Zone;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  * Tests the public weaver surface: global configuration, builder validation,
@@ -101,9 +100,7 @@ public class WeaverTest {
     @Test
     public void generate_destinationOnly_returnsPathEndingAtDestination() {
         // Arrange
-        WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10, 0))
-                .end(new PathPose(30, 10));
+        WeaverBuilder builder = Weaver.builder().start(new PathPose(10, 10, 0)).end(new PathPose(30, 10));
 
         // Act
         PathResult actual = builder.generate();
@@ -117,9 +114,7 @@ public class WeaverTest {
     @Test
     public void generate_destinationOnly_returnsEndHeadingAlongTravel() {
         // Arrange
-        WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10, 0))
-                .end(new PathPose(30, 10));
+        WeaverBuilder builder = Weaver.builder().start(new PathPose(10, 10, 0)).end(new PathPose(30, 10));
 
         // Act
         List<Double> actualHeadings = builder.generate().getSegmentEndHeadingsRad();
@@ -141,7 +136,8 @@ public class WeaverTest {
         PathRoute actual = builder.generate().getPath();
 
         // Assert
-        assertTrue(WeaverGenerator.isPathClear(actual, obstacles, Weaver.getConfig().getClearance(), 200));
+        assertTrue(WeaverGenerator.isPathClear(
+                actual, obstacles, Weaver.getConfig().getClearance(), 200));
     }
 
     // --- Intake mode ---
@@ -151,9 +147,8 @@ public class WeaverTest {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(0));
         PathPose target = new PathPose(START_X + 20, START_Y);
-        WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(target);
+        WeaverBuilder builder =
+                Weaver.builder().start(new PathPose(START_X, START_Y, 0)).addTarget(target);
 
         // Act
         PathRoute actual = builder.generate().getPath();
@@ -342,9 +337,7 @@ public class WeaverTest {
     @Test
     public void generate_destinationMode_reportsNoSkippedTargets() {
         // Arrange
-        WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10, 0))
-                .end(new PathPose(30, 10));
+        WeaverBuilder builder = Weaver.builder().start(new PathPose(10, 10, 0)).end(new PathPose(30, 10));
 
         // Act
         int actual = builder.generate().getSkippedTargets();
@@ -488,8 +481,8 @@ public class WeaverTest {
     @Test
     public void isPathClear_routeClearOfObstacle_returnsTrue() {
         // Arrange
-        PathRoute route = new PathRoute(Collections.singletonList(
-                new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
+        PathRoute route = new PathRoute(
+                Collections.singletonList(new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 10), 1));
 
         // Act
@@ -502,8 +495,8 @@ public class WeaverTest {
     @Test
     public void isPathClear_routeThroughObstacle_returnsFalse() {
         // Arrange
-        PathRoute route = new PathRoute(Collections.singletonList(
-                new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
+        PathRoute route = new PathRoute(
+                Collections.singletonList(new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 0), 1));
 
         // Act
@@ -541,8 +534,8 @@ public class WeaverTest {
     @Test
     public void isPathClear_withPathConfig_returnsCorrectResult() {
         // Arrange
-        PathRoute route = new PathRoute(Collections.singletonList(
-                new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
+        PathRoute route = new PathRoute(
+                Collections.singletonList(new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 0), 1));
         PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
 
@@ -581,8 +574,8 @@ public class WeaverTest {
     @Test
     public void isPathClear_usingPathConfig_returnsCorrectResult() {
         // Arrange
-        PathRoute route = new PathRoute(Collections.singletonList(
-                new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
+        PathRoute route = new PathRoute(
+                Collections.singletonList(new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)))));
         PathCurve curve = new PathCurve(Arrays.asList(new Point(0, 0), new Point(10, 0)));
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(5, 10), 1));
         PathConfig config = new PathConfig().clearance(0.5).robotWidth(0).robotHeight(0);
@@ -601,9 +594,8 @@ public class WeaverTest {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(0).smoothing(false));
         PathPose target = new PathPose(START_X + 20, START_Y);
-        WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(target);
+        WeaverBuilder builder =
+                Weaver.builder().start(new PathPose(START_X, START_Y, 0)).addTarget(target);
 
         // Act
         PathRoute actual = builder.generate().getPath();

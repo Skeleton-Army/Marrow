@@ -1,19 +1,18 @@
 package com.skeletonarmy.marrow.telemetry;
 
 import android.text.TextUtils;
-
-import org.firstinspires.ftc.robotcore.external.Func;
-import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
+import org.firstinspires.ftc.robotcore.external.Func;
+import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class MarrowTelemetry implements Telemetry {
     Telemetry telemetry;
     DecimalFormat decimalFormat;
 
-    //NOTE: I don't think any other implementation except the official one implements HTML, so be careful with MultipleTelemetry
+    // NOTE: I don't think any other implementation except the official one implements HTML, so be careful with
+    // MultipleTelemetry
     public MarrowTelemetry(Telemetry telemetry) {
         this.telemetry = telemetry;
         setDisplayFormat(DisplayFormat.HTML);
@@ -49,7 +48,7 @@ public class MarrowTelemetry implements Telemetry {
         }
 
         List<TelemetryModifier> modifiers = new ArrayList<>();
-        Object[] formatArgs = new Object[args.length -1];
+        Object[] formatArgs = new Object[args.length - 1];
 
         // Format double like normal telemetry
         if (isDouble(message)) {
@@ -81,7 +80,7 @@ public class MarrowTelemetry implements Telemetry {
 
         if (caption == null || caption.isEmpty()) {
             addLine(msg);
-            return null; //TODO: Return an actual value, though I don't think it's actually needed
+            return null; // TODO: Return an actual value, though I don't think it's actually needed
         }
 
         // When using the List or builder method, the rest of the args should be used for formatting
@@ -98,7 +97,6 @@ public class MarrowTelemetry implements Telemetry {
      * @param args addData args
      * @return the type of args given
      */
-
     private HtmlArgType isHtml(Object[] args) {
         if (args == null || args.length == 0) {
             return HtmlArgType.NONE;
@@ -111,7 +109,7 @@ public class MarrowTelemetry implements Telemetry {
         if (args[0] instanceof List) {
             List<?> arg0 = (List<?>) args[0];
             if (!arg0.isEmpty() && arg0.get(0) instanceof TelemetryModifier) {
-               return HtmlArgType.LIST;
+                return HtmlArgType.LIST;
             }
         }
 
@@ -129,7 +127,7 @@ public class MarrowTelemetry implements Telemetry {
             Double.parseDouble(s);
             return true;
         } catch (NumberFormatException e) {
-           return false;
+            return false;
         }
     }
 

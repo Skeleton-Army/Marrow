@@ -1,9 +1,10 @@
 package com.skeletonarmy.marrow.zones;
 
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 
 public class CircleZoneTests {
     private static final double DELTA = 0.0001;
@@ -113,9 +114,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(10, 0), 2.0);
         // Square centered at (0,0) from -2 to 2
-        PolygonZone square = new PolygonZone(
-                new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2)
-        );
+        PolygonZone square = new PolygonZone(new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2));
 
         // Act
         // Distance from circle center (10,0) to closest polygon point (2,0) is 8.0.
@@ -131,9 +130,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(5, 0), 4.0);
         // Square centered at (0,0) from -2 to 2
-        PolygonZone square = new PolygonZone(
-                new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2)
-        );
+        PolygonZone square = new PolygonZone(new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2));
 
         // Act
         // Distance from circle center (5,0) to closest polygon point (2,0) is 3.0.
@@ -149,11 +146,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0); // radius 2
         // Triangle whose edges cross the circle, but all vertices are outside
-        PolygonZone triangle = new PolygonZone(
-                new Point(5, 0),
-                new Point(-5, 2),
-                new Point(-5, -2)
-        );
+        PolygonZone triangle = new PolygonZone(new Point(5, 0), new Point(-5, 2), new Point(-5, -2));
 
         // Act
         boolean isInside = circle.isInside(triangle);
@@ -167,11 +160,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
         // One vertex exactly on the circle at (2,0), others outside
-        PolygonZone triangle = new PolygonZone(
-                new Point(2, 0),
-                new Point(-4, 3),
-                new Point(-4, -3)
-        );
+        PolygonZone triangle = new PolygonZone(new Point(2, 0), new Point(-4, 3), new Point(-4, -3));
 
         // Act
         boolean isInside = circle.isInside(triangle);
@@ -185,11 +174,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
         // Triangle with one edge tangent to the circle at (0,2)
-        PolygonZone triangle = new PolygonZone(
-                new Point(-5, 2),
-                new Point(5, 2),
-                new Point(0, 5)
-        );
+        PolygonZone triangle = new PolygonZone(new Point(-5, 2), new Point(5, 2), new Point(0, 5));
 
         // Act
         boolean isInside = circle.isInside(triangle);
@@ -204,11 +189,7 @@ public class CircleZoneTests {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
         double eps = 1e-6; // larger than boundary epsilon used in geometry helpers
         // Triangle entirely to the right of the circle; closest edge is a vertical line at x = 2 + eps
-        PolygonZone triangle = new PolygonZone(
-                new Point(2 + eps, 3),
-                new Point(2 + eps, -3),
-                new Point(5, 0)
-        );
+        PolygonZone triangle = new PolygonZone(new Point(2 + eps, 3), new Point(2 + eps, -3), new Point(5, 0));
 
         // Act
         boolean isInside = circle.isInside(triangle);
@@ -216,7 +197,6 @@ public class CircleZoneTests {
         // Assert
         assertFalse(isInside);
     }
-
 
     // --- Tests for isInside(Zone) / isFullyInside(Zone) ---
 
@@ -279,9 +259,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(10, 0), 1.0);
         // Square centered at (0,0) from -2 to 2
-        PolygonZone square = new PolygonZone(
-                new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2)
-        );
+        PolygonZone square = new PolygonZone(new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2));
 
         // Act
         boolean isFullyInside = circle.isFullyInside(square);
@@ -295,9 +273,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(0, 0), 3.0); // Center at (0,0), Radius 3
         // Square centered at (0,0) from -2 to 2
-        PolygonZone square = new PolygonZone(
-                new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2)
-        );
+        PolygonZone square = new PolygonZone(new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2));
 
         // Act
         // Center is inside, but Radius (3.0) > distance to closest edge (2.0)
@@ -312,9 +288,7 @@ public class CircleZoneTests {
         // Arrange
         CircleZone circle = new CircleZone(new Point(0, 0), 1.0); // Center at (0,0), Radius 1
         // Square centered at (0,0) from -2 to 2
-        PolygonZone square = new PolygonZone(
-                new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2)
-        );
+        PolygonZone square = new PolygonZone(new Point(-2, -2), new Point(2, -2), new Point(2, 2), new Point(-2, 2));
 
         // Act
         // Center is inside, Radius (1.0) <= distance to closest edge (2.0)
@@ -327,17 +301,17 @@ public class CircleZoneTests {
     @Test
     public void testMoveBy() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
-        
+
         // Move the circle by (5, 3)
         circle.moveBy(5, 3);
-        
+
         // Check that the circle is now at the new position
         assertTrue(circle.contains(new Point(5, 3))); // Center
         assertTrue(circle.contains(new Point(7, 3))); // Right edge
         assertTrue(circle.contains(new Point(3, 3))); // Left edge
         assertTrue(circle.contains(new Point(5, 5))); // Top edge
         assertTrue(circle.contains(new Point(5, 1))); // Bottom edge
-        
+
         // Original position should no longer be contained
         assertFalse(circle.contains(new Point(0, 0)));
     }
@@ -345,17 +319,17 @@ public class CircleZoneTests {
     @Test
     public void testSetPosition() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
-        
+
         // Move the circle to center at (10, 7)
         circle.setPosition(10, 7);
-        
+
         // Check that the circle is now centered at (10, 7)
         assertTrue(circle.contains(new Point(10, 7))); // Center
         assertTrue(circle.contains(new Point(12, 7))); // Right edge
         assertTrue(circle.contains(new Point(8, 7))); // Left edge
         assertTrue(circle.contains(new Point(10, 9))); // Top edge
         assertTrue(circle.contains(new Point(10, 5))); // Bottom edge
-        
+
         // Original position should no longer be contained
         assertFalse(circle.contains(new Point(0, 0)));
     }
@@ -365,12 +339,12 @@ public class CircleZoneTests {
     @Test
     public void testMoveByMultipleTimes() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
-        
+
         // Move multiple times
         circle.moveBy(1, 1);
         circle.moveBy(2, 3);
         circle.moveBy(-1, 0);
-        
+
         // Total movement: (1+2-1, 1+3+0) = (2, 4)
         assertTrue(circle.contains(new Point(2, 4))); // Center should be at (2, 4)
         assertFalse(circle.contains(new Point(0, 0))); // Original center should not be contained
@@ -383,7 +357,7 @@ public class CircleZoneTests {
 
         // Move by zero
         circle.moveBy(0, 0);
-        
+
         // Should remain unchanged
         assertEquals(originalCenter.getX(), circle.getPosition().getX(), DELTA);
         assertEquals(originalCenter.getY(), circle.getPosition().getY(), DELTA);
@@ -392,10 +366,10 @@ public class CircleZoneTests {
     @Test
     public void testMoveByNegative() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
-        
+
         // Move by negative values
         circle.moveBy(-5, -3);
-        
+
         // Check new position
         assertTrue(circle.contains(new Point(-5, -3))); // Center should be at (-5, -3)
         assertFalse(circle.contains(new Point(0, 0))); // Original center should not be contained
@@ -404,11 +378,11 @@ public class CircleZoneTests {
     @Test
     public void testSetPositionMultipleTimes() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
-        
+
         // Move to different positions
         circle.setPosition(10, 5);
         assertTrue(circle.contains(new Point(10, 5)));
-        
+
         circle.setPosition(-3, 7);
         assertTrue(circle.contains(new Point(-3, 7)));
         assertFalse(circle.contains(new Point(10, 5))); // Previous position should not be contained
@@ -418,10 +392,10 @@ public class CircleZoneTests {
     public void testSetPositionSamePosition() {
         CircleZone circle = new CircleZone(new Point(0, 0), 2.0);
         Point originalCenter = circle.getPosition();
-        
+
         // Move to same position
         circle.setPosition(0, 0);
-        
+
         // Should remain unchanged
         assertEquals(originalCenter.getX(), circle.getPosition().getX(), DELTA);
         assertEquals(originalCenter.getY(), circle.getPosition().getY(), DELTA);
@@ -431,13 +405,13 @@ public class CircleZoneTests {
     public void testMoveByPreservesRadius() {
         CircleZone circle = new CircleZone(new Point(0, 0), 5.0);
         double originalRadius = circle.getRadius();
-        
+
         // Move the circle
         circle.moveBy(5, 3);
-        
+
         // Radius should be preserved
         assertEquals(originalRadius, circle.getRadius(), DELTA);
-        
+
         // Check that it's still a circle with the same radius
         assertTrue(circle.contains(new Point(5, 3))); // Center
         assertTrue(circle.contains(new Point(10, 3))); // Right edge

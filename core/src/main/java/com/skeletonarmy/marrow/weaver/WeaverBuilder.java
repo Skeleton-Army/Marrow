@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Zone;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -143,14 +142,7 @@ public class WeaverBuilder {
             throw new IllegalStateException("Either targets or a destination must be set");
         }
 
-        return WeaverGenerator.generate(
-                startPose,
-                destinationPose,
-                targets,
-                obstacles,
-                reorder,
-                Weaver.getConfig()
-        );
+        return WeaverGenerator.generate(startPose, destinationPose, targets, obstacles, reorder, Weaver.getConfig());
     }
 
     /**

@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

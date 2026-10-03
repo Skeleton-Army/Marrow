@@ -8,6 +8,7 @@ subprojects {
 
     apply(plugin = "com.android.library")
     apply(plugin = "io.deepmedia.tools.deployer")
+    apply(plugin = "com.diffplug.spotless")
 
     group = "com.skeletonarmyftc.marrow"
     version = "1.2.0"
@@ -16,6 +17,20 @@ subprojects {
         mavenCentral()
         google()
         maven("https://maven.brott.dev")
+    }
+
+    // Spotless: run `./gradlew spotlessApply` to format, `./gradlew spotlessCheck` to verify
+    // (spotlessCheck also runs as part of `check`)
+    extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        java {
+            // Explicit target, since Android source sets aren't picked up automatically
+            target("src/**/*.java")
+            palantirJavaFormat()
+            removeUnusedImports()
+            shortenFullyQualifiedTypes()
+            importOrder()
+            trimTrailingWhitespace()
+        }
     }
 
     extensions.configure<io.deepmedia.tools.deployer.DeployerExtension> {

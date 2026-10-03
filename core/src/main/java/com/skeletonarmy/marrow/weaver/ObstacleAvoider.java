@@ -5,7 +5,6 @@ import com.skeletonarmy.marrow.zones.CompositeZone;
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -145,10 +144,12 @@ public class ObstacleAvoider {
      */
     private static double obstacleDirection(Zone zone, Point p) {
         double gradientX = (signedDist(zone, new Point(p.getX() + GRADIENT_EPS, p.getY()))
-                - signedDist(zone, new Point(p.getX() - GRADIENT_EPS, p.getY()))) / (2 * GRADIENT_EPS);
+                        - signedDist(zone, new Point(p.getX() - GRADIENT_EPS, p.getY())))
+                / (2 * GRADIENT_EPS);
 
         double gradientY = (signedDist(zone, new Point(p.getX(), p.getY() + GRADIENT_EPS))
-                - signedDist(zone, new Point(p.getX(), p.getY() - GRADIENT_EPS))) / (2 * GRADIENT_EPS);
+                        - signedDist(zone, new Point(p.getX(), p.getY() - GRADIENT_EPS)))
+                / (2 * GRADIENT_EPS);
 
         if (Math.abs(gradientX) < 1e-9 && Math.abs(gradientY) < 1e-9) {
             return 0.0;
@@ -237,8 +238,8 @@ public class ObstacleAvoider {
      * @param extra     additional padding to keep from obstacles
      * @return the combined waypoints, or {@code null} if any segment cannot be routed
      */
-    private static List<Point> collectWaypoints(List<Point> keypoints, List<Zone> obstacles,
-                                                PathConfig config, double extra) {
+    private static List<Point> collectWaypoints(
+            List<Point> keypoints, List<Zone> obstacles, PathConfig config, double extra) {
         List<Point> waypoints = new ArrayList<>();
         waypoints.add(keypoints.get(0));
 
@@ -275,8 +276,8 @@ public class ObstacleAvoider {
      * @param extra     additional padding to keep from obstacles
      * @return the waypoints of the routed segment, or {@code null} if no route exists
      */
-    private static List<Point> routeSegmentWaypoints(Point start, Point end, List<Zone> obstacles,
-                                                     PathConfig config, double extra) {
+    private static List<Point> routeSegmentWaypoints(
+            Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
         if (insideObstacle(start, obstacles) || insideObstacle(end, obstacles)) {
             return Arrays.asList(start, end);
         }
@@ -349,7 +350,8 @@ public class ObstacleAvoider {
      * @param relaxCap upper bound on how much the required margin may be relaxed
      * @return {@code true} if the point has enough clearance
      */
-    private static boolean isPointClear(Point p, double heading, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
+    private static boolean isPointClear(
+            Point p, double heading, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
         for (Zone zone : obstacles) {
             double requiredClearance = Math.min(requiredMargin(p, heading, zone, config, extra), relaxCap);
 
@@ -371,7 +373,8 @@ public class ObstacleAvoider {
      * @param extra     additional padding to keep
      * @return {@code true} if the whole segment is clear
      */
-    private static boolean isSegmentClear(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
+    private static boolean isSegmentClear(
+            Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
         return isSegmentClear(start, end, obstacles, config, extra, Double.MAX_VALUE);
     }
 
@@ -386,7 +389,8 @@ public class ObstacleAvoider {
      * @param relaxCap upper bound on the relaxed margin, or {@link Double#MAX_VALUE}
      * @return {@code true} if every sample is clear
      */
-    private static boolean isSegmentClear(Point start, Point end, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
+    private static boolean isSegmentClear(
+            Point start, Point end, List<Zone> obstacles, PathConfig config, double extra, double relaxCap) {
         double heading = Math.atan2(end.getY() - start.getY(), end.getX() - start.getX());
 
         for (int i = 0; i <= SEGMENT_CHECKS; i++) {
@@ -416,7 +420,8 @@ public class ObstacleAvoider {
      * @param waypoints waypoints the curve was fitted through
      * @return {@code true} if the curve stays clear
      */
-    private static boolean isCurveClear(PathCurve curve, List<Zone> obstacles, PathConfig config, List<Point> waypoints) {
+    private static boolean isCurveClear(
+            PathCurve curve, List<Zone> obstacles, PathConfig config, List<Point> waypoints) {
         List<PathCurve> cubicSegments = curve.toCubicSegments();
 
         for (int segmentIndex = 0; segmentIndex < cubicSegments.size(); segmentIndex++) {
@@ -431,8 +436,8 @@ public class ObstacleAvoider {
             }
 
             if (segmentIndex + 1 < waypoints.size()) {
-                relaxationCap = Math.min(relaxationCap,
-                        relaxDistance(waypoints.get(segmentIndex + 1), obstacles, config));
+                relaxationCap =
+                        Math.min(relaxationCap, relaxDistance(waypoints.get(segmentIndex + 1), obstacles, config));
             }
 
             List<Point> samplePoints = segment.sample(SMOOTH_SAMPLES);
@@ -507,8 +512,8 @@ public class ObstacleAvoider {
 
                 // Divide by cos so samples on the circumscribed polygon still enclose the circle.
                 double radius = (circle.getRadius() + offset) / Math.cos(Math.PI / CIRCLE_SAMPLES);
-                points.add(new Point(center.getX() + radius * Math.cos(angle),
-                        center.getY() + radius * Math.sin(angle)));
+                points.add(
+                        new Point(center.getX() + radius * Math.cos(angle), center.getY() + radius * Math.sin(angle)));
             }
         } else if (zone instanceof PolygonZone) {
             PolygonZone polygon = (PolygonZone) zone;
@@ -537,8 +542,8 @@ public class ObstacleAvoider {
                     double theta = previousAngle + sweep * k / CORNER_SAMPLES;
                     double offset = footprintRadius(theta - heading, config) + clearance + extra + SEED_PAD;
 
-                    points.add(new Point(corner.getX() + offset * Math.cos(theta),
-                            corner.getY() + offset * Math.sin(theta)));
+                    points.add(new Point(
+                            corner.getX() + offset * Math.cos(theta), corner.getY() + offset * Math.sin(theta)));
                 }
             }
 
@@ -553,8 +558,8 @@ public class ObstacleAvoider {
                 double normalAngle = Math.atan2(normal.getY(), normal.getX());
                 double offset = footprintRadius(normalAngle - heading, config) + clearance + extra + SEED_PAD;
 
-                points.add(new Point(midpoint.getX() + offset * normal.getX(),
-                        midpoint.getY() + offset * normal.getY()));
+                points.add(
+                        new Point(midpoint.getX() + offset * normal.getX(), midpoint.getY() + offset * normal.getY()));
             }
         } else if (zone instanceof CompositeZone) {
             for (Zone child : ((CompositeZone) zone).getZones()) {
@@ -620,8 +625,15 @@ public class ObstacleAvoider {
      * @param endRelax    relaxed clearance allowed at the end
      * @return the shortest route of points, or {@code null} if none exists
      */
-    private static List<Point> shortestPath(int startIdx, int endIdx, List<Point> nodes, List<Zone> obstacles,
-                                            PathConfig config, double extra, double startRelax, double endRelax) {
+    private static List<Point> shortestPath(
+            int startIdx,
+            int endIdx,
+            List<Point> nodes,
+            List<Zone> obstacles,
+            PathConfig config,
+            double extra,
+            double startRelax,
+            double endRelax) {
         int nodeCount = nodes.size();
         double nominal = worstCaseMargin(config) + extra;
 
@@ -736,9 +748,8 @@ public class ObstacleAvoider {
             double handleLength = startPoint.distanceTo(endPoint) / 3.0;
 
             double firstHeading = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : headingAt(route, i);
-            double secondHeading = (i == pointCount - 2 && !Double.isNaN(endHeading))
-                    ? endHeading
-                    : headingAt(route, i + 1);
+            double secondHeading =
+                    (i == pointCount - 2 && !Double.isNaN(endHeading)) ? endHeading : headingAt(route, i + 1);
 
             if (i == 0) {
                 controlPoints.add(startPoint);
@@ -777,8 +788,8 @@ public class ObstacleAvoider {
             Point endPoint = route.get(i + 1);
 
             double handleLength = startPoint.distanceTo(endPoint) / 3.0;
-            double segmentHeading = Math.atan2(endPoint.getY() - startPoint.getY(),
-                    endPoint.getX() - startPoint.getX());
+            double segmentHeading =
+                    Math.atan2(endPoint.getY() - startPoint.getY(), endPoint.getX() - startPoint.getX());
 
             double firstHeading = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : segmentHeading;
             double secondHeading = (i == pointCount - 2 && !Double.isNaN(endHeading)) ? endHeading : segmentHeading;
@@ -811,16 +822,19 @@ public class ObstacleAvoider {
      */
     private static double headingAt(List<Point> route, int i) {
         if (i == 0) {
-            return Math.atan2(route.get(1).getY() - route.get(0).getY(),
+            return Math.atan2(
+                    route.get(1).getY() - route.get(0).getY(),
                     route.get(1).getX() - route.get(0).getX());
         }
 
         if (i == route.size() - 1) {
-            return Math.atan2(route.get(i).getY() - route.get(i - 1).getY(),
+            return Math.atan2(
+                    route.get(i).getY() - route.get(i - 1).getY(),
                     route.get(i).getX() - route.get(i - 1).getX());
         }
 
-        return Math.atan2(route.get(i + 1).getY() - route.get(i - 1).getY(),
+        return Math.atan2(
+                route.get(i + 1).getY() - route.get(i - 1).getY(),
                 route.get(i + 1).getX() - route.get(i - 1).getX());
     }
 }

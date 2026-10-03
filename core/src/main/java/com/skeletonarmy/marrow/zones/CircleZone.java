@@ -21,20 +21,20 @@ public class CircleZone implements Zone {
         this.center = center;
         this.radius = radius;
     }
-    
+
     /**
      * Gets the center point of the circle.
-     * 
+     *
      * @return The center point
      */
     @Override
     public Point getPosition() {
         return center;
     }
-    
+
     /**
      * Gets the radius of the circle.
-     * 
+     *
      * @return The radius
      */
     public double getRadius() {
@@ -140,7 +140,7 @@ public class CircleZone implements Zone {
     /**
      * Calculates the shortest distance from the given point to the zone's boundary.
      * Negative if the point is inside, positive if outside.
-     * 
+     *
      * @param point The point to measure to
      * @return The minimum distance to the boundary
      */
@@ -148,10 +148,10 @@ public class CircleZone implements Zone {
     public double distanceToBoundary(Point point) {
         return point.distanceTo(this.center) - this.radius;
     }
-    
+
     /**
      * Moves the circle by the specified offset.
-     * 
+     *
      * @param deltaX The amount to move in the X direction
      * @param deltaY The amount to move in the Y direction
      */
@@ -159,10 +159,10 @@ public class CircleZone implements Zone {
     public void moveBy(double deltaX, double deltaY) {
         this.center = new Point(this.center.getX() + deltaX, this.center.getY() + deltaY);
     }
-    
+
     /**
      * Moves the circle to a new position.
-     * 
+     *
      * @param posX The new X position for the circle's center
      * @param posY The new Y position for the circle's center
      */

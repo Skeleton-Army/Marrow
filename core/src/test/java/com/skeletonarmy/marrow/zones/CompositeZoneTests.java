@@ -1,9 +1,10 @@
 package com.skeletonarmy.marrow.zones;
 
-import org.junit.Test;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 
 public class CompositeZoneTests {
     private static final double DELTA = 0.0001;
@@ -16,12 +17,7 @@ public class CompositeZoneTests {
      */
     private CompositeZone createSeparatedComplexZone() {
         // Square: Vertices: (-2, 2), (2, 2), (2, -2), (-2, -2). Center (0, 0)
-        PolygonZone square = new PolygonZone(
-                new Point(-2, 2),
-                new Point(2, 2),
-                new Point(2, -2),
-                new Point(-2, -2)
-        );
+        PolygonZone square = new PolygonZone(new Point(-2, 2), new Point(2, 2), new Point(2, -2), new Point(-2, -2));
         // Circle: Center (10, 0), Radius 2
         CircleZone circle = new CircleZone(new Point(10, 0), 2.0);
 
@@ -35,12 +31,7 @@ public class CompositeZoneTests {
      * They overlap between x=1 and x=2.
      */
     private CompositeZone createOverlappingComplexZone() {
-        PolygonZone square = new PolygonZone(
-                new Point(-2, 2),
-                new Point(2, 2),
-                new Point(2, -2),
-                new Point(-2, -2)
-        );
+        PolygonZone square = new PolygonZone(new Point(-2, 2), new Point(2, 2), new Point(2, -2), new Point(-2, -2));
         CircleZone circle = new CircleZone(new Point(3, 0), 2.0);
 
         return new CompositeZone(square, circle);
@@ -185,9 +176,8 @@ public class CompositeZoneTests {
         CompositeZone complex = createSeparatedComplexZone();
 
         // Target Zone: A very large polygon covering both components
-        PolygonZone hugeZone = new PolygonZone(
-                new Point(-10, 10), new Point(30, 10), new Point(30, -10), new Point(-10, -10)
-        );
+        PolygonZone hugeZone =
+                new PolygonZone(new Point(-10, 10), new Point(30, 10), new Point(30, -10), new Point(-10, -10));
 
         // Assert
         assertTrue(complex.isFullyInside(hugeZone));
@@ -200,9 +190,7 @@ public class CompositeZoneTests {
         CompositeZone complex = createSeparatedComplexZone();
 
         // Target Zone: Only covers the square component
-        PolygonZone smallZone = new PolygonZone(
-                new Point(-3, 3), new Point(3, 3), new Point(3, -3), new Point(-3, -3)
-        );
+        PolygonZone smallZone = new PolygonZone(new Point(-3, 3), new Point(3, 3), new Point(3, -3), new Point(-3, -3));
 
         // Assert
         assertFalse("The circle component is outside the small zone", complex.isFullyInside(smallZone));

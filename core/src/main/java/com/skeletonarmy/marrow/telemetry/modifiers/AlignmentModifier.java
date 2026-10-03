@@ -1,9 +1,6 @@
 package com.skeletonarmy.marrow.telemetry.modifiers;
 
-import android.text.Layout;
-
 import androidx.annotation.NonNull;
-
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
 public class AlignmentModifier extends TelemetryModifier {
@@ -16,9 +13,7 @@ public class AlignmentModifier extends TelemetryModifier {
     @NonNull
     @Override
     public String format(String s) {
-        return "<div style=\"text-align:" + alignment.toString().toLowerCase() + ";\">"
-                + s
-                + "</div>";
+        return "<div style=\"text-align:" + alignment.toString().toLowerCase() + ";\">" + s + "</div>";
     }
 
     public enum Alignment {
@@ -26,5 +21,4 @@ public class AlignmentModifier extends TelemetryModifier {
         CENTER,
         END;
     }
-
 }
