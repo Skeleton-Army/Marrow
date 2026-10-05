@@ -50,6 +50,7 @@ rest of the project.
 | `[` / `]` | Decrease / increase polygon side count (3-12) |
 | `A` / `D` | Decrease / increase intake width              |
 | `+` / `-` | Increase / decrease obstacle size             |
+| `0`-`9`   | Cap how many targets are visited (`0` = all)  |
 
 ## Notes
 
@@ -57,4 +58,8 @@ rest of the project.
   intake width.
 - With reordering on (default) Weaver finds its own target order; turn it off
   to visit targets in the order they were added.
+- Pressing `1`-`9` caps the number of targets visited; when there are more
+  targets than the cap, Weaver keeps the largest reachable set and picks the
+  cheapest order. Chosen targets are drawn filled green, left-behind ones
+  gray.
 - Any generation error is shown in the on-screen HUD.

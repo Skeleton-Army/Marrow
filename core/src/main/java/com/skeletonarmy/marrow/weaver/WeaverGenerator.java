@@ -34,6 +34,7 @@ public final class WeaverGenerator {
      * @param targets          intake targets to visit; may be empty
      * @param obstacles        zones the robot must not cut through; may be {@code null}
      * @param reorder          {@code true} to let {@link TargetOrderer} pick the visit order
+     * @param maxTargets       maximum number of targets to visit; {@code 0} or less visits all
      * @param config           geometry and tuning parameters
      * @return the generated route plus metadata
      * @throws IllegalStateException if neither targets nor a destination are provided
@@ -44,9 +45,10 @@ public final class WeaverGenerator {
             List<Point> targets,
             List<Zone> obstacles,
             boolean reorder,
+            int maxTargets,
             PathConfig config) {
         if (!targets.isEmpty()) {
-            return generateIntakeResult(startPose, targets, obstacles, reorder, config);
+            return generateIntakeResult(startPose, targets, obstacles, reorder, maxTargets, config);
         }
 
         if (destinationPose != null) {
@@ -263,26 +265,40 @@ public final class WeaverGenerator {
      * Orders and clusters targets, then builds one smooth curve that sweeps through
      * them.
      *
-     * @param start     robot start pose
-     * @param targets   targets to visit
-     * @param obstacles zones to avoid; may be {@code null}
-     * @param reorder   {@code true} to let {@link TargetOrderer} pick the visit order
-     * @param config    geometry and tuning parameters
+     * @param start      robot start pose
+     * @param targets    targets to visit
+     * @param obstacles  zones to avoid; may be {@code null}
+     * @param reorder    {@code true} to let {@link TargetOrderer} pick the visit order
+     * @param maxTargets maximum number of targets to visit; {@code 0} or less visits all
+     * @param config     geometry and tuning parameters
      * @return the generated route plus metadata
      */
     private static PathResult generateIntakeResult(
-            Point start, List<Point> targets, List<Zone> obstacles, boolean reorder, PathConfig config) {
+            Point start,
+            List<Point> targets,
+            List<Zone> obstacles,
+            boolean reorder,
+            int maxTargets,
+            PathConfig config) {
         Point startPoint = new Point(start.getX(), start.getY());
 
-        List<Point> orderedTargets = reorder
-                ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
-                : new ArrayList<>(targets);
+        List<Point> orderedTargets;
 
-        if (config.isExcludeBlockedTargets()) {
-            orderedTargets = excludeBlockedTargets(startPoint, orderedTargets, obstacles, config);
+        if (maxTargets > 0) {
+            orderedTargets = selectTargets(start, startPoint, targets, obstacles, reorder, maxTargets, config);
+        } else {
+            // No limit: keep the original ordering-then-filter pipeline unchanged.
+            orderedTargets = reorder
+                    ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
+                    : new ArrayList<>(targets);
+
+            if (config.isExcludeBlockedTargets()) {
+                orderedTargets = excludeBlockedTargets(startPoint, orderedTargets, obstacles, config);
+            }
         }
 
-        int skippedTargets = targets.size() - orderedTargets.size();
+        List<Point> unvisitedTargets = new ArrayList<>(targets);
+        unvisitedTargets.removeAll(orderedTargets);
 
         // No reachable target left: produce a stationary path at the start pose.
         if (orderedTargets.isEmpty()) {
@@ -291,7 +307,11 @@ public final class WeaverGenerator {
                     obstacles,
                     config);
 
-            return new PathResult(idlePath, Collections.singletonList(start.getHeadingRad()), skippedTargets);
+            return new PathResult(
+                    idlePath,
+                    Collections.singletonList(start.getHeadingRad()),
+                    Collections.<Point>emptyList(),
+                    unvisitedTargets);
         }
 
         List<Point> keyPoints = new ArrayList<>();
@@ -343,7 +363,52 @@ public final class WeaverGenerator {
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
         PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles, config);
 
-        return new PathResult(path, Collections.singletonList(headings.get(headings.size() - 1)), skippedTargets);
+        return new PathResult(
+                path,
+                Collections.singletonList(headings.get(headings.size() - 1)),
+                new ArrayList<>(orderedTargets),
+                unvisitedTargets);
+    }
+
+    /**
+     * Chooses at most {@code maxTargets} targets to visit.
+     * <p>
+     * When {@code reorder} is {@code true} the largest reachable set wins first, then
+     * the cheapest order. When {@code false} the supplied order is kept and the first
+     * reachable targets are taken.
+     *
+     * @param start      robot start pose
+     * @param startPoint start position without heading
+     * @param targets    candidate targets
+     * @param obstacles  zones to avoid; may be {@code null}
+     * @param reorder    {@code true} to let the orderer choose the best subset
+     * @param maxTargets maximum number of targets to select
+     * @param config     geometry and tuning parameters
+     * @return the selected targets in visit order
+     */
+    private static List<Point> selectTargets(
+            Point start,
+            Point startPoint,
+            List<Point> targets,
+            List<Zone> obstacles,
+            boolean reorder,
+            int maxTargets,
+            PathConfig config) {
+        boolean dropBlocked = config.isExcludeBlockedTargets();
+
+        if (!reorder) {
+            List<Point> ordered = dropBlocked
+                    ? excludeBlockedTargets(startPoint, new ArrayList<>(targets), obstacles, config)
+                    : new ArrayList<>(targets);
+
+            return ordered.size() > maxTargets ? new ArrayList<>(ordered.subList(0, maxTargets)) : ordered;
+        }
+
+        TargetOrderer.ReachabilityCheck reachability = dropBlocked
+                ? (from, target) -> !isTargetBlocked(target, from, obstacles, config)
+                : (from, target) -> true;
+
+        return TargetOrderer.select(startPoint, start.getHeadingRad(), targets, maxTargets, config, reachability);
     }
 
     /**
@@ -373,7 +438,11 @@ public final class WeaverGenerator {
         PathRoute seedPath = new PathRoute(Collections.singletonList(curve));
         PathRoute finished = finish(seedPath, obstacles, config);
 
-        return new PathResult(finished, Collections.singletonList(finished.getHeading(1.0)), 0);
+        return new PathResult(
+                finished,
+                Collections.singletonList(finished.getHeading(1.0)),
+                Collections.<Point>emptyList(),
+                Collections.<Point>emptyList());
     }
 
     /**

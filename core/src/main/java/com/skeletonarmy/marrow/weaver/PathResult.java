@@ -2,6 +2,7 @@ package com.skeletonarmy.marrow.weaver;
 
 import androidx.annotation.NonNull;
 import com.skeletonarmy.marrow.zones.Point;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
@@ -12,7 +13,8 @@ import java.util.Locale;
 public final class PathResult {
     private final PathRoute path;
     private final List<Double> segmentEndHeadingsRad;
-    private final int skippedTargets;
+    private final List<Point> visitedTargets;
+    private final List<Point> unvisitedTargets;
 
     /**
      * Creates a result. Package-private because results are produced by
@@ -20,12 +22,19 @@ public final class PathResult {
      *
      * @param path                  the generated route
      * @param segmentEndHeadingsRad heading to hold at the end of each segment
-     * @param skippedTargets        number of targets dropped as unreachable
+     * @param visitedTargets        targets the route visits, in order
+     * @param unvisitedTargets      targets that were not visited, either blocked or
+     *                              beyond the configured target limit
      */
-    PathResult(PathRoute path, List<Double> segmentEndHeadingsRad, int skippedTargets) {
+    PathResult(
+            PathRoute path,
+            List<Double> segmentEndHeadingsRad,
+            List<Point> visitedTargets,
+            List<Point> unvisitedTargets) {
         this.path = path;
         this.segmentEndHeadingsRad = segmentEndHeadingsRad;
-        this.skippedTargets = skippedTargets;
+        this.visitedTargets = new ArrayList<>(visitedTargets);
+        this.unvisitedTargets = new ArrayList<>(unvisitedTargets);
     }
 
     /** @return the generated route */
@@ -34,10 +43,30 @@ public final class PathResult {
     }
 
     /**
-     * @return the number of targets excluded because they were unreachable (blocked by an obstacle).
+     * @return the number of targets not visited, either blocked by an obstacle or
+     *         beyond the configured target limit.
      */
     public int getSkippedTargets() {
-        return skippedTargets;
+        return unvisitedTargets.size();
+    }
+
+    /**
+     * Returns the targets the route actually visits, in visit order.
+     *
+     * @return a read-only list of the visited targets
+     */
+    public List<Point> getVisitedTargets() {
+        return Collections.unmodifiableList(visitedTargets);
+    }
+
+    /**
+     * Returns the targets that were not visited, either because an obstacle blocked
+     * them or because they exceeded the configured target limit.
+     *
+     * @return a read-only list of the unvisited targets
+     */
+    public List<Point> getUnvisitedTargets() {
+        return Collections.unmodifiableList(unvisitedTargets);
     }
 
     /** @return the route's curve segments */
@@ -65,9 +94,10 @@ public final class PathResult {
     public String toString() {
         return String.format(
                 Locale.ROOT,
-                "PathResult(skippedTargets=%d, segmentEndHeadingsRad=%s, path=%s)",
-                skippedTargets,
+                "PathResult(skippedTargets=%d, segmentEndHeadingsRad=%s, visitedTargets=%s, path=%s)",
+                getSkippedTargets(),
                 segmentEndHeadingsRad,
+                visitedTargets,
                 path);
     }
 }

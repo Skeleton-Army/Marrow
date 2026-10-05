@@ -58,6 +58,7 @@ public class Simulator extends JPanel {
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private int polygonSides = 4;
     private boolean reorder = true;
+    private int maxTargets = 0;
     private Mode mode = Mode.TARGET;
 
     private int dragIndex = -1;
@@ -72,6 +73,7 @@ public class Simulator extends JPanel {
     private double rotateStartAngle = 0.0;
 
     private PathRoute path;
+    private List<Point> visitedTargets = new ArrayList<>();
     private double[] cumArc;
     private Point[] samplePos;
     private double[] sampleHeading;
@@ -207,6 +209,13 @@ public class Simulator extends JPanel {
                     case KeyEvent.VK_SUBTRACT:
                         obstacleRadius = Math.max(obstacleRadius - 1, 1);
                         break;
+                    default:
+                        char c = e.getKeyChar();
+                        if (c >= '0' && c <= '9') {
+                            maxTargets = c - '0';
+                            rebuildPath();
+                        }
+                        break;
                 }
                 repaint();
             }
@@ -236,6 +245,7 @@ public class Simulator extends JPanel {
         cumArc = null;
         samplePos = null;
         sampleHeading = null;
+        visitedTargets = new ArrayList<>();
         statusMessage = "";
 
         if (targets.isEmpty()) {
@@ -247,7 +257,8 @@ public class Simulator extends JPanel {
             Weaver.setConfig(new PathConfig().intakeWidth(width));
 
             WeaverBuilder b = Weaver.builder()
-                    .start(new Point(start.getX(), start.getY(), 0));
+                    .start(new Point(start.getX(), start.getY(), 0))
+                    .maxTargets(maxTargets);
             for (Point t : targets) {
                 b.addTarget(new Point(t.getX(), t.getY()));
             }
@@ -260,6 +271,7 @@ public class Simulator extends JPanel {
 
             PathResult result = b.generate();
             path = result.getPath();
+            visitedTargets = result.getVisitedTargets();
             buildSamples();
             robotArc = 0;
             updateRobot();
@@ -601,14 +613,28 @@ public class Simulator extends JPanel {
 
     private void drawTargets(Graphics2D g) {
         for (Point t : targets) {
+            boolean visited = isVisited(t);
             int s = 8;
             int px = (int) sx(t.getX());
             int py = (int) sy(t.getY());
-            g.setColor(new Color(0, 170, 60));
-            g.fillRoundRect(px - s / 2, py - s / 2, s, s, 3, 3);
-            g.setColor(new Color(0, 90, 30));
+            if (visited) {
+                g.setColor(new Color(0, 170, 60));
+                g.fillRoundRect(px - s / 2, py - s / 2, s, s, 3, 3);
+                g.setColor(new Color(0, 90, 30));
+            } else {
+                g.setColor(new Color(150, 150, 150));
+            }
             g.drawRoundRect(px - s / 2, py - s / 2, s, s, 3, 3);
         }
+    }
+
+    private boolean isVisited(Point t) {
+        for (Point v : visitedTargets) {
+            if (v.getX() == t.getX() && v.getY() == t.getY()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void drawStart(Graphics2D g) {
@@ -671,10 +697,12 @@ public class Simulator extends JPanel {
                 "Left-click: add      Right-click: remove",
                 "Drag body: move   Drag edge (o): resize   Drag corner ([]): rotate",
                 "T target | O obstacle | S start | R reorder | C clear | P shape | [ ] sides | +/- size",
-                "A/D width",
+                "A/D width | 0-9 max targets",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
                         + "   Targets: " + targets.size() + "   Obstacles: " + obstacles.size(),
                 "Width: " + (int) width + " in",
+                "Max targets: " + (maxTargets <= 0 ? "unlimited" : maxTargets)
+                        + "   Visiting: " + visitedTargets.size(),
                 "Obstacle shape: " + obstacleShape
                         + (obstacleShape == ObstacleShape.POLYGON ? " (" + polygonSides + " sides)" : "")
                         + "   Size: " + (int) obstacleRadius + " in",

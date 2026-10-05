@@ -602,4 +602,131 @@ public class WeaverTest {
         assertEquals(target.getX(), actual.get(1.0).getX(), EPS);
         assertEquals(target.getY(), actual.get(1.0).getY(), EPS);
     }
+
+    // --- Max target limit ---
+
+    @Test
+    public void generate_maxTargets_visitsOnlyTheLimit() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
+        List<Point> targets = Arrays.asList(
+                new Point(START_X + 20, START_Y),
+                new Point(START_X + 40, START_Y),
+                new Point(START_X + 60, START_Y),
+                new Point(START_X + 80, START_Y));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(targets)
+                .maxTargets(2);
+
+        // Act
+        PathResult actual = builder.generate();
+
+        // Assert
+        assertEquals(2, actual.getVisitedTargets().size());
+        assertEquals(2, actual.getSkippedTargets());
+        assertEquals(2, actual.getUnvisitedTargets().size());
+    }
+
+    @Test
+    public void generate_maxTargets_picksClosestTargetsForShortestPath() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
+        Point nearFirst = new Point(START_X + 10, START_Y);
+        Point nearSecond = new Point(START_X + 20, START_Y);
+        List<Point> targets = Arrays.asList(
+                new Point(START_X + 200, START_Y), nearFirst, new Point(START_X + 210, START_Y), nearSecond);
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(targets)
+                .maxTargets(2);
+
+        // Act
+        PathResult actual = builder.generate();
+
+        // Assert
+        assertEquals(2, actual.getVisitedTargets().size());
+        assertSame(nearFirst, actual.getVisitedTargets().get(0));
+        assertSame(nearSecond, actual.getVisitedTargets().get(1));
+    }
+
+    @Test
+    public void generate_maxTargets_skipsBlockedAndKeepsReachable() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
+        Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
+        Point blocked = new Point(START_X + 30, START_Y);
+        Point reachableFirst = new Point(START_X + 80, START_Y + 30);
+        Point reachableSecond = new Point(START_X + 80, START_Y - 30);
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(Arrays.asList(blocked, reachableFirst, reachableSecond))
+                .maxTargets(2)
+                .addObstacle(obstacle);
+
+        // Act
+        PathResult actual = builder.generate();
+
+        // Assert
+        assertEquals(2, actual.getVisitedTargets().size());
+        assertFalse(actual.getVisitedTargets().contains(blocked));
+        assertEquals(1, actual.getSkippedTargets());
+    }
+
+    @Test
+    public void generate_orderedWithMaxTargets_takesFirstReachableTargets() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
+        Point first = new Point(START_X + 20, START_Y);
+        Point second = new Point(START_X + 40, START_Y);
+        Point third = new Point(START_X + 60, START_Y);
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(Arrays.asList(first, second, third))
+                .maxTargets(2)
+                .ordered();
+
+        // Act
+        PathResult actual = builder.generate();
+
+        // Assert
+        assertEquals(2, actual.getVisitedTargets().size());
+        assertSame(first, actual.getVisitedTargets().get(0));
+        assertSame(second, actual.getVisitedTargets().get(1));
+    }
+
+    @Test
+    public void generate_withoutMaxTargets_visitsEveryTarget() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
+        List<Point> targets = Arrays.asList(
+                new Point(START_X + 20, START_Y), new Point(START_X + 40, START_Y), new Point(START_X + 60, START_Y));
+        WeaverBuilder builder =
+                Weaver.builder().start(new Point(START_X, START_Y, 0)).targets(targets);
+
+        // Act
+        PathResult actual = builder.generate();
+
+        // Assert
+        assertEquals(3, actual.getVisitedTargets().size());
+        assertEquals(0, actual.getSkippedTargets());
+    }
+
+    @Test
+    public void generate_maxTargetsAboveTargetCount_visitsEveryTarget() {
+        // Arrange
+        Weaver.setConfig(new PathConfig().intakeWidth(0));
+        List<Point> targets = Arrays.asList(new Point(START_X + 20, START_Y), new Point(START_X + 40, START_Y));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(targets)
+                .maxTargets(5);
+
+        // Act
+        PathResult actual = builder.generate();
+
+        // Assert
+        assertEquals(2, actual.getVisitedTargets().size());
+        assertEquals(0, actual.getSkippedTargets());
+    }
 }

@@ -21,6 +21,7 @@ public class WeaverBuilder {
     private final List<Point> targets = new ArrayList<>();
     private final List<Zone> obstacles = new ArrayList<>();
     private boolean reorder = true;
+    private int maxTargets = 0;
 
     /**
      * Sets the robot's start pose.
@@ -78,6 +79,17 @@ public class WeaverBuilder {
      */
     public WeaverBuilder ordered() {
         this.reorder = false;
+        return this;
+    }
+
+    /**
+     * Caps how many targets the robot visits. A value of {@code 0} or less visits every target, which is the default.
+     *
+     * @param maxTargets maximum number of targets to visit
+     * @return this builder, for chaining
+     */
+    public WeaverBuilder maxTargets(int maxTargets) {
+        this.maxTargets = maxTargets;
         return this;
     }
 
@@ -145,7 +157,8 @@ public class WeaverBuilder {
             throw new IllegalStateException("Either targets or a destination must be set");
         }
 
-        return WeaverGenerator.generate(startPose, destinationPose, targets, obstacles, reorder, Weaver.getConfig());
+        return WeaverGenerator.generate(
+                startPose, destinationPose, targets, obstacles, reorder, maxTargets, Weaver.getConfig());
     }
 
     /**
@@ -164,11 +177,12 @@ public class WeaverBuilder {
     public String toString() {
         return String.format(
                 Locale.ROOT,
-                "WeaverBuilder(startPose=%s, destinationPose=%s, targets=%s, obstacles=%s, reorder=%s)",
+                "WeaverBuilder(startPose=%s, destinationPose=%s, targets=%s, obstacles=%s, reorder=%s, maxTargets=%d)",
                 startPose,
                 destinationPose,
                 targets,
                 obstacles,
-                reorder);
+                reorder,
+                maxTargets);
     }
 }

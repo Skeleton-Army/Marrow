@@ -58,25 +58,46 @@ public class TargetOrderer {
         double currentHeading = startHeadingRad;
 
         for (Point pose : order) {
-            double travelBearing;
-
-            if (!pose.hasHeading()) {
-                travelBearing = Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
-            } else {
-                travelBearing = pose.getHeadingRad();
-            }
-
-            Point targetPos = new Point(pose.getX(), pose.getY());
-            double travelDistance = currentPos.distanceTo(targetPos);
-            double turn = Math.abs(normalizeAngle(travelBearing - currentHeading));
-
-            cost += travelDistance + turnCostWeight * turn;
-
-            currentHeading = travelBearing;
-            currentPos = targetPos;
+            cost += stepCost(currentPos, currentHeading, pose, turnCostWeight);
+            currentHeading = arrivalHeading(currentPos, pose);
+            currentPos = new Point(pose.getX(), pose.getY());
         }
 
         return cost;
+    }
+
+    /**
+     * Cost of moving from a pose at {@code fromHeading} to {@code target}: travel
+     * distance plus the weighted absolute heading change.
+     *
+     * @param fromPos          point the robot travels from
+     * @param fromHeading      robot heading before the move, in radians
+     * @param target           target being approached
+     * @param turnCostWeight   weight applied to the heading change
+     * @return the move cost; lower is better
+     */
+    private static double stepCost(Point fromPos, double fromHeading, Point target, double turnCostWeight) {
+        double arrivalBearing = arrivalHeading(fromPos, target);
+        double travelDistance = fromPos.distanceTo(new Point(target.getX(), target.getY()));
+        double turn = Math.abs(normalizeAngle(arrivalBearing - fromHeading));
+
+        return travelDistance + turnCostWeight * turn;
+    }
+
+    /**
+     * Heading the robot holds on arrival at {@code target}: the target's explicit
+     * heading when present, otherwise the direction of travel.
+     *
+     * @param fromPos point the robot travels from
+     * @param target  target being approached
+     * @return the arrival heading in radians
+     */
+    private static double arrivalHeading(Point fromPos, Point target) {
+        if (target.hasHeading()) {
+            return target.getHeadingRad();
+        }
+
+        return Math.atan2(target.getY() - fromPos.getY(), target.getX() - fromPos.getX());
     }
 
     /**
@@ -154,6 +175,224 @@ public class TargetOrderer {
             currentHeading = bestHeading;
             result.add(bestPose);
             remaining.remove(bestPose);
+        }
+
+        return result;
+    }
+
+    /**
+     * Decides whether the robot may travel directly from one target to another.
+     * Used by {@link #select} to avoid or drop unreachable targets.
+     */
+    public interface ReachabilityCheck {
+        /**
+         * @param from   point the robot travels from
+         * @param target target the robot travels to
+         * @return {@code true} if the move is allowed
+         */
+        boolean canReach(Point from, Point target);
+    }
+
+    /**
+     * Selects and orders at most {@code maxTargets} of {@code targets}.
+     * <p>
+     * The largest reachable set wins first; among equal-sized sets the cheapest path
+     * wins. Reachability is evaluated per move through {@code reachability}, so a
+     * target blocked from one approach can still be chosen when reached from another.
+     * Lists no longer than {@link PathConfig#getBruteForceOrderLimit()} are searched
+     * exhaustively; longer lists use the greedy strategy.
+     *
+     * @param startPos        robot start position
+     * @param startHeadingRad robot start heading in radians
+     * @param targets         candidate targets
+     * @param maxTargets      maximum number of targets to select
+     * @param config          ordering parameters
+     * @param reachability    per-move reachability test
+     * @return the chosen targets in visit order
+     */
+    public static List<Point> select(
+            Point startPos,
+            double startHeadingRad,
+            List<Point> targets,
+            int maxTargets,
+            PathConfig config,
+            ReachabilityCheck reachability) {
+        int limit = Math.min(maxTargets, targets.size());
+
+        if (limit <= 0) {
+            return new ArrayList<>();
+        }
+
+        if (targets.size() <= config.getBruteForceOrderLimit()) {
+            return selectBruteForce(startPos, startHeadingRad, targets, limit, config, reachability);
+        }
+
+        return selectGreedy(startPos, startHeadingRad, targets, limit, config, reachability);
+    }
+
+    /**
+     * Exhaustively searches every reachable ordered subset, keeping the longest and
+     * cheapest one found.
+     *
+     * @param startPos        robot start position
+     * @param startHeadingRad robot start heading in radians
+     * @param targets         candidate targets
+     * @param limit           maximum number of targets to select
+     * @param config          ordering parameters
+     * @param reachability    per-move reachability test
+     * @return the chosen targets in visit order
+     */
+    private static List<Point> selectBruteForce(
+            Point startPos,
+            double startHeadingRad,
+            List<Point> targets,
+            int limit,
+            PathConfig config,
+            ReachabilityCheck reachability) {
+        List<Point> best = new ArrayList<>();
+        double[] bestCost = {Double.MAX_VALUE};
+
+        search(
+                startPos,
+                startHeadingRad,
+                targets,
+                limit,
+                config.getTurnCostWeight(),
+                reachability,
+                new boolean[targets.size()],
+                new ArrayList<>(),
+                0.0,
+                best,
+                bestCost);
+
+        return best;
+    }
+
+    /**
+     * Depth-first search over reachable ordered subsets, pruned when a partial order
+     * can no longer beat the current best.
+     *
+     * @param currentPos     point the robot is currently at
+     * @param currentHeading robot heading at {@code currentPos}
+     * @param targets        candidate targets
+     * @param limit          maximum number of targets to select
+     * @param turnCostWeight weight applied to heading changes
+     * @param reachability   per-move reachability test
+     * @param used           flags for targets already in {@code current}
+     * @param current        targets chosen so far, in order
+     * @param cost           accumulated cost of {@code current}
+     * @param best           best ordered subset found so far
+     * @param bestCost       accumulated cost of {@code best}
+     */
+    private static void search(
+            Point currentPos,
+            double currentHeading,
+            List<Point> targets,
+            int limit,
+            double turnCostWeight,
+            ReachabilityCheck reachability,
+            boolean[] used,
+            List<Point> current,
+            double cost,
+            List<Point> best,
+            double[] bestCost) {
+        // A longer chain always wins; equal-length chains are compared by cost.
+        if (current.size() > best.size() || (current.size() == best.size() && cost < bestCost[0])) {
+            best.clear();
+            best.addAll(current);
+            bestCost[0] = cost;
+        }
+
+        if (current.size() >= limit) {
+            return;
+        }
+
+        // Once the best chain has the maximum possible length, any partial order that
+        // already costs at least as much cannot win, since cost only grows.
+        if (limit <= best.size() && cost >= bestCost[0]) {
+            return;
+        }
+
+        for (int i = 0; i < targets.size(); i++) {
+            if (used[i]) {
+                continue;
+            }
+
+            Point candidate = targets.get(i);
+
+            if (!reachability.canReach(currentPos, candidate)) {
+                continue;
+            }
+
+            used[i] = true;
+            current.add(candidate);
+            search(
+                    new Point(candidate.getX(), candidate.getY()),
+                    arrivalHeading(currentPos, candidate),
+                    targets,
+                    limit,
+                    turnCostWeight,
+                    reachability,
+                    used,
+                    current,
+                    cost + stepCost(currentPos, currentHeading, candidate, turnCostWeight),
+                    best,
+                    bestCost);
+            current.remove(current.size() - 1);
+            used[i] = false;
+        }
+    }
+
+    /**
+     * Repeatedly picks the cheapest reachable target until {@code limit} are chosen or
+     * none remain reachable.
+     *
+     * @param startPos        robot start position
+     * @param startHeadingRad robot start heading in radians
+     * @param targets         candidate targets
+     * @param limit           maximum number of targets to select
+     * @param config          ordering parameters
+     * @param reachability    per-move reachability test
+     * @return the chosen targets in visit order
+     */
+    private static List<Point> selectGreedy(
+            Point startPos,
+            double startHeadingRad,
+            List<Point> targets,
+            int limit,
+            PathConfig config,
+            ReachabilityCheck reachability) {
+        List<Point> remaining = new ArrayList<>(targets);
+        List<Point> result = new ArrayList<>();
+
+        Point currentPos = startPos;
+        double currentHeading = startHeadingRad;
+
+        while (result.size() < limit && !remaining.isEmpty()) {
+            Point bestTarget = null;
+            double bestStepCost = Double.MAX_VALUE;
+
+            for (Point candidate : remaining) {
+                if (!reachability.canReach(currentPos, candidate)) {
+                    continue;
+                }
+
+                double candidateCost = stepCost(currentPos, currentHeading, candidate, config.getTurnCostWeight());
+
+                if (candidateCost < bestStepCost) {
+                    bestStepCost = candidateCost;
+                    bestTarget = candidate;
+                }
+            }
+
+            if (bestTarget == null) {
+                break;
+            }
+
+            currentHeading = arrivalHeading(currentPos, bestTarget);
+            currentPos = new Point(bestTarget.getX(), bestTarget.getY());
+            result.add(bestTarget);
+            remaining.remove(bestTarget);
         }
 
         return result;
