@@ -1,5 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
+import com.pedropathing.math.Pose;
 import com.pedropathing.math.Vector2D;
 import com.pedropathing.paths.AtomicPath;
 import com.pedropathing.paths.CompoundPath;
@@ -102,5 +103,15 @@ public final class PedroPathingConverter {
      */
     private static Vector2D vector(Point point) {
         return Vector2D.cartesian(point.getX(), point.getY());
+    }
+
+    /**
+     * Converts a Pedro Pathing {@link Pose} into a Marrow {@link Point}.
+     *
+     * @param pose pose to convert
+     * @return the equivalent Marrow point
+     */
+    public static Point toPoint(Pose pose) {
+        return new Point(pose.x(), pose.y(), pose.heading());
     }
 }
