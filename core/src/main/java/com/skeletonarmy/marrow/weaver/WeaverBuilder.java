@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 /**
  * Fluent builder for path generation requests.
@@ -61,6 +62,19 @@ public class WeaverBuilder {
     }
 
     /**
+     * Replaces all previously added targets, mapping each source element to a target.
+     *
+     * @param source  the elements to map; may be {@code null} to clear the targets
+     * @param toPoint the mapping from a source element to its target
+     * @param <T>     the source element type
+     * @return this builder, for chaining
+     */
+    public <T> WeaverBuilder targets(Iterable<T> source, Function<T, Point> toPoint) {
+        this.targets.clear();
+        return addTargets(source, toPoint);
+    }
+
+    /**
      * Appends one target.
      *
      * @param target the target to append
@@ -68,6 +82,38 @@ public class WeaverBuilder {
      */
     public WeaverBuilder addTarget(Point target) {
         this.targets.add(target);
+        return this;
+    }
+
+    /**
+     * Appends all the given targets.
+     *
+     * @param newTargets the targets to append; may be {@code null}
+     * @return this builder, for chaining
+     */
+    public WeaverBuilder addTargets(List<Point> newTargets) {
+        if (newTargets != null) {
+            this.targets.addAll(newTargets);
+        }
+
+        return this;
+    }
+
+    /**
+     * Appends targets, mapping each source element to a target.
+     *
+     * @param source  the elements to map; may be {@code null}
+     * @param toPoint the mapping from a source element to its target
+     * @param <T>     the source element type
+     * @return this builder, for chaining
+     */
+    public <T> WeaverBuilder addTargets(Iterable<T> source, Function<T, Point> toPoint) {
+        if (source != null) {
+            for (T element : source) {
+                this.targets.add(toPoint.apply(element));
+            }
+        }
+
         return this;
     }
 
