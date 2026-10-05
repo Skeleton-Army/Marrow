@@ -98,3 +98,15 @@ tasks.register("deployLocal") {
     description = "Publishes all subprojects to Maven Local."
     dependsOn(publishedSubprojects.map { it.tasks.named("deployLocal") })
 }
+
+tasks.register("spotlessCheck") {
+    group = "spotless"
+    description = "Runs spotless check on all modules which apply the spotless plugin."
+    dependsOn(publishedSubprojects.map { it.tasks.named("spotlessCheck") })
+}
+
+tasks.register("spotlessApply") {
+    group = "spotless"
+    description = "Runs spotless apply on all modules which apply the spotless plugin."
+    dependsOn(publishedSubprojects.map { it.tasks.named("spotlessApply") })
+}
