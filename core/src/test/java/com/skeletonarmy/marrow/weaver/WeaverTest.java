@@ -290,7 +290,7 @@ public class WeaverTest {
                 .addObstacle(obstacle);
 
         // Act
-        int actual = builder.generate().getSkippedTargets();
+        int actual = builder.generate().getUnvisitedTargets().size();
 
         // Assert
         assertEquals(1, actual);
@@ -308,7 +308,7 @@ public class WeaverTest {
                 .addObstacle(obstacle);
 
         // Act
-        int actual = builder.generate().getSkippedTargets();
+        int actual = builder.generate().getUnvisitedTargets().size();
 
         // Assert
         assertEquals(1, actual);
@@ -326,7 +326,7 @@ public class WeaverTest {
                 .addObstacle(obstacle);
 
         // Act
-        int actual = builder.generate().getSkippedTargets();
+        int actual = builder.generate().getUnvisitedTargets().size();
 
         // Assert
         assertEquals(0, actual);
@@ -338,7 +338,7 @@ public class WeaverTest {
         WeaverBuilder builder = Weaver.builder().start(new Point(10, 10, 0)).end(new Point(30, 10));
 
         // Act
-        int actual = builder.generate().getSkippedTargets();
+        int actual = builder.generate().getUnvisitedTargets().size();
 
         // Assert
         assertEquals(0, actual);
@@ -624,7 +624,6 @@ public class WeaverTest {
 
         // Assert
         assertEquals(2, actual.getVisitedTargets().size());
-        assertEquals(2, actual.getSkippedTargets());
         assertEquals(2, actual.getUnvisitedTargets().size());
     }
 
@@ -670,7 +669,7 @@ public class WeaverTest {
         // Assert
         assertEquals(2, actual.getVisitedTargets().size());
         assertFalse(actual.getVisitedTargets().contains(blocked));
-        assertEquals(1, actual.getSkippedTargets());
+        assertEquals(1, actual.getUnvisitedTargets().size());
     }
 
     @Test
@@ -709,7 +708,7 @@ public class WeaverTest {
 
         // Assert
         assertEquals(3, actual.getVisitedTargets().size());
-        assertEquals(0, actual.getSkippedTargets());
+        assertEquals(0, actual.getUnvisitedTargets().size());
     }
 
     @Test
@@ -727,6 +726,6 @@ public class WeaverTest {
 
         // Assert
         assertEquals(2, actual.getVisitedTargets().size());
-        assertEquals(0, actual.getSkippedTargets());
+        assertEquals(0, actual.getUnvisitedTargets().size());
     }
 }

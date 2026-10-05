@@ -43,14 +43,6 @@ public final class PathResult {
     }
 
     /**
-     * @return the number of targets not visited, either blocked by an obstacle or
-     *         beyond the configured target limit.
-     */
-    public int getSkippedTargets() {
-        return unvisitedTargets.size();
-    }
-
-    /**
      * Returns the targets the route actually visits, in visit order.
      *
      * @return a read-only list of the visited targets
@@ -95,7 +87,7 @@ public final class PathResult {
         return String.format(
                 Locale.ROOT,
                 "PathResult(skippedTargets=%d, segmentEndHeadingsRad=%s, visitedTargets=%s, path=%s)",
-                getSkippedTargets(),
+                unvisitedTargets.size(),
                 segmentEndHeadingsRad,
                 visitedTargets,
                 path);
