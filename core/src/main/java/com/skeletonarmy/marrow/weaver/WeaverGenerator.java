@@ -39,8 +39,8 @@ public final class WeaverGenerator {
      * @return the generated route plus metadata
      * @throws IllegalStateException if neither targets nor a destination are provided
      */
-    public static PathResult generate(PathPose startPose, PathPose destinationPose,
-                                      List<PathPose> targets, List<Zone> obstacles,
+    public static PathResult generate(Point startPose, Point destinationPose,
+                                      List<Point> targets, List<Zone> obstacles,
                                       boolean reorder, PathConfig config) {
         if (!targets.isEmpty()) {
             return generateIntakeResult(startPose, targets, obstacles, reorder, config);
@@ -252,12 +252,12 @@ public final class WeaverGenerator {
      * @param config    geometry and tuning parameters
      * @return the generated route plus metadata
      */
-    private static PathResult generateIntakeResult(PathPose start, List<PathPose> targets,
+    private static PathResult generateIntakeResult(Point start, List<Point> targets,
                                                    List<Zone> obstacles, boolean reorder,
                                                    PathConfig config) {
         Point startPoint = new Point(start.getX(), start.getY());
 
-        List<PathPose> orderedTargets = reorder
+        List<Point> orderedTargets = reorder
                 ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
                 : new ArrayList<>(targets);
 
@@ -296,10 +296,10 @@ public final class WeaverGenerator {
                 continue;
             }
 
-            PathPose firstPose = orderedTargets.get(groupIndices[0]);
+            Point firstPose = orderedTargets.get(groupIndices[0]);
             Point target = new Point(firstPose.getX(), firstPose.getY());
 
-            double heading = !Double.isNaN(firstPose.getHeadingRad())
+            double heading = firstPose.hasHeading()
                     ? firstPose.getHeadingRad()
                     : Math.atan2(target.getY() - previousRawTarget.getY(),
                                  target.getX() - previousRawTarget.getX());
@@ -391,7 +391,7 @@ public final class WeaverGenerator {
      * @param width      usable intake width; non-positive disables grouping
      * @return each group as an array of indices into {@code targets}
      */
-    private static List<int[]> groupTargets(Point startPoint, List<PathPose> targets, double width) {
+    private static List<int[]> groupTargets(Point startPoint, List<Point> targets, double width) {
         List<int[]> groups = new ArrayList<>();
         int targetCount = targets.size();
 
@@ -408,7 +408,7 @@ public final class WeaverGenerator {
         int groupStart = 0;
 
         while (groupStart < targetCount) {
-            PathPose firstPose = targets.get(groupStart);
+            Point firstPose = targets.get(groupStart);
 
             // Direction from the previous key point to the first target of this group.
             double deltaX = firstPose.getX() - previousKeyPoint.getX();
@@ -424,11 +424,11 @@ public final class WeaverGenerator {
             int groupEnd = groupStart + 1;
 
             while (groupEnd < targetCount) {
-                PathPose previousPose = targets.get(groupEnd - 1);
-                PathPose candidatePose = targets.get(groupEnd);
+                Point previousPose = targets.get(groupEnd - 1);
+                Point candidatePose = targets.get(groupEnd);
 
                 // An explicit heading on either target means they cannot be merged.
-                if (!Double.isNaN(previousPose.getHeadingRad()) || !Double.isNaN(candidatePose.getHeadingRad())) {
+                if (previousPose.hasHeading() || candidatePose.hasHeading()) {
                     break;
                 }
 
@@ -478,8 +478,8 @@ public final class WeaverGenerator {
      * @param headings      heading list to append to
      * @return the last key point added
      */
-    private static Point addMergedGroup(List<PathPose> targets, int[] groupIndices, Point previousPoint, List<Point> keyPoints, List<Double> headings) {
-        PathPose firstPose = targets.get(groupIndices[0]);
+    private static Point addMergedGroup(List<Point> targets, int[] groupIndices, Point previousPoint, List<Point> keyPoints, List<Double> headings) {
+        Point firstPose = targets.get(groupIndices[0]);
 
         double deltaX = firstPose.getX() - previousPoint.getX();
         double deltaY = firstPose.getY() - previousPoint.getY();
@@ -503,7 +503,7 @@ public final class WeaverGenerator {
         double maxLateralOffset = -Double.MAX_VALUE;
 
         for (int k = 0; k < groupIndices.length; k++) {
-            PathPose pose = targets.get(groupIndices[k]);
+            Point pose = targets.get(groupIndices[k]);
 
             double offsetX = pose.getX() - previousPoint.getX();
             double offsetY = pose.getY() - previousPoint.getY();
@@ -541,7 +541,7 @@ public final class WeaverGenerator {
      * @param indices indices of the targets to average
      * @return the average position
      */
-    private static Point groupRepresentative(List<PathPose> targets, int[] indices) {
+    private static Point groupRepresentative(List<Point> targets, int[] indices) {
         double sumX = 0;
         double sumY = 0;
 
@@ -605,16 +605,16 @@ public final class WeaverGenerator {
      * @param config     geometry and tuning parameters
      * @return a new list containing only reachable targets
      */
-    private static List<PathPose> excludeBlockedTargets(Point startPoint, List<PathPose> targets,
+    private static List<Point> excludeBlockedTargets(Point startPoint, List<Point> targets,
                                                         List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
             return targets;
         }
 
-        List<PathPose> reachableTargets = new ArrayList<>();
+        List<Point> reachableTargets = new ArrayList<>();
         Point previousPoint = startPoint;
 
-        for (PathPose target : targets) {
+        for (Point target : targets) {
             if (!isTargetBlocked(target, previousPoint, obstacles, config)) {
                 reachableTargets.add(target);
                 previousPoint = new Point(target.getX(), target.getY());
@@ -634,10 +634,10 @@ public final class WeaverGenerator {
      * @param config    geometry and tuning parameters
      * @return {@code true} if the target is blocked
      */
-    private static boolean isTargetBlocked(PathPose target, Point from, List<Zone> obstacles, PathConfig config) {
+    private static boolean isTargetBlocked(Point target, Point from, List<Zone> obstacles, PathConfig config) {
         Point targetPoint = new Point(target.getX(), target.getY());
 
-        double heading = !Double.isNaN(target.getHeadingRad())
+        double heading = target.hasHeading()
                 ? target.getHeadingRad()
                 : Math.atan2(targetPoint.getY() - from.getY(), targetPoint.getX() - from.getX());
 

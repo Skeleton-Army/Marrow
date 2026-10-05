@@ -75,19 +75,19 @@ public class WeaverTest {
     @Test
     public void generate_startMissing_throwsIllegalStateException() {
         // Arrange
-        WeaverBuilder builder = Weaver.builder().addTarget(new PathPose(START_X + 20, START_Y));
+        WeaverBuilder builder = Weaver.builder().addTarget(new Point(START_X + 20, START_Y));
 
         // Act
         IllegalStateException actual = assertThrows(IllegalStateException.class, builder::generate);
 
         // Assert
-        assertEquals("Start PathPose is required", actual.getMessage());
+        assertEquals("Start Point is required", actual.getMessage());
     }
 
     @Test
     public void generate_noTargetsOrDestination_throwsIllegalStateException() {
         // Arrange
-        WeaverBuilder builder = Weaver.builder().start(new PathPose(START_X, START_Y, 0));
+        WeaverBuilder builder = Weaver.builder().start(new Point(START_X, START_Y, 0));
 
         // Act
         IllegalStateException actual = assertThrows(IllegalStateException.class, builder::generate);
@@ -102,8 +102,8 @@ public class WeaverTest {
     public void generate_destinationOnly_returnsPathEndingAtDestination() {
         // Arrange
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10, 0))
-                .end(new PathPose(30, 10));
+                .start(new Point(10, 10, 0))
+                .end(new Point(30, 10));
 
         // Act
         PathResult actual = builder.generate();
@@ -118,8 +118,8 @@ public class WeaverTest {
     public void generate_destinationOnly_returnsEndHeadingAlongTravel() {
         // Arrange
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10, 0))
-                .end(new PathPose(30, 10));
+                .start(new Point(10, 10, 0))
+                .end(new Point(30, 10));
 
         // Act
         List<Double> actualHeadings = builder.generate().getSegmentEndHeadingsRad();
@@ -133,8 +133,8 @@ public class WeaverTest {
         // Arrange
         List<Zone> obstacles = Collections.singletonList(new CircleZone(new Point(20, 10), 3));
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10))
-                .end(new PathPose(30, 10))
+                .start(new Point(10, 10))
+                .end(new Point(30, 10))
                 .addObstacle(obstacles.get(0));
 
         // Act
@@ -150,9 +150,9 @@ public class WeaverTest {
     public void generate_singleTarget_endsAtTarget() {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(0));
-        PathPose target = new PathPose(START_X + 20, START_Y);
+        Point target = new Point(START_X + 20, START_Y);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .addTarget(target);
 
         // Act
@@ -166,10 +166,10 @@ public class WeaverTest {
     @Test
     public void generate_multipleTargets_reordersToEndAtFurthestTarget() {
         // Arrange
-        PathPose far = new PathPose(START_X + 50, START_Y);
-        PathPose near = new PathPose(START_X + 10, START_Y);
+        Point far = new Point(START_X + 50, START_Y);
+        Point near = new Point(START_X + 10, START_Y);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .addTarget(far)
                 .addTarget(near);
 
@@ -183,10 +183,10 @@ public class WeaverTest {
     @Test
     public void generate_orderedTargets_endsAtLastAddedTarget() {
         // Arrange
-        PathPose far = new PathPose(START_X + 50, START_Y);
-        PathPose near = new PathPose(START_X + 10, START_Y);
+        Point far = new Point(START_X + 50, START_Y);
+        Point near = new Point(START_X + 10, START_Y);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .addTarget(far)
                 .addTarget(near)
                 .ordered();
@@ -202,10 +202,10 @@ public class WeaverTest {
     public void generate_zeroWidth_passesThroughEveryTarget() {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(0));
-        PathPose first = new PathPose(START_X + 20, START_Y + 5);
-        PathPose second = new PathPose(START_X + 50, START_Y - 5);
+        Point first = new Point(START_X + 20, START_Y + 5);
+        Point second = new Point(START_X + 50, START_Y - 5);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .addTarget(first)
                 .addTarget(second)
                 .ordered();
@@ -224,12 +224,12 @@ public class WeaverTest {
     public void generate_wideIntake_clustersPerpendicularTargets_keepsPathStraight() {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(18));
-        List<PathPose> targets = Arrays.asList(
-                new PathPose(START_X + 20, START_Y),
-                new PathPose(START_X + 40, START_Y - 5),
-                new PathPose(START_X + 40, START_Y + 5));
+        List<Point> targets = Arrays.asList(
+                new Point(START_X + 20, START_Y),
+                new Point(START_X + 40, START_Y - 5),
+                new Point(START_X + 40, START_Y + 5));
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .targets(targets)
                 .ordered();
 
@@ -247,10 +247,10 @@ public class WeaverTest {
     public void generate_wideIntake_separateTargets_solvesCapturePoints() {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(18));
-        PathPose first = new PathPose(START_X + 40, START_Y - 30);
-        PathPose second = new PathPose(START_X + 80, START_Y + 30);
+        Point first = new Point(START_X + 40, START_Y - 30);
+        Point second = new Point(START_X + 80, START_Y + 30);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .addTarget(first)
                 .addTarget(second)
                 .ordered();
@@ -271,8 +271,8 @@ public class WeaverTest {
         Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(new PathPose(START_X + 30, START_Y))
+                .start(new Point(START_X, START_Y, 0))
+                .addTarget(new Point(START_X + 30, START_Y))
                 .ordered()
                 .addObstacle(obstacle);
 
@@ -291,8 +291,8 @@ public class WeaverTest {
         Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(new PathPose(START_X + 30, START_Y))
+                .start(new Point(START_X, START_Y, 0))
+                .addTarget(new Point(START_X + 30, START_Y))
                 .ordered()
                 .addObstacle(obstacle);
 
@@ -309,9 +309,9 @@ public class WeaverTest {
         Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(new PathPose(START_X + 30, START_Y))
-                .addTarget(new PathPose(START_X + 60, START_Y))
+                .start(new Point(START_X, START_Y, 0))
+                .addTarget(new Point(START_X + 30, START_Y))
+                .addTarget(new Point(START_X + 60, START_Y))
                 .addObstacle(obstacle);
 
         // Act
@@ -327,8 +327,8 @@ public class WeaverTest {
         Weaver.setConfig(new PathConfig().intakeWidth(0).excludeBlockedTargets(false));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(new PathPose(START_X + 30, START_Y))
+                .start(new Point(START_X, START_Y, 0))
+                .addTarget(new Point(START_X + 30, START_Y))
                 .ordered()
                 .addObstacle(obstacle);
 
@@ -343,8 +343,8 @@ public class WeaverTest {
     public void generate_destinationMode_reportsNoSkippedTargets() {
         // Arrange
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10, 0))
-                .end(new PathPose(30, 10));
+                .start(new Point(10, 10, 0))
+                .end(new Point(30, 10));
 
         // Act
         int actual = builder.generate().getSkippedTargets();
@@ -359,8 +359,8 @@ public class WeaverTest {
         Weaver.setConfig(new PathConfig().intakeWidth(0).excludeBlockedTargets(false));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(new PathPose(START_X + 30, START_Y))
+                .start(new Point(START_X, START_Y, 0))
+                .addTarget(new Point(START_X + 30, START_Y))
                 .ordered()
                 .addObstacle(obstacle);
 
@@ -378,9 +378,9 @@ public class WeaverTest {
         Weaver.setConfig(new PathConfig().intakeWidth(0));
         Zone obstacle = new CircleZone(new Point(START_X + 30, START_Y), 8);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
-                .addTarget(new PathPose(START_X + 30, START_Y))
-                .addTarget(new PathPose(START_X + 60, START_Y))
+                .start(new Point(START_X, START_Y, 0))
+                .addTarget(new Point(START_X + 30, START_Y))
+                .addTarget(new Point(START_X + 60, START_Y))
                 .addObstacle(obstacle);
 
         // Act
@@ -396,10 +396,10 @@ public class WeaverTest {
     @Test
     public void builderTargets_replacesPreviouslyAddedTargets() {
         // Arrange
-        PathPose discarded = new PathPose(START_X + 50, START_Y);
-        PathPose kept = new PathPose(START_X + 20, START_Y);
+        Point discarded = new Point(START_X + 50, START_Y);
+        Point kept = new Point(START_X + 20, START_Y);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .addTarget(discarded)
                 .targets(Collections.singletonList(kept))
                 .ordered();
@@ -416,8 +416,8 @@ public class WeaverTest {
         // Arrange
         Zone discarded = new CircleZone(new Point(20, 10), 3);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(10, 10))
-                .end(new PathPose(30, 10))
+                .start(new Point(10, 10))
+                .end(new Point(30, 10))
                 .addObstacle(discarded)
                 .obstacles(Collections.<Zone>emptyList());
 
@@ -600,9 +600,9 @@ public class WeaverTest {
     public void generate_smoothingDisabled_endsAtTarget() {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(0).smoothing(false));
-        PathPose target = new PathPose(START_X + 20, START_Y);
+        Point target = new Point(START_X + 20, START_Y);
         WeaverBuilder builder = Weaver.builder()
-                .start(new PathPose(START_X, START_Y, 0))
+                .start(new Point(START_X, START_Y, 0))
                 .addTarget(target);
 
         // Act

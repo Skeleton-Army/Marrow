@@ -28,7 +28,7 @@ public class TargetOrderer {
      * @param config          ordering parameters
      * @return a new ordered list
      */
-    public static List<PathPose> order(Point startPos, double startHeadingRad, List<PathPose> targets, PathConfig config) {
+    public static List<Point> order(Point startPos, double startHeadingRad, List<Point> targets, PathConfig config) {
         if (targets.size() <= 1) {
             return new ArrayList<>(targets);
         }
@@ -53,15 +53,15 @@ public class TargetOrderer {
      * @param turnCostWeight  weight applied to heading changes
      * @return the total cost; lower is better
      */
-    public static double pathCost(Point startPos, double startHeadingRad, List<PathPose> order, double turnCostWeight) {
+    public static double pathCost(Point startPos, double startHeadingRad, List<Point> order, double turnCostWeight) {
         double cost = 0;
         Point currentPos = startPos;
         double currentHeading = startHeadingRad;
 
-        for (PathPose pose : order) {
+        for (Point pose : order) {
             double travelBearing;
 
-            if (Double.isNaN(pose.getHeadingRad())) {
+            if (!pose.hasHeading()) {
                 travelBearing = Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
             } else {
                 travelBearing = pose.getHeadingRad();
@@ -89,9 +89,9 @@ public class TargetOrderer {
      * @param config       ordering parameters
      * @return the cheapest visit order
      */
-    private static List<PathPose> bruteForce(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
-        List<PathPose> working = new ArrayList<>(targets);
-        final List<PathPose> bestOrder = new ArrayList<>(targets);
+    private static List<Point> bruteForce(Point startPos, double startHeading, List<Point> targets, PathConfig config) {
+        List<Point> working = new ArrayList<>(targets);
+        final List<Point> bestOrder = new ArrayList<>(targets);
         final double[] minCost = {pathCost(startPos, startHeading, working, config.getTurnCostWeight())};
 
         permute(working, 0, permutation -> {
@@ -116,24 +116,24 @@ public class TargetOrderer {
      * @param config       ordering parameters
      * @return the greedy visit order
      */
-    private static List<PathPose> greedy(Point startPos, double startHeading, List<PathPose> targets, PathConfig config) {
-        List<PathPose> remaining = new ArrayList<>(targets);
-        List<PathPose> result = new ArrayList<>();
+    private static List<Point> greedy(Point startPos, double startHeading, List<Point> targets, PathConfig config) {
+        List<Point> remaining = new ArrayList<>(targets);
+        List<Point> result = new ArrayList<>();
 
         Point currentPos = startPos;
         double currentHeading = startHeading;
         double turnCostWeight = config.getTurnCostWeight();
 
         while (!remaining.isEmpty()) {
-            PathPose bestPose = null;
+            Point bestPose = null;
             double bestCost = Double.MAX_VALUE;
             double bestHeading = 0;
 
             // Pick the remaining target that adds the least cost from here.
-            for (PathPose pose : remaining) {
+            for (Point pose : remaining) {
                 double travelBearing;
 
-                if (Double.isNaN(pose.getHeadingRad())) {
+                if (!pose.hasHeading()) {
                     travelBearing = Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
                 } else {
                     travelBearing = pose.getHeadingRad();
@@ -185,7 +185,7 @@ public class TargetOrderer {
          *
          * @param permutation the complete permutation
          */
-        void visit(List<PathPose> permutation);
+        void visit(List<Point> permutation);
     }
 
     /**
@@ -196,7 +196,7 @@ public class TargetOrderer {
      * @param k       index the permutation starts from
      * @param visitor callback invoked for each complete ordering
      */
-    private static void permute(List<PathPose> arr, int k, PermutationVisitor visitor) {
+    private static void permute(List<Point> arr, int k, PermutationVisitor visitor) {
         if (k == arr.size()) {
             visitor.visit(arr);
             return;

@@ -1,7 +1,6 @@
 package marrow.simulator;
 
 import com.skeletonarmy.marrow.weaver.PathConfig;
-import com.skeletonarmy.marrow.weaver.PathPose;
 import com.skeletonarmy.marrow.weaver.PathResult;
 import com.skeletonarmy.marrow.weaver.PathRoute;
 import com.skeletonarmy.marrow.weaver.Weaver;
@@ -248,9 +247,9 @@ public class Simulator extends JPanel {
             Weaver.setConfig(new PathConfig().intakeWidth(width));
 
             WeaverBuilder b = Weaver.builder()
-                    .start(new PathPose(start.getX(), start.getY(), 0));
+                    .start(new Point(start.getX(), start.getY(), 0));
             for (Point t : targets) {
-                b.addTarget(new PathPose(t.getX(), t.getY()));
+                b.addTarget(new Point(t.getX(), t.getY()));
             }
             for (Zone o : obstacles) {
                 b.addObstacle(o);

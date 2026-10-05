@@ -6,8 +6,8 @@ package com.skeletonarmy.marrow.weaver;
  * Example usage:
  * <pre>{@code
  * PathResult result = Weaver.builder()
- *         .start(new PathPose(72, 72, 0))
- *         .addTarget(new PathPose(100, 72))
+ *         .start(new Point(72, 72, 0))
+ *         .addTarget(new Point(100, 72))
  *         .generate();
  * }</pre>
  */

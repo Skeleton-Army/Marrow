@@ -1,5 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
+import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.Zone;
 
 import java.util.ArrayList;
@@ -14,9 +15,9 @@ import java.util.List;
  * {@link #generate()} is called.
  */
 public class WeaverBuilder {
-    private PathPose startPose;
-    private PathPose destinationPose;
-    private final List<PathPose> targets = new ArrayList<>();
+    private Point startPose;
+    private Point destinationPose;
+    private final List<Point> targets = new ArrayList<>();
     private final List<Zone> obstacles = new ArrayList<>();
     private boolean reorder = true;
 
@@ -26,7 +27,7 @@ public class WeaverBuilder {
      * @param start the start pose
      * @return this builder, for chaining
      */
-    public WeaverBuilder start(PathPose start) {
+    public WeaverBuilder start(Point start) {
         this.startPose = start;
         return this;
     }
@@ -37,7 +38,7 @@ public class WeaverBuilder {
      * @param newTargets the targets to visit; may be {@code null} to clear them
      * @return this builder, for chaining
      */
-    public WeaverBuilder targets(List<PathPose> newTargets) {
+    public WeaverBuilder targets(List<Point> newTargets) {
         this.targets.clear();
 
         if (newTargets != null) {
@@ -53,7 +54,7 @@ public class WeaverBuilder {
      * @param newTargets the targets to visit; may be {@code null} to clear them
      * @return this builder, for chaining
      */
-    public WeaverBuilder targets(PathPose... newTargets) {
+    public WeaverBuilder targets(Point... newTargets) {
         return targets(Arrays.asList(newTargets));
     }
 
@@ -63,7 +64,7 @@ public class WeaverBuilder {
      * @param target the target to append
      * @return this builder, for chaining
      */
-    public WeaverBuilder addTarget(PathPose target) {
+    public WeaverBuilder addTarget(Point target) {
         this.targets.add(target);
         return this;
     }
@@ -85,7 +86,7 @@ public class WeaverBuilder {
      * @param destination the destination pose
      * @return this builder, for chaining
      */
-    public WeaverBuilder end(PathPose destination) {
+    public WeaverBuilder end(Point destination) {
         this.destinationPose = destination;
         return this;
     }
@@ -136,7 +137,7 @@ public class WeaverBuilder {
      */
     public PathResult generate() {
         if (startPose == null) {
-            throw new IllegalStateException("Start PathPose is required");
+            throw new IllegalStateException("Start Point is required");
         }
 
         if (targets.isEmpty() && destinationPose == null) {
