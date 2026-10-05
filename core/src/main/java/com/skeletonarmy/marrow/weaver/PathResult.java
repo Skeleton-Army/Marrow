@@ -1,8 +1,10 @@
 package com.skeletonarmy.marrow.weaver;
 
+import androidx.annotation.NonNull;
 import com.skeletonarmy.marrow.zones.Point;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The output of a path generation, containing the geometry and execution metadata.
@@ -56,5 +58,16 @@ public final class PathResult {
     /** @return a read-only list of the heading to hold at each segment end, in radians */
     public List<Double> getSegmentEndHeadingsRad() {
         return Collections.unmodifiableList(segmentEndHeadingsRad);
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format(
+                Locale.ROOT,
+                "PathResult(skippedTargets=%d, segmentEndHeadingsRad=%s, path=%s)",
+                skippedTargets,
+                segmentEndHeadingsRad,
+                path);
     }
 }

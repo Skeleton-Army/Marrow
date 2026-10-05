@@ -1,10 +1,12 @@
 package com.skeletonarmy.marrow.weaver;
 
+import androidx.annotation.NonNull;
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.Zone;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Fluent builder for path generation requests.
@@ -155,5 +157,18 @@ public class WeaverBuilder {
      */
     public PathResult build() {
         return generate();
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format(
+                Locale.ROOT,
+                "WeaverBuilder(startPose=%s, destinationPose=%s, targets=%s, obstacles=%s, reorder=%s)",
+                startPose,
+                destinationPose,
+                targets,
+                obstacles,
+                reorder);
     }
 }

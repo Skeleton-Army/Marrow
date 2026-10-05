@@ -1,9 +1,11 @@
 package com.skeletonarmy.marrow.weaver;
 
+import androidx.annotation.NonNull;
 import com.skeletonarmy.marrow.zones.Point;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * An ordered set of {@link PathCurve} segments forming one continuous route.
@@ -142,5 +144,11 @@ public class PathRoute {
         }
 
         return controlPointLists;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format(Locale.ROOT, "PathRoute(segmentCount=%d, segments=%s)", getSegmentCount(), segments);
     }
 }

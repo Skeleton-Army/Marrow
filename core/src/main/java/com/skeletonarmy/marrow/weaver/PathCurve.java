@@ -1,10 +1,12 @@
 package com.skeletonarmy.marrow.weaver;
 
+import androidx.annotation.NonNull;
 import com.skeletonarmy.marrow.zones.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * An immutable Bézier curve defined by a list of control points.
@@ -245,6 +247,17 @@ public class PathCurve {
         int index = (int) scaled;
 
         return index >= cubicSegmentCount ? cubicSegmentCount - 1 : index;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format(
+                Locale.ROOT,
+                "PathCurve(degree=%d, composite=%s, controlPoints=%s)",
+                getDegree(),
+                isComposite(),
+                controlPoints);
     }
 
     /**

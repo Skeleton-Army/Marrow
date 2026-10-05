@@ -1,5 +1,8 @@
 package com.skeletonarmy.marrow.weaver;
 
+import androidx.annotation.NonNull;
+import java.util.Locale;
+
 /**
  * Combined configuration for Bezier path generation and obstacle avoidance.
  * <p>
@@ -223,5 +226,22 @@ public class PathConfig {
     public PathConfig bruteForceOrderLimit(int v) {
         this.bruteForceOrderLimit = v;
         return this;
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return String.format(
+                Locale.ROOT,
+                "PathConfig(intakeWidth=%.3f, robotWidth=%.3f, robotHeight=%.3f, clearance=%.3f, "
+                        + "excludeBlockedTargets=%s, smoothing=%s, turnCostWeight=%.3f, bruteForceOrderLimit=%d)",
+                intakeWidth,
+                robotWidth,
+                robotHeight,
+                clearance,
+                excludeBlockedTargets,
+                smoothing,
+                turnCostWeight,
+                bruteForceOrderLimit);
     }
 }
