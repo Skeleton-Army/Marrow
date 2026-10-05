@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.weaver;
 
 import com.skeletonarmy.marrow.zones.Point;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -144,10 +143,14 @@ public class PathCurve {
         double endWeight = localProgress * localProgress * localProgress;
 
         return new Point(
-                startWeight * startPoint.getX() + firstWeight * firstControl.getX()
-                        + secondWeight * secondControl.getX() + endWeight * endPoint.getX(),
-                startWeight * startPoint.getY() + firstWeight * firstControl.getY()
-                        + secondWeight * secondControl.getY() + endWeight * endPoint.getY());
+                startWeight * startPoint.getX()
+                        + firstWeight * firstControl.getX()
+                        + secondWeight * secondControl.getX()
+                        + endWeight * endPoint.getX(),
+                startWeight * startPoint.getY()
+                        + firstWeight * firstControl.getY()
+                        + secondWeight * secondControl.getY()
+                        + endWeight * endPoint.getY());
     }
 
     /**
@@ -172,13 +175,13 @@ public class PathCurve {
 
         double oneMinusT = 1 - localProgress;
 
-        double derivativeX = 3 * (
-                (firstControl.getX() - startPoint.getX()) * oneMinusT * oneMinusT
+        double derivativeX = 3
+                * ((firstControl.getX() - startPoint.getX()) * oneMinusT * oneMinusT
                         + 2 * (secondControl.getX() - firstControl.getX()) * oneMinusT * localProgress
                         + (endPoint.getX() - secondControl.getX()) * localProgress * localProgress);
 
-        double derivativeY = 3 * (
-                (firstControl.getY() - startPoint.getY()) * oneMinusT * oneMinusT
+        double derivativeY = 3
+                * ((firstControl.getY() - startPoint.getY()) * oneMinusT * oneMinusT
                         + 2 * (secondControl.getY() - firstControl.getY()) * oneMinusT * localProgress
                         + (endPoint.getY() - secondControl.getY()) * localProgress * localProgress);
 
@@ -259,9 +262,7 @@ public class PathCurve {
             for (int i = 0; i < pointCount - level; i++) {
                 Point a = points.get(i);
                 Point b = points.get(i + 1);
-                points.set(i, new Point(
-                        (1 - t) * a.getX() + t * b.getX(),
-                        (1 - t) * a.getY() + t * b.getY()));
+                points.set(i, new Point((1 - t) * a.getX() + t * b.getX(), (1 - t) * a.getY() + t * b.getY()));
             }
         }
 
@@ -283,9 +284,7 @@ public class PathCurve {
             Point p = controlPoints.get(i);
             Point pNext = controlPoints.get(i + 1);
 
-            differencePoints.add(new Point(
-                    degree * (pNext.getX() - p.getX()),
-                    degree * (pNext.getY() - p.getY())));
+            differencePoints.add(new Point(degree * (pNext.getX() - p.getX()), degree * (pNext.getY() - p.getY())));
         }
 
         // The derivative of a line is a constant vector.

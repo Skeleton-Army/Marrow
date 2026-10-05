@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.telemetry;
 
 import androidx.annotation.NonNull;
-
 import org.jetbrains.annotations.NotNull;
 
 public abstract class TelemetryModifier {

@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.actions;
 
 import androidx.annotation.NonNull;
-
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Action;
 import java.util.function.BooleanSupplier;
@@ -36,8 +35,7 @@ public class RetryAction implements Action {
             Supplier<Action> initialAction,
             Supplier<Action> retryAction,
             BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+            int maxRetries) {
         this.initialActionSupplier = initialAction;
         this.retryActionSupplier = retryAction;
         this.successCondition = successCondition;
@@ -51,11 +49,7 @@ public class RetryAction implements Action {
      * @param successCondition A condition that returns {@code false} if a retry should be attempted, or {@code true} if the action should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
-    public RetryAction(
-            Supplier<Action> action,
-            BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+    public RetryAction(Supplier<Action> action, BooleanSupplier successCondition, int maxRetries) {
         this(action, action, successCondition, maxRetries);
     }
 

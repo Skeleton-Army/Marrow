@@ -1,8 +1,6 @@
 package com.skeletonarmy.marrow.telemetry.modifiers;
 
-
 import androidx.annotation.NonNull;
-
 import com.skeletonarmy.marrow.telemetry.HtmlColor;
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
 
@@ -16,9 +14,11 @@ public class ColorModifier extends TelemetryModifier {
 
         color = hex.toUpperCase();
     }
+
     public ColorModifier(int r, int g, int b) {
         this(String.format("#%02x%02x%02x", r, g, b));
     }
+
     public ColorModifier(HtmlColor color) {
         this(color.getHexCode());
     }

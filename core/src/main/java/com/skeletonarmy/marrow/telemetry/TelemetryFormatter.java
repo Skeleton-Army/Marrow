@@ -1,8 +1,6 @@
 package com.skeletonarmy.marrow.telemetry;
 
-
 import androidx.annotation.NonNull;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,5 +40,4 @@ public class TelemetryFormatter {
         }
         return result;
     }
-
 }

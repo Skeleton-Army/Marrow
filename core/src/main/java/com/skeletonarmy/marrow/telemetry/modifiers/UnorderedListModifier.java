@@ -1,10 +1,8 @@
 package com.skeletonarmy.marrow.telemetry.modifiers;
 
 import androidx.annotation.NonNull;
-
 import com.skeletonarmy.marrow.telemetry.FormatBuilder;
 import com.skeletonarmy.marrow.telemetry.TelemetryModifier;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;

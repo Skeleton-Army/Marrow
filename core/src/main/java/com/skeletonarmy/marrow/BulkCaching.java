@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow;
 
 import com.qualcomm.hardware.lynx.LynxModule;
-
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

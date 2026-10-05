@@ -1,8 +1,7 @@
 package com.skeletonarmy.marrow.nextftc;
 
-import java.util.function.BooleanSupplier;
-
 import dev.nextftc.core.commands.Command;
+import java.util.function.BooleanSupplier;
 
 /**
  * A command that runs a given command and, if a condition is met,
@@ -29,12 +28,7 @@ public class RetryCommand extends Command {
      * @param successCondition A condition that returns {@code false} if a retry should be attempted, or {@code true} if the command should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
-    public RetryCommand(
-            Command command,
-            Command retryCommand,
-            BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+    public RetryCommand(Command command, Command retryCommand, BooleanSupplier successCondition, int maxRetries) {
         this.command = command;
         this.retryCommand = retryCommand;
         this.successCondition = successCondition;
@@ -51,11 +45,7 @@ public class RetryCommand extends Command {
      * @param successCondition A condition that returns {@code true} if a retry should be attempted, or {@code false} if the command should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
-    public RetryCommand(
-            Command command,
-            BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+    public RetryCommand(Command command, BooleanSupplier successCondition, int maxRetries) {
         this(command, command, successCondition, maxRetries);
     }
 

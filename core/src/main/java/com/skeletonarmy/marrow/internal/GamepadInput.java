@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.internal;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
-
 import java.util.EnumMap;
 
 /**
@@ -104,12 +103,7 @@ public final class GamepadInput {
      * @param intervalMs      the initial repeat interval in milliseconds
      * @param speedupPercent  the percentage decrease in interval after each repeat (e.g. {@code 10} means each repeat is 10% faster)
      */
-    public static boolean pressAndHold(
-            Button button,
-            long initialDelayMs,
-            long intervalMs,
-            double speedupPercent
-    ) {
+    public static boolean pressAndHold(Button button, long initialDelayMs, long intervalMs, double speedupPercent) {
         long now = System.currentTimeMillis();
         boolean pressed = Boolean.TRUE.equals(currentStates.get(button));
         boolean wasPressed = Boolean.TRUE.equals(previousStates.get(button));
@@ -165,29 +159,52 @@ public final class GamepadInput {
      */
     private static boolean getButtonState(Button button, Gamepad gamepad1, Gamepad gamepad2) {
         switch (button) {
-            case A: return gamepad1.a || gamepad2.a;
-            case B: return gamepad1.b || gamepad2.b;
-            case X: return gamepad1.x || gamepad2.x;
-            case Y: return gamepad1.y || gamepad2.y;
-            case DPAD_UP: return gamepad1.dpad_up || gamepad2.dpad_up;
-            case DPAD_DOWN: return gamepad1.dpad_down || gamepad2.dpad_down;
-            case DPAD_LEFT: return gamepad1.dpad_left || gamepad2.dpad_left;
-            case DPAD_RIGHT: return gamepad1.dpad_right || gamepad2.dpad_right;
-            case GUIDE: return gamepad1.guide || gamepad2.guide;
-            case START: return gamepad1.start || gamepad2.start;
-            case BACK: return gamepad1.back || gamepad2.back;
-            case LEFT_BUMPER: return gamepad1.left_bumper || gamepad2.left_bumper;
-            case RIGHT_BUMPER: return gamepad1.right_bumper || gamepad2.right_bumper;
-            case LEFT_STICK_BUTTON: return gamepad1.left_stick_button || gamepad2.left_stick_button;
-            case RIGHT_STICK_BUTTON: return gamepad1.right_stick_button || gamepad2.right_stick_button;
-            case CIRCLE: return gamepad1.circle || gamepad2.circle;
-            case CROSS: return gamepad1.cross || gamepad2.cross;
-            case TRIANGLE: return gamepad1.triangle || gamepad2.triangle;
-            case SQUARE: return gamepad1.square || gamepad2.square;
-            case SHARE: return gamepad1.share || gamepad2.share;
-            case OPTIONS: return gamepad1.options || gamepad2.options;
-            case PS: return gamepad1.ps || gamepad2.ps;
-            default: return false;
+            case A:
+                return gamepad1.a || gamepad2.a;
+            case B:
+                return gamepad1.b || gamepad2.b;
+            case X:
+                return gamepad1.x || gamepad2.x;
+            case Y:
+                return gamepad1.y || gamepad2.y;
+            case DPAD_UP:
+                return gamepad1.dpad_up || gamepad2.dpad_up;
+            case DPAD_DOWN:
+                return gamepad1.dpad_down || gamepad2.dpad_down;
+            case DPAD_LEFT:
+                return gamepad1.dpad_left || gamepad2.dpad_left;
+            case DPAD_RIGHT:
+                return gamepad1.dpad_right || gamepad2.dpad_right;
+            case GUIDE:
+                return gamepad1.guide || gamepad2.guide;
+            case START:
+                return gamepad1.start || gamepad2.start;
+            case BACK:
+                return gamepad1.back || gamepad2.back;
+            case LEFT_BUMPER:
+                return gamepad1.left_bumper || gamepad2.left_bumper;
+            case RIGHT_BUMPER:
+                return gamepad1.right_bumper || gamepad2.right_bumper;
+            case LEFT_STICK_BUTTON:
+                return gamepad1.left_stick_button || gamepad2.left_stick_button;
+            case RIGHT_STICK_BUTTON:
+                return gamepad1.right_stick_button || gamepad2.right_stick_button;
+            case CIRCLE:
+                return gamepad1.circle || gamepad2.circle;
+            case CROSS:
+                return gamepad1.cross || gamepad2.cross;
+            case TRIANGLE:
+                return gamepad1.triangle || gamepad2.triangle;
+            case SQUARE:
+                return gamepad1.square || gamepad2.square;
+            case SHARE:
+                return gamepad1.share || gamepad2.share;
+            case OPTIONS:
+                return gamepad1.options || gamepad2.options;
+            case PS:
+                return gamepad1.ps || gamepad2.ps;
+            default:
+                return false;
         }
     }
 }

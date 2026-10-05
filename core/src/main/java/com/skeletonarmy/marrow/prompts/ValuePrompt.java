@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.skeletonarmy.marrow.internal.Button;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
@@ -26,13 +25,21 @@ public class ValuePrompt<T extends Number> extends Prompt<T> {
     }
 
     public ValuePrompt(String header, Class<T> type, T minValue, T maxValue, T defaultValue, T increment) {
-        this(header, type, minValue.doubleValue(), maxValue.doubleValue(), defaultValue.doubleValue(), increment.doubleValue());
+        this(
+                header,
+                type,
+                minValue.doubleValue(),
+                maxValue.doubleValue(),
+                defaultValue.doubleValue(),
+                increment.doubleValue());
     }
 
-    private ValuePrompt(String header, Class<T> type, double minValue, double maxValue, double defaultValue, double increment) {
+    private ValuePrompt(
+            String header, Class<T> type, double minValue, double maxValue, double defaultValue, double increment) {
         if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
         if (minValue >= maxValue) throw new IllegalArgumentException("Max value must be greater than min value.");
-        if (defaultValue < minValue || defaultValue > maxValue) throw new IllegalArgumentException("Default value must be between min and max value.");
+        if (defaultValue < minValue || defaultValue > maxValue)
+            throw new IllegalArgumentException("Default value must be between min and max value.");
         if (increment <= 0) throw new IllegalArgumentException("Increment must be greater than zero.");
 
         this.header = header;
@@ -76,11 +83,11 @@ public class ValuePrompt<T extends Number> extends Prompt<T> {
     @SuppressWarnings("unchecked")
     private T cast(double value) {
         if (type == Integer.class) return (T) Integer.valueOf((int) value);
-        if (type == Long.class)    return (T) Long.valueOf((long) value);
-        if (type == Double.class)  return (T) Double.valueOf(value);
-        if (type == Float.class)   return (T) Float.valueOf((float) value);
-        if (type == Short.class)   return (T) Short.valueOf((short) value);
-        if (type == Byte.class)    return (T) Byte.valueOf((byte) value);
+        if (type == Long.class) return (T) Long.valueOf((long) value);
+        if (type == Double.class) return (T) Double.valueOf(value);
+        if (type == Float.class) return (T) Float.valueOf((float) value);
+        if (type == Short.class) return (T) Short.valueOf((short) value);
+        if (type == Byte.class) return (T) Byte.valueOf((byte) value);
         throw new IllegalStateException("Unsupported number type: " + type.getSimpleName());
     }
 
@@ -90,10 +97,10 @@ public class ValuePrompt<T extends Number> extends Prompt<T> {
 
     private static double getMaxForType(Class<?> type) {
         if (type == Integer.class) return Integer.MAX_VALUE;
-        if (type == Long.class)    return Long.MAX_VALUE;
-        if (type == Short.class)   return Short.MAX_VALUE;
-        if (type == Byte.class)    return Byte.MAX_VALUE;
-        if (type == Float.class)   return Float.MAX_VALUE;
+        if (type == Long.class) return Long.MAX_VALUE;
+        if (type == Short.class) return Short.MAX_VALUE;
+        if (type == Byte.class) return Byte.MAX_VALUE;
+        if (type == Float.class) return Float.MAX_VALUE;
         return Double.MAX_VALUE;
     }
 

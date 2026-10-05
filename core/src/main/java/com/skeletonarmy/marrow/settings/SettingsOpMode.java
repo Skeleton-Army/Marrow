@@ -6,14 +6,17 @@ import com.skeletonarmy.marrow.internal.GamepadInput;
 import com.skeletonarmy.marrow.prompts.BooleanPrompt;
 import com.skeletonarmy.marrow.prompts.Prompt;
 import com.skeletonarmy.marrow.prompts.Prompter;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class SettingsOpMode extends OpMode {
     private final List<Setting<?>> options = new ArrayList<>();
 
-    private enum State { MENU, PROMPT }
+    private enum State {
+        MENU,
+        PROMPT
+    }
+
     private State state = State.MENU;
     private Prompter prompter;
     private int cursor = 0;
@@ -41,14 +44,15 @@ public abstract class SettingsOpMode extends OpMode {
 
     @Override
     public void stop() {
-//        Settings.save();
+        //        Settings.save();
     }
 
     protected <T> void add(String key, String displayName, Prompt<T> prompt) {
         String normalizedKey = key.toLowerCase();
 
         if (key.isEmpty()) throw new IllegalArgumentException("Key cannot be empty.");
-        if (options.stream().anyMatch(p -> p.getKey().equals(normalizedKey))) throw new IllegalArgumentException("Duplicate key found: " + key);
+        if (options.stream().anyMatch(p -> p.getKey().equals(normalizedKey)))
+            throw new IllegalArgumentException("Duplicate key found: " + key);
 
         options.add(new Setting<>(key, displayName, prompt));
     }
@@ -65,11 +69,9 @@ public abstract class SettingsOpMode extends OpMode {
         telemetry.addLine();
         telemetry.addLine("FACTORY RESET (CLEARS ALL SETTINGS)" + (cursor == totalItems - 1 ? " <" : ""));
 
-        if (GamepadInput.justPressed(Button.DPAD_UP))
-            cursor = (cursor - 1 + totalItems) % totalItems;
+        if (GamepadInput.justPressed(Button.DPAD_UP)) cursor = (cursor - 1 + totalItems) % totalItems;
 
-        if (GamepadInput.justPressed(Button.DPAD_DOWN))
-            cursor = (cursor + 1) % totalItems;
+        if (GamepadInput.justPressed(Button.DPAD_DOWN)) cursor = (cursor + 1) % totalItems;
 
         if (GamepadInput.justPressed(Button.A)) {
             if (cursor < options.size()) { // Settings
@@ -77,12 +79,11 @@ public abstract class SettingsOpMode extends OpMode {
                 prompter = new Prompter(this);
                 state = State.PROMPT;
 
-                prompter.prompt("_", s.getPrompt())
-                        .onComplete(() -> {
-                            Object v = prompter.get("_");
-//                            Settings.set(s.getKey(), v);
-                            state = State.MENU;
-                        });
+                prompter.prompt("_", s.getPrompt()).onComplete(() -> {
+                    Object v = prompter.get("_");
+                    //                            Settings.set(s.getKey(), v);
+                    state = State.MENU;
+                });
             } else { // Factory reset
                 prompter = new Prompter(this);
                 state = State.PROMPT;
@@ -90,7 +91,7 @@ public abstract class SettingsOpMode extends OpMode {
                 prompter.prompt("confirm", new BooleanPrompt("ARE YOU SURE?", false))
                         .onComplete(() -> {
                             if (prompter.<Boolean>get("confirm")) {
-//                                Settings.clear();
+                                //                                Settings.clear();
                             }
                             state = State.MENU;
                         });

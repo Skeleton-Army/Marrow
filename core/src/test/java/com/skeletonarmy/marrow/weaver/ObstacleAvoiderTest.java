@@ -1,19 +1,18 @@
 package com.skeletonarmy.marrow.weaver;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
+
 import com.skeletonarmy.marrow.zones.CircleZone;
 import com.skeletonarmy.marrow.zones.CompositeZone;
 import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
-import org.junit.Test;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 
 /**
  * Tests {@link ObstacleAvoider} routing and smoothing against circle, polygon, and
@@ -81,9 +80,8 @@ public class ObstacleAvoiderTest {
     public void avoid_compositeObstacleOnPath_returnsObstacleClearPath() {
         // Arrange
         PathRoute route = straightRoute(new Point(72, 72), new Point(120, 72));
-        List<Zone> obstacles = Collections.singletonList(new CompositeZone(
-                new CircleZone(new Point(92, 72), 4),
-                new PolygonZone(new Point(100, 72), 8, 8)));
+        List<Zone> obstacles = Collections.singletonList(
+                new CompositeZone(new CircleZone(new Point(92, 72), 4), new PolygonZone(new Point(100, 72), 8, 8)));
         PathConfig config = new PathConfig().robotWidth(0).robotHeight(0);
 
         // Act
@@ -97,9 +95,8 @@ public class ObstacleAvoiderTest {
     public void avoid_multipleObstacles_returnsPathClearOfAll() {
         // Arrange
         PathRoute route = straightRoute(new Point(72, 72), new Point(120, 72));
-        List<Zone> obstacles = Arrays.asList(
-                new CircleZone(new Point(88, 72), 4),
-                new CircleZone(new Point(104, 72), 4));
+        List<Zone> obstacles =
+                Arrays.asList(new CircleZone(new Point(88, 72), 4), new CircleZone(new Point(104, 72), 4));
         PathConfig config = new PathConfig().robotWidth(0).robotHeight(0);
 
         // Act

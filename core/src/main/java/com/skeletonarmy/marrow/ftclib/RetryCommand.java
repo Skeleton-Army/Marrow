@@ -4,7 +4,6 @@ import com.arcrobotics.ftclib.command.Command;
 import com.arcrobotics.ftclib.command.CommandBase;
 import com.arcrobotics.ftclib.command.CommandGroupBase;
 import com.arcrobotics.ftclib.command.Subsystem;
-
 import java.util.function.BooleanSupplier;
 
 /**
@@ -32,12 +31,7 @@ public class RetryCommand extends CommandBase {
      * @param successCondition A condition that returns {@code false} if a retry should be attempted, or {@code true} if the command should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
-    public RetryCommand(
-            Command command,
-            Command retryCommand,
-            BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+    public RetryCommand(Command command, Command retryCommand, BooleanSupplier successCondition, int maxRetries) {
         CommandGroupBase.requireUngrouped(command, retryCommand);
 
         this.command = command;
@@ -56,11 +50,7 @@ public class RetryCommand extends CommandBase {
      * @param successCondition A condition that returns {@code false} if a retry should be attempted, or {@code true} if the command should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
-    public RetryCommand(
-            Command command,
-            BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+    public RetryCommand(Command command, BooleanSupplier successCondition, int maxRetries) {
         this(command, command, successCondition, maxRetries);
     }
 
