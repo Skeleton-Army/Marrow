@@ -63,6 +63,16 @@ public final class PedroPathingConverter {
     }
 
     /**
+     * Converts a Pedro Pathing {@link Pose} into a Marrow {@link Point}.
+     *
+     * @param pose pose to convert
+     * @return the equivalent Marrow point
+     */
+    public static Point toPoint(Pose pose) {
+        return new Point(pose.x(), pose.y(), pose.heading());
+    }
+
+    /**
      * Wraps one cubic in an atomic, tangent-following path.
      *
      * @param curve cubic curve to wrap
@@ -103,15 +113,5 @@ public final class PedroPathingConverter {
      */
     private static Vector2D vector(Point point) {
         return Vector2D.cartesian(point.getX(), point.getY());
-    }
-
-    /**
-     * Converts a Pedro Pathing {@link Pose} into a Marrow {@link Point}.
-     *
-     * @param pose pose to convert
-     * @return the equivalent Marrow point
-     */
-    public static Point toPoint(Pose pose) {
-        return new Point(pose.x(), pose.y(), pose.heading());
     }
 }
