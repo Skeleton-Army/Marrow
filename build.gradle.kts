@@ -3,16 +3,34 @@ plugins {
 }
 
 subprojects {
+    // tools/* are plain JVM modules, not Android libraries.
+    if (path.startsWith(":tools")) return@subprojects
+
     apply(plugin = "com.android.library")
     apply(plugin = "io.deepmedia.tools.deployer")
+    apply(plugin = "com.diffplug.spotless")
 
     group = "com.skeletonarmyftc.marrow"
-    version = "1.1.2"
+    version = "1.2.0"
 
     repositories {
         mavenCentral()
         google()
         maven("https://maven.brott.dev")
+    }
+
+    // Spotless: run `./gradlew spotlessApply` to format, `./gradlew spotlessCheck` to verify
+    // (spotlessCheck also runs as part of `check`)
+    extensions.configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        java {
+            // Explicit target, since Android source sets aren't picked up automatically
+            target("src/**/*.java")
+            palantirJavaFormat()
+            removeUnusedImports()
+            shortenFullyQualifiedTypes()
+            importOrder()
+            trimTrailingWhitespace()
+        }
     }
 
     extensions.configure<io.deepmedia.tools.deployer.DeployerExtension> {
@@ -54,6 +72,8 @@ subprojects {
     }
 }
 
+val publishedSubprojects = subprojects.filterNot { it.path.startsWith(":tools") }
+
 tasks.named<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
     delete(subprojects.map { it.layout.buildDirectory })
@@ -63,18 +83,30 @@ tasks.register("deployCentralPortal") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Central."
     dependsOn("clean")
-    dependsOn(subprojects.map { it.tasks.named("deployCentralPortal") })
+    dependsOn(publishedSubprojects.map { it.tasks.named("deployCentralPortal") })
 }
 
 tasks.register("deployNexusSnapshot") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Central Snapshots."
     dependsOn("clean")
-    dependsOn(subprojects.map { it.tasks.named("deployNexusSnapshot") })
+    dependsOn(publishedSubprojects.map { it.tasks.named("deployNexusSnapshot") })
 }
 
 tasks.register("deployLocal") {
     group = "publishing"
     description = "Publishes all subprojects to Maven Local."
-    dependsOn(subprojects.map { it.tasks.named("deployLocal") })
+    dependsOn(publishedSubprojects.map { it.tasks.named("deployLocal") })
+}
+
+tasks.register("spotlessCheck") {
+    group = "spotless"
+    description = "Runs spotless check on all modules which apply the spotless plugin."
+    dependsOn(publishedSubprojects.map { it.tasks.named("spotlessCheck") })
+}
+
+tasks.register("spotlessApply") {
+    group = "spotless"
+    description = "Runs spotless apply on all modules which apply the spotless plugin."
+    dependsOn(publishedSubprojects.map { it.tasks.named("spotlessApply") })
 }

@@ -19,12 +19,7 @@ public class BooleanPrompt extends Prompt<Boolean> {
         addLine("");
         addLine("--- " + (selectedValue ? "YES" : "NO") + " ---");
 
-        if (anyJustPressed(
-                Button.DPAD_UP,
-                Button.DPAD_DOWN,
-                Button.DPAD_LEFT,
-                Button.DPAD_RIGHT
-        )) {
+        if (anyJustPressed(Button.DPAD_UP, Button.DPAD_DOWN, Button.DPAD_LEFT, Button.DPAD_RIGHT)) {
             selectedValue = !selectedValue;
         }
 

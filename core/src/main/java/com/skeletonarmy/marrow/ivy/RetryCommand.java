@@ -5,7 +5,6 @@ import com.pedropathing.ivy.behaviors.BlockedBehavior;
 import com.pedropathing.ivy.behaviors.ConflictBehavior;
 import com.pedropathing.ivy.behaviors.EndCondition;
 import com.pedropathing.ivy.behaviors.InterruptedBehavior;
-
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BooleanSupplier;
@@ -36,12 +35,7 @@ public class RetryCommand implements Command {
      *                         attempted, or {@code true} if the command should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
-    public RetryCommand(
-            Command command,
-            Command retryCommand,
-            BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+    public RetryCommand(Command command, Command retryCommand, BooleanSupplier successCondition, int maxRetries) {
         this.command = command;
         this.retryCommand = retryCommand;
         this.successCondition = successCondition;
@@ -56,11 +50,7 @@ public class RetryCommand implements Command {
      *                         attempted, or {@code true} if the command should finish without retrying.
      * @param maxRetries       The maximum number of retries allowed.
      */
-    public RetryCommand(
-            Command command,
-            BooleanSupplier successCondition,
-            int maxRetries
-    ) {
+    public RetryCommand(Command command, BooleanSupplier successCondition, int maxRetries) {
         this(command, command, successCondition, maxRetries);
     }
 
