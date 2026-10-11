@@ -323,7 +323,7 @@ public final class WeaverGenerator {
 
         // The robot can only sweep multiple targets at once if the intake has width.
         double intakeHalfWidth = config.getIntakeWidth() / 2.0;
-        List<int[]> targetGroups = groupTargets(startPoint, headings.get(0), orderedTargets, config.getIntakeWidth());
+        List<int[]> targetGroups = groupTargets(startPoint, headings.get(0), orderedTargets, obstacles, config);
 
         Point previousRawTarget = startPoint;
 
@@ -354,6 +354,18 @@ public final class WeaverGenerator {
                 Point nextGroupRepresentative = groupRepresentative(orderedTargets, targetGroups.get(groupIndex + 1));
                 robotCenter = solveIntakeCapturePoint(
                         target, heading, intakeHalfWidth, previousRawTarget, nextGroupRepresentative);
+
+                // The sideways shift must not push the robot into an obstacle the
+                // target itself is clear of; reach the target dead-on instead.
+                if (obstacles != null
+                        && !obstacles.isEmpty()
+                        && isTargetBlocked(
+                                new Point(robotCenter.getX(), robotCenter.getY(), heading),
+                                lastOf(keyPoints),
+                                obstacles,
+                                config)) {
+                    robotCenter = target;
+                }
             }
 
             keyPoints.add(robotCenter);
@@ -477,19 +489,23 @@ public final class WeaverGenerator {
      * <p>
      * Starting at the current key point, consecutive targets are added while they
      * stay within {@code width} of the line running through the first target and lie
-     * no further back along that line than the target before them. A target with an
-     * explicit heading always ends the group.
+     * no further back along that line than the target before them, and while the
+     * sweep keeps the robot clear of every obstacle. A target with an explicit heading
+     * always ends the group.
      *
      * @param startPoint      point the first group starts from
      * @param startHeadingRad robot heading at {@code startPoint}, in radians
      * @param targets         ordered targets
-     * @param width           usable intake width; non-positive disables grouping
+     * @param obstacles       zones to avoid; may be {@code null}
+     * @param config          geometry parameters; a non-positive intake width disables
+     *                        grouping
      * @return each group as an array of indices into {@code targets}
      */
     private static List<int[]> groupTargets(
-            Point startPoint, double startHeadingRad, List<Point> targets, double width) {
+            Point startPoint, double startHeadingRad, List<Point> targets, List<Zone> obstacles, PathConfig config) {
         List<int[]> groups = new ArrayList<>();
         int targetCount = targets.size();
+        double width = config.getIntakeWidth();
 
         // Without width there is no benefit in merging; every target is its own group.
         if (width <= 1e-9) {
@@ -549,6 +565,12 @@ public final class WeaverGenerator {
                     break;
                 }
 
+                // Stop before the sweep's sideways shift would put the robot into an
+                // obstacle.
+                if (isSweepBlocked(targets, groupStart, groupEnd, previousKeyPoint, groupHeading, obstacles, config)) {
+                    break;
+                }
+
                 minLateralOffset = candidateMin;
                 maxLateralOffset = candidateMax;
                 previousAlongOffset = alongOffset;
@@ -603,6 +625,46 @@ public final class WeaverGenerator {
         }
 
         return lastOf(sweep);
+    }
+
+    /**
+     * Checks whether any key point of a merged sweep would put the robot inside or too
+     * close to an obstacle.
+     *
+     * @param targets       ordered targets being visited
+     * @param firstIndex    index of the sweep's first target
+     * @param lastIndex     index of the sweep's last target
+     * @param previousPoint key point the sweep starts from
+     * @param heading       heading the robot sweeps along, in radians
+     * @param obstacles     zones to avoid; may be {@code null}
+     * @param config        geometry parameters
+     * @return {@code true} if the sweep is blocked
+     */
+    private static boolean isSweepBlocked(
+            List<Point> targets,
+            int firstIndex,
+            int lastIndex,
+            Point previousPoint,
+            double heading,
+            List<Zone> obstacles,
+            PathConfig config) {
+        if (obstacles == null || obstacles.isEmpty()) {
+            return false;
+        }
+
+        int[] groupIndices = new int[lastIndex - firstIndex + 1];
+
+        for (int k = 0; k < groupIndices.length; k++) {
+            groupIndices[k] = firstIndex + k;
+        }
+
+        for (Point point : sweepKeyPoints(targets, groupIndices, previousPoint, heading)) {
+            if (isTargetBlocked(new Point(point.getX(), point.getY(), heading), previousPoint, obstacles, config)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
