@@ -142,7 +142,9 @@ public class CompositeZone implements Zone {
         boolean insideAtLeastOne = false;
 
         for (Zone zone : zones) {
-            double distToBoundary = zone.distanceToBoundary(point);
+            // PolygonZone reports an unsigned distance, so sign it here.
+            double distToBoundary =
+                    zone.contains(point) ? -Math.abs(zone.distanceToBoundary(point)) : zone.distanceToBoundary(point);
             if (distToBoundary <= 1e-9) {
                 maxNegativeDistance = Math.max(maxNegativeDistance, distToBoundary);
                 insideAtLeastOne = true;
