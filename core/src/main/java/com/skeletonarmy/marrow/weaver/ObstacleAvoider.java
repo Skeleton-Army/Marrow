@@ -124,7 +124,8 @@ public class ObstacleAvoider {
     }
 
     /**
-     * Routes every segment of {@code path} around the given obstacles.
+     * Routes every segment of {@code path} around the given obstacles, keeping each
+     * segment's start and end tangent.
      *
      * @param path      route to reroute
      * @param obstacles zones to avoid; when {@code null} or empty the route is returned unchanged
@@ -132,6 +133,25 @@ public class ObstacleAvoider {
      * @return the rerouted path
      */
     public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config) {
+        return avoid(path, obstacles, config, true);
+    }
+
+    /**
+     * Routes every segment of {@code path} around the given obstacles.
+     * <p>
+     * With {@code keepEndTangents} false, a segment that has to be rerouted leaves
+     * along its first leg and arrives along its last, instead of along its original
+     * tangents. Use it when those tangents carry no meaning, such as a straight seed
+     * between two points: pinning the seed's bearing makes the rerouted curve set off
+     * toward the obstacle it is going around.
+     *
+     * @param path            route to reroute
+     * @param obstacles       zones to avoid; when {@code null} or empty the route is returned unchanged
+     * @param config          geometry and tuning parameters
+     * @param keepEndTangents {@code true} to keep each segment's start and end tangent
+     * @return the rerouted path
+     */
+    public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config, boolean keepEndTangents) {
         if (obstacles == null || obstacles.isEmpty()) {
             return path;
         }
@@ -140,7 +160,7 @@ public class ObstacleAvoider {
         List<PathCurve> routedSegments = new ArrayList<>();
 
         for (PathCurve segment : path.getSegments()) {
-            routedSegments.add(routeCurve(segment, parts, config));
+            routedSegments.add(routeCurve(segment, parts, config, keepEndTangents));
         }
 
         return routedSegments.size() == 1
@@ -275,14 +295,18 @@ public class ObstacleAvoider {
      * smooth path is fitted through the shortest visible route. If the fitted curve
      * still clips an obstacle, the padding is increased and the attempt repeated.
      *
-     * @param sourceCurve curve to reroute
-     * @param obstacles   zones to avoid
-     * @param config      geometry and tuning parameters
+     * @param sourceCurve     curve to reroute
+     * @param obstacles       zones to avoid
+     * @param config          geometry and tuning parameters
+     * @param keepEndTangents {@code true} to keep the curve's start and end tangent;
+     *                        {@code false} to leave and arrive along the routed legs
      * @return the rerouted curve, or the original curve when routing fails
      */
-    private static PathCurve routeCurve(PathCurve sourceCurve, List<Zone> obstacles, PathConfig config) {
-        double startHeading = sourceCurve.getHeading(0.0);
-        double endHeading = sourceCurve.getHeading(1.0);
+    private static PathCurve routeCurve(
+            PathCurve sourceCurve, List<Zone> obstacles, PathConfig config, boolean keepEndTangents) {
+        // NaN lets the fit take its end headings from the routed legs.
+        double startHeading = keepEndTangents ? sourceCurve.getHeading(0.0) : Double.NaN;
+        double endHeading = keepEndTangents ? sourceCurve.getHeading(1.0) : Double.NaN;
         List<PathCurve> cubicSegments = sourceCurve.toCubicSegments();
 
         List<Point> keypoints = new ArrayList<>();
