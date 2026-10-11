@@ -476,8 +476,9 @@ public final class WeaverGenerator {
      * single straight pass of the intake.
      * <p>
      * Starting at the current key point, consecutive targets are added while they
-     * stay within {@code width} of the line running through the first target. A target
-     * with an explicit heading always ends the group.
+     * stay within {@code width} of the line running through the first target and lie
+     * no further back along that line than the target before them. A target with an
+     * explicit heading always ends the group.
      *
      * @param startPoint point the first group starts from
      * @param targets    ordered targets
@@ -513,6 +514,7 @@ public final class WeaverGenerator {
 
             double minLateralOffset = 0;
             double maxLateralOffset = 0;
+            double previousAlongOffset = 0;
 
             int groupEnd = groupStart + 1;
 
@@ -528,6 +530,14 @@ public final class WeaverGenerator {
                 double offsetX = candidatePose.getX() - firstPose.getX();
                 double offsetY = candidatePose.getY() - firstPose.getY();
 
+                // A sweep only moves forward: a target behind the previous one in the
+                // visit order needs a pass of its own.
+                double alongOffset = offsetX * directionX + offsetY * directionY;
+
+                if (alongOffset < previousAlongOffset - 1e-9) {
+                    break;
+                }
+
                 // Perpendicular distance from the group's base line.
                 double lateralOffset = offsetX * -directionY + offsetY * directionX;
 
@@ -541,6 +551,7 @@ public final class WeaverGenerator {
 
                 minLateralOffset = candidateMin;
                 maxLateralOffset = candidateMax;
+                previousAlongOffset = alongOffset;
                 groupEnd++;
             }
 
