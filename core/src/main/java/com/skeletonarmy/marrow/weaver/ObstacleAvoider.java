@@ -301,6 +301,11 @@ public class ObstacleAvoider {
             reliefs.add(EndpointRelief.at(keypoint, obstacles));
         }
 
+        // A curve that already clears everything is kept as it is, headings included.
+        if (isCurveClear(sourceCurve, obstacles, config, reliefs)) {
+            return sourceCurve;
+        }
+
         List<Point> bestWaypoints = null;
         double padding = 0.0;
 
