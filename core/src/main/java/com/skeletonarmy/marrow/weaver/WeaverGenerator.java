@@ -318,7 +318,8 @@ public final class WeaverGenerator {
         List<Double> headings = new ArrayList<>();
 
         keyPoints.add(startPoint);
-        headings.add(start.getHeadingRad());
+        // A start with no heading faces its first target until the key points are known.
+        headings.add(start.hasHeading() ? start.getHeadingRad() : firstBearing(startPoint, orderedTargets));
 
         // The robot can only sweep multiple targets at once if the intake has width.
         double intakeHalfWidth = config.getIntakeWidth() / 2.0;
@@ -358,6 +359,11 @@ public final class WeaverGenerator {
             keyPoints.add(robotCenter);
             headings.add(heading);
             previousRawTarget = target;
+        }
+
+        // A start with no heading leaves toward the first key point.
+        if (!start.hasHeading()) {
+            headings.set(0, firstBearing(startPoint, keyPoints));
         }
 
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
@@ -752,6 +758,36 @@ public final class WeaverGenerator {
         }
 
         return false;
+    }
+
+    /**
+     * Returns the direction from {@code from} to the first of {@code points} that is
+     * not on top of it.
+     *
+     * @param from   point travelled from
+     * @param points candidate points, in order
+     * @return the bearing in radians, or {@code 0} when every point coincides with
+     *         {@code from}
+     */
+    private static double firstBearing(Point from, List<Point> points) {
+        for (Point point : points) {
+            if (from.distanceTo(point) > 1e-6) {
+                return bearing(from, point);
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Returns the direction from one point to another.
+     *
+     * @param from point travelled from
+     * @param to   point travelled to
+     * @return the bearing in radians, or {@code 0} when the points coincide
+     */
+    private static double bearing(Point from, Point to) {
+        return Math.atan2(to.getY() - from.getY(), to.getX() - from.getX());
     }
 
     /**
