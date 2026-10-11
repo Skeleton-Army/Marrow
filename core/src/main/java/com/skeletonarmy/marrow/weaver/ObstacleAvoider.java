@@ -663,24 +663,6 @@ public class ObstacleAvoider {
             double extra,
             EndpointRelief[] reliefs) {
         int nodeCount = nodes.size();
-
-        // lineOfSight[i][j] is true when the straight segment i -> j is clear.
-        boolean[][] lineOfSight = new boolean[nodeCount][nodeCount];
-
-        for (int i = 0; i < nodeCount; i++) {
-            for (int j = i + 1; j < nodeCount; j++) {
-                boolean clear = isSegmentClear(
-                        nodes.get(i),
-                        nodes.get(j),
-                        obstacles,
-                        config,
-                        extra,
-                        edgeReliefs(i, j, startIdx, endIdx, reliefs));
-                lineOfSight[i][j] = clear;
-                lineOfSight[j][i] = clear;
-            }
-        }
-
         double[] distances = new double[nodeCount];
         int[] previousNode = new int[nodeCount];
         boolean[] visited = new boolean[nodeCount];
@@ -713,15 +695,29 @@ public class ObstacleAvoider {
                 break;
             }
 
-            // Relax every visible neighbour.
+            // Relax every visible neighbour. Line of sight is the expensive test, so it
+            // is only run for an edge that would shorten the route. A pair is tested at
+            // most once: the edge back to a visited node is skipped.
             for (int neighbor = 0; neighbor < nodeCount; neighbor++) {
-                if (visited[neighbor] || !lineOfSight[currentNode][neighbor]) {
+                if (visited[neighbor]) {
                     continue;
                 }
 
                 double edgeLength = nodes.get(currentNode).distanceTo(nodes.get(neighbor));
 
-                if (distances[currentNode] + edgeLength < distances[neighbor]) {
+                // Test the pair from its lower index, as every pair was tested before, so
+                // rounding in the samples cannot give a different answer.
+                int from = Math.min(currentNode, neighbor);
+                int to = Math.max(currentNode, neighbor);
+
+                if (distances[currentNode] + edgeLength < distances[neighbor]
+                        && isSegmentClear(
+                                nodes.get(from),
+                                nodes.get(to),
+                                obstacles,
+                                config,
+                                extra,
+                                edgeReliefs(from, to, startIdx, endIdx, reliefs))) {
                     distances[neighbor] = distances[currentNode] + edgeLength;
                     previousNode[neighbor] = currentNode;
                 }
