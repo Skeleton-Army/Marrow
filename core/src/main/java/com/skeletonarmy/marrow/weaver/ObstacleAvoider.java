@@ -609,8 +609,10 @@ public class ObstacleAvoider {
     }
 
     /**
-     * Runs Dijkstra's algorithm over a visibility graph of {@code nodes}, where two
-     * nodes are connected when the segment between them is clear.
+     * Runs an A* search over a visibility graph of {@code nodes}, where two nodes are
+     * connected when the segment between them is clear. The heuristic is the
+     * straight-line distance to the end node, which is consistent, so the route found
+     * is a shortest one.
      * <p>
      * The start and end nodes are allowed a relaxed clearance so a route can escape
      * a tight starting or ending position.
@@ -663,23 +665,25 @@ public class ObstacleAvoider {
         }
 
         double[] distances = new double[nodeCount];
+        double[] remaining = new double[nodeCount];
         int[] previousNode = new int[nodeCount];
         boolean[] visited = new boolean[nodeCount];
 
         for (int i = 0; i < nodeCount; i++) {
             distances[i] = Double.MAX_VALUE;
+            remaining[i] = nodes.get(i).distanceTo(nodes.get(endIdx));
             previousNode[i] = -1;
         }
         distances[startIdx] = 0;
 
         for (int iteration = 0; iteration < nodeCount; iteration++) {
-            // Pick the unvisited node with the smallest tentative distance.
+            // Pick the reached, unvisited node whose route to the end could be shortest.
             int currentNode = -1;
-            double bestDistance = Double.MAX_VALUE;
+            double bestEstimate = Double.MAX_VALUE;
 
             for (int i = 0; i < nodeCount; i++) {
-                if (!visited[i] && distances[i] < bestDistance) {
-                    bestDistance = distances[i];
+                if (!visited[i] && distances[i] < Double.MAX_VALUE && distances[i] + remaining[i] < bestEstimate) {
+                    bestEstimate = distances[i] + remaining[i];
                     currentNode = i;
                 }
             }
