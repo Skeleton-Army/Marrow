@@ -399,21 +399,13 @@ public class TargetOrderer {
     }
 
     /**
-     * Wraps an angle into the range {@code (-pi, pi]}.
+     * Wraps an angle into the range {@code [-pi, pi]} in constant time.
      *
      * @param angle angle in radians
-     * @return the equivalent angle in {@code (-pi, pi]}
+     * @return the equivalent angle in {@code [-pi, pi]}
      */
     private static double normalizeAngle(double angle) {
-        while (angle > Math.PI) {
-            angle -= 2 * Math.PI;
-        }
-
-        while (angle < -Math.PI) {
-            angle += 2 * Math.PI;
-        }
-
-        return angle;
+        return Math.IEEEremainder(angle, 2 * Math.PI);
     }
 
     /** Callback used by {@link #permute}. */
