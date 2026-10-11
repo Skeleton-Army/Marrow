@@ -356,8 +356,7 @@ public final class WeaverGenerator {
                         target, heading, intakeHalfWidth, previousRawTarget, nextGroupRepresentative);
             }
 
-            keyPoints.add(robotCenter);
-            headings.add(heading);
+            appendKeyPoint(keyPoints, headings, robotCenter, heading);
             previousRawTarget = target;
         }
 
@@ -366,14 +365,22 @@ public final class WeaverGenerator {
             headings.set(0, firstBearing(startPoint, keyPoints));
         }
 
+        // Every target was on top of the start: stay there.
+        if (keyPoints.size() == 1) {
+            keyPoints.add(startPoint);
+            headings.add(headings.get(0));
+        }
+
+        // A last target with its own heading keeps it, even when it shares a key point
+        // with the target before it.
+        Point lastTarget = orderedTargets.get(orderedTargets.size() - 1);
+        double endHeading = lastTarget.hasHeading() ? lastTarget.getHeadingRad() : headings.get(headings.size() - 1);
+
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
         PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles, config);
 
         return new PathResult(
-                path,
-                Collections.singletonList(headings.get(headings.size() - 1)),
-                new ArrayList<>(orderedTargets),
-                unvisitedTargets);
+                path, Collections.singletonList(endHeading), new ArrayList<>(orderedTargets), unvisitedTargets);
     }
 
     /**
@@ -587,8 +594,7 @@ public final class WeaverGenerator {
         List<Point> sweep = sweepKeyPoints(targets, groupIndices, previousPoint, heading);
 
         for (Point point : sweep) {
-            keyPoints.add(point);
-            headings.add(heading);
+            appendKeyPoint(keyPoints, headings, point, heading);
         }
 
         return lastOf(sweep);
@@ -672,6 +678,29 @@ public final class WeaverGenerator {
         }
 
         return fallbackHeading;
+    }
+
+    /**
+     * Appends a key point and its heading, unless it coincides with the previous key
+     * point. Two targets side by side in one sweep, or a target on top of the start
+     * or of the target before it, would otherwise leave a zero-length cubic whose
+     * tangent, and so whose heading, is undefined.
+     * <p>
+     * The earlier key point keeps its heading: the robot may already need that
+     * heading to capture the earlier target.
+     *
+     * @param keyPoints key point list to append to
+     * @param headings  heading list to append to
+     * @param point     key point to append
+     * @param heading   heading at that key point, in radians
+     */
+    private static void appendKeyPoint(List<Point> keyPoints, List<Double> headings, Point point, double heading) {
+        if (lastOf(keyPoints).distanceTo(point) < 1e-6) {
+            return;
+        }
+
+        keyPoints.add(point);
+        headings.add(heading);
     }
 
     /**
