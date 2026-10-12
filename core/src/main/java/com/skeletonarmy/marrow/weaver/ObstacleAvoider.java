@@ -584,15 +584,26 @@ public class ObstacleAvoider {
             PathConfig config,
             double extra,
             Iterable<EndpointRelief> reliefs) {
+        // No heading needs more than the footprint's half diagonal, so an obstacle at
+        // least that far away (plus clearance) is clear without working out its direction.
+        double widestMargin =
+                Math.hypot(config.getRobotWidth() / 2.0, config.getRobotHeight() / 2.0) + config.getClearance() + extra;
+
         for (int i = 0; i < obstacles.size(); i++) {
             Zone zone = obstacles.get(i);
+            double distance = signedDist(zone, p);
+
+            if (distance >= widestMargin) {
+                continue;
+            }
+
             double requiredClearance = requiredMargin(p, heading, zone, config, extra);
 
             for (EndpointRelief relief : reliefs) {
                 requiredClearance = Math.min(requiredClearance, relief.marginCap(i));
             }
 
-            if (signedDist(zone, p) < requiredClearance - 1e-6) {
+            if (distance < requiredClearance - 1e-6) {
                 return false;
             }
         }
