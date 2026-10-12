@@ -1,8 +1,10 @@
 package com.skeletonarmy.marrow.weaver;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.skeletonarmy.marrow.zones.CircleZone;
 import com.skeletonarmy.marrow.zones.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -101,6 +103,24 @@ public class WeaverStartWithoutHeadingTest {
 
         // Assert
         assertEquals(targets.subList(0, 4), actual);
+    }
+
+    @Test
+    public void generate_startWithoutHeadingAndNoReachableTarget_reportsFiniteHeading() {
+        // Arrange: the only target sits inside an obstacle, so it is excluded and no
+        // target is reachable. The stationary route must still report a finite heading.
+        Weaver.setConfig(new PathConfig().excludeBlockedTargets(true));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(0, 0))
+                .addTarget(new Point(30, 0))
+                .obstacles(new CircleZone(new Point(30, 0), 5));
+
+        // Act
+        PathResult actual = builder.generate();
+
+        // Assert
+        assertTrue(actual.getVisitedTargets().isEmpty());
+        assertFalse(Double.isNaN(actual.getSegmentEndHeadingsRad().get(0)));
     }
 
     @Test

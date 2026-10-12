@@ -319,9 +319,12 @@ public final class WeaverGenerator {
                     config,
                     true);
 
+            // A start with no heading has no bearing to hold; report 0 rather than NaN.
+            double idleHeading = start.hasHeading() ? start.getHeadingRad() : 0.0;
+
             return new PathResult(
                     idlePath,
-                    Collections.singletonList(start.getHeadingRad()),
+                    Collections.singletonList(idleHeading),
                     Collections.<Point>emptyList(),
                     unvisitedTargets);
         }
