@@ -125,7 +125,8 @@ public class ObstacleAvoider {
 
     /**
      * Routes every segment of {@code path} around the given obstacles, keeping each
-     * segment's start and end tangent.
+     * segment's start and end tangent where a route fits with them (see
+     * {@link #avoid(PathRoute, List, PathConfig, boolean)}).
      *
      * @param path      route to reroute
      * @param obstacles zones to avoid; when {@code null} or empty the route is returned unchanged
@@ -148,7 +149,10 @@ public class ObstacleAvoider {
      * @param path            route to reroute
      * @param obstacles       zones to avoid; when {@code null} or empty the route is returned unchanged
      * @param config          geometry and tuning parameters
-     * @param keepEndTangents {@code true} to keep each segment's start and end tangent
+     * @param keepEndTangents {@code true} to keep each segment's start and end tangent.
+     *                        If no route fits with them, an end the robot can turn on
+     *                        the spot at leaves or arrives along its routed leg
+     *                        instead, so the robot turns there rather than collides
      * @return the rerouted path
      */
     public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config, boolean keepEndTangents) {
@@ -293,7 +297,10 @@ public class ObstacleAvoider {
      * <p>
      * Candidate waypoints are collected around the obstacle boundaries and a
      * smooth path is fitted through the shortest visible route. If the fitted curve
-     * still clips an obstacle, the padding is increased and the attempt repeated.
+     * still clips an obstacle, the padding is increased and the attempt repeated. If
+     * no attempt fits with the curve's own end tangents, the routes are fitted again
+     * leaving or arriving along their first or last leg, at ends where the robot can
+     * turn on the spot.
      *
      * @param sourceCurve     curve to reroute
      * @param obstacles       zones to avoid
@@ -330,7 +337,7 @@ public class ObstacleAvoider {
             return sourceCurve;
         }
 
-        List<Point> bestWaypoints = null;
+        List<List<Point>> routes = new ArrayList<>();
         double padding = 0.0;
 
         for (int attempt = 0; attempt < MAX_INFLATE_ATTEMPTS; attempt++) {
@@ -340,9 +347,7 @@ public class ObstacleAvoider {
                 break;
             }
 
-            if (bestWaypoints == null) {
-                bestWaypoints = waypoints;
-            }
+            routes.add(waypoints);
 
             PathCurve curve = fitSmooth(waypoints, startHeading, endHeading);
 
@@ -354,7 +359,140 @@ public class ObstacleAvoider {
             padding += 0.5;
         }
 
-        return bestWaypoints != null ? buildPath(bestWaypoints, startHeading, endHeading) : sourceCurve;
+        if (routes.isEmpty()) {
+            return sourceCurve;
+        }
+
+        // The kept tangents never fit: bending round an obstacle near an end can swing
+        // the footprint into it while turning from the kept tangent onto the routed leg.
+        // Where the robot can turn on the spot instead, leave or arrive along the leg.
+        if (keepEndTangents) {
+            for (List<Point> waypoints : routes) {
+                PathCurve curve = fitAlongLegs(waypoints, startHeading, endHeading, obstacles, config, reliefs);
+
+                if (curve != null) {
+                    return curve;
+                }
+            }
+        }
+
+        return buildPath(routes.get(0), startHeading, endHeading);
+    }
+
+    /**
+     * Fits {@code route} with an end tangent replaced by the direction of the routed
+     * leg at that end: the start alone, then the end alone, then both. An end is only
+     * changed where the robot can turn on the spot from one direction to the other
+     * (see {@link #isTurnClear}).
+     *
+     * @param route        waypoints to fit through
+     * @param startHeading kept start tangent in radians
+     * @param endHeading   kept end tangent in radians
+     * @param obstacles    zones to avoid
+     * @param config       geometry parameters
+     * @param reliefs      one relief per key point of the route
+     * @return the first curve that clears every obstacle, or {@code null} if none does
+     */
+    private static PathCurve fitAlongLegs(
+            List<Point> route,
+            double startHeading,
+            double endHeading,
+            List<Zone> obstacles,
+            PathConfig config,
+            List<EndpointRelief> reliefs) {
+        double firstLeg = headingAt(route, 0);
+        double lastLeg = headingAt(route, route.size() - 1);
+        boolean canTurnAtStart = isTurnClear(route.get(0), startHeading, firstLeg, obstacles, config);
+        boolean canTurnAtEnd = isTurnClear(route.get(route.size() - 1), lastLeg, endHeading, obstacles, config);
+
+        List<double[]> tangentPairs = new ArrayList<>();
+
+        if (canTurnAtStart) {
+            tangentPairs.add(new double[] {firstLeg, endHeading});
+        }
+
+        if (canTurnAtEnd) {
+            tangentPairs.add(new double[] {startHeading, lastLeg});
+        }
+
+        if (canTurnAtStart && canTurnAtEnd) {
+            tangentPairs.add(new double[] {firstLeg, lastLeg});
+        }
+
+        for (double[] tangents : tangentPairs) {
+            PathCurve curve = fitSmooth(route, tangents[0], tangents[1]);
+
+            if (isCurveClear(curve, obstacles, config, reliefs)) {
+                return curve;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Checks that the robot can turn on the spot at {@code p}, the short way round,
+     * from one heading to another. During the turn the footprint may come no closer
+     * to an obstacle than the required margin, or than it already is at either end of
+     * the turn when that is closer.
+     *
+     * @param p           robot-center point
+     * @param fromHeading heading before the turn, in radians
+     * @param toHeading   heading after the turn, in radians
+     * @param obstacles   zones to test against
+     * @param config      geometry parameters
+     * @return {@code true} if the turn keeps clear
+     */
+    static boolean isTurnClear(Point p, double fromHeading, double toHeading, List<Zone> obstacles, PathConfig config) {
+        double turn = Math.IEEEremainder(toHeading - fromHeading, 2 * Math.PI);
+        double halfDiagonal = Math.hypot(config.getRobotWidth() / 2.0, config.getRobotHeight() / 2.0);
+
+        for (Zone zone : obstacles) {
+            // The footprint reaches furthest toward the obstacle at one end of the turn,
+            // unless a corner swings past the obstacle on the way.
+            if (!cornerSwingsPast(obstacleDirection(zone, p) - fromHeading, turn, config)) {
+                continue;
+            }
+
+            double distance = signedDist(zone, p);
+            double slackBefore = distance - requiredMargin(p, fromHeading, zone, config, 0.0);
+            double slackAfter = distance - requiredMargin(p, toHeading, zone, config, 0.0);
+            double allowedSlack = Math.min(0.0, Math.min(slackBefore, slackAfter));
+
+            if (distance - (halfDiagonal + config.getClearance()) < allowedSlack - 1e-6) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks whether a corner of the footprint points in a given direction at some
+     * point of a turn, where the footprint reaches its half diagonal that way.
+     *
+     * @param relativeAngle direction to check, relative to the heading at the start of
+     *                      the turn, in radians
+     * @param turn          signed turn, in radians
+     * @param config        geometry parameters
+     * @return {@code true} if a corner points in that direction during the turn
+     */
+    private static boolean cornerSwingsPast(double relativeAngle, double turn, PathConfig config) {
+        // Turning by turn moves the direction, relative to the robot, by -turn.
+        double low = Math.min(relativeAngle, relativeAngle - turn);
+        double high = Math.max(relativeAngle, relativeAngle - turn);
+        double cornerAngle = Math.atan2(config.getRobotHeight(), config.getRobotWidth());
+
+        // The corners point along plus or minus cornerAngle, repeating every half turn.
+        for (double corner : new double[] {cornerAngle, -cornerAngle}) {
+            double firstAtOrAboveLow = corner + Math.ceil((low - corner) / Math.PI) * Math.PI;
+
+            if (firstAtOrAboveLow <= high) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
