@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Builds the geometric path (a chain of cubic Bézier curves) that a robot should
@@ -25,6 +27,17 @@ import java.util.List;
  */
 public final class WeaverGenerator {
     private WeaverGenerator() {}
+
+    /** Targets collected in a single intake pass, and the direction the pass runs in. */
+    private static final class TargetGroup {
+        private final int[] indices;
+        private final double heading;
+
+        private TargetGroup(int[] indices, double heading) {
+            this.indices = indices;
+            this.heading = heading;
+        }
+    }
 
     /**
      * Generates a path from the given inputs.
@@ -312,6 +325,13 @@ public final class WeaverGenerator {
             }
         }
 
+        // With an intake to sweep with, order so targets that can be swept together stay
+        // together. A point-to-point order would otherwise thread a distant target
+        // through a clump and break it into several passes.
+        if (reorder && config.getIntakeWidth() > 1e-9 && !hasHeading(orderedTargets, 0, orderedTargets.size() - 1)) {
+            orderedTargets = orderForIntake(startPoint, orderedTargets, config);
+        }
+
         // Remove one entry per visit, so a target passed twice and visited once
         // still reports its second entry as unvisited.
         List<Point> unvisitedTargets = new ArrayList<>(targets);
@@ -344,17 +364,27 @@ public final class WeaverGenerator {
 
         // The robot can only sweep multiple targets at once if the intake has width.
         double intakeHalfWidth = config.getIntakeWidth() / 2.0;
-        List<int[]> targetGroups = groupTargets(startPoint, headings.get(0), orderedTargets, obstacles, config);
+        List<TargetGroup> targetGroups =
+                groupTargets(startPoint, headings.get(0), orderedTargets, obstacles, config, reorder);
+
+        // The targets in the order the route actually passes them, which for a merged
+        // sweep is the direction it runs in, not the requested order.
+        List<Point> visitedTargets = new ArrayList<>();
 
         Point previousRawTarget = startPoint;
 
         for (int groupIndex = 0; groupIndex < targetGroups.size(); groupIndex++) {
-            int[] groupIndices = targetGroups.get(groupIndex);
+            TargetGroup group = targetGroups.get(groupIndex);
+            int[] groupIndices = group.indices;
+
+            for (int index : groupIndices) {
+                visitedTargets.add(orderedTargets.get(index));
+            }
 
             // A merged group (several targets in one intake pass) is handled separately.
             if (groupIndices.length > 1 && intakeHalfWidth > 1e-9) {
-                previousRawTarget =
-                        addMergedGroup(orderedTargets, groupIndices, previousRawTarget, keyPoints, headings);
+                previousRawTarget = addMergedGroup(
+                        orderedTargets, groupIndices, group.heading, previousRawTarget, keyPoints, headings);
                 continue;
             }
 
@@ -372,7 +402,8 @@ public final class WeaverGenerator {
             if (intakeHalfWidth <= 1e-9 || groupIndex == targetGroups.size() - 1) {
                 robotCenter = target;
             } else {
-                Point nextGroupRepresentative = groupRepresentative(orderedTargets, targetGroups.get(groupIndex + 1));
+                Point nextGroupRepresentative =
+                        groupRepresentative(orderedTargets, targetGroups.get(groupIndex + 1).indices);
                 robotCenter = solveIntakeCapturePoint(
                         target, heading, intakeHalfWidth, previousRawTarget, nextGroupRepresentative);
 
@@ -412,8 +443,7 @@ public final class WeaverGenerator {
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
         PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles, config, true);
 
-        return new PathResult(
-                path, Collections.singletonList(endHeading), new ArrayList<>(orderedTargets), unvisitedTargets);
+        return new PathResult(path, Collections.singletonList(endHeading), visitedTargets, unvisitedTargets);
     }
 
     /**
@@ -520,10 +550,10 @@ public final class WeaverGenerator {
      * single straight pass of the intake.
      * <p>
      * Starting at the current key point, consecutive targets are added while they
-     * stay within {@code width} of the line running through the first target and lie
-     * no further back along that line than the target before them, and while the
-     * sweep keeps the robot clear of every obstacle. A target with an explicit heading
-     * always ends the group.
+     * stay within {@code width} of the line running through the group toward its
+     * centre and lie no further back along that line than the target before them, and
+     * while the sweep keeps the robot clear of every obstacle. A target with an
+     * explicit heading always ends the group.
      *
      * @param startPoint      point the first group starts from
      * @param startHeadingRad robot heading at {@code startPoint}, in radians
@@ -531,18 +561,25 @@ public final class WeaverGenerator {
      * @param obstacles       zones to avoid; may be {@code null}
      * @param config          geometry parameters; a non-positive intake width disables
      *                        grouping
-     * @return each group as an array of indices into {@code targets}
+     * @param reorder         {@code true} when the caller chose the order, so a whole
+     *                        row may be swept together and passed in sweep order
+     * @return each group, with the direction it is swept along
      */
-    private static List<int[]> groupTargets(
-            Point startPoint, double startHeadingRad, List<Point> targets, List<Zone> obstacles, PathConfig config) {
-        List<int[]> groups = new ArrayList<>();
+    private static List<TargetGroup> groupTargets(
+            Point startPoint,
+            double startHeadingRad,
+            List<Point> targets,
+            List<Zone> obstacles,
+            PathConfig config,
+            boolean reorder) {
+        List<TargetGroup> groups = new ArrayList<>();
         int targetCount = targets.size();
         double width = config.getIntakeWidth();
 
         // Without width there is no benefit in merging; every target is its own group.
         if (width <= 1e-9) {
             for (int i = 0; i < targetCount; i++) {
-                groups.add(new int[] {i});
+                groups.add(new TargetGroup(new int[] {i}, startHeadingRad));
             }
 
             return groups;
@@ -554,59 +591,65 @@ public final class WeaverGenerator {
 
         while (groupStart < targetCount) {
             Point firstPose = targets.get(groupStart);
-
-            // The line the group runs along, the same one addMergedGroup lays it out on.
-            double groupHeading = sweepDirection(previousKeyPoint, targets, groupStart, previousHeading);
-            double directionX = Math.cos(groupHeading);
-            double directionY = Math.sin(groupHeading);
-
-            double minLateralOffset = 0;
-            double maxLateralOffset = 0;
-            double previousAlongOffset = 0;
-
             int groupEnd = groupStart + 1;
+            double groupHeading = Double.NaN;
 
-            while (groupEnd < targetCount) {
-                Point previousPose = targets.get(groupEnd - 1);
-                Point candidatePose = targets.get(groupEnd);
+            // If the whole rest of the row can be swept in one pass, take it first: a
+            // heading that fits a few targets can hide the line the whole row runs along.
+            double wholeHeading = Double.NaN;
 
-                // An explicit heading on either target means they cannot be merged.
-                if (previousPose.hasHeading() || candidatePose.hasHeading()) {
-                    break;
+            if (!hasHeading(targets, groupStart, targetCount - 1)) {
+                wholeHeading = fitHeading(
+                        targets,
+                        groupStart,
+                        targetCount - 1,
+                        previousKeyPoint,
+                        previousHeading,
+                        width,
+                        reorder ? Double.MAX_VALUE : width / 2.0);
+            }
+
+            if (!Double.isNaN(wholeHeading)
+                    && !isSweepBlocked(
+                            targets, groupStart, targetCount - 1, previousKeyPoint, wholeHeading, obstacles, config)) {
+                groupEnd = targetCount;
+                groupHeading = wholeHeading;
+            } else {
+                while (groupEnd < targetCount) {
+                    Point previousPose = targets.get(groupEnd - 1);
+                    Point candidatePose = targets.get(groupEnd);
+
+                    // An explicit heading on either target means they cannot be merged.
+                    if (previousPose.hasHeading() || candidatePose.hasHeading()) {
+                        break;
+                    }
+
+                    // The line the whole candidate group would run along, recomputed as
+                    // the group grows so a cluster spread across the intake keeps a
+                    // steady line.
+                    double candidateHeading = fitHeading(
+                            targets, groupStart, groupEnd, previousKeyPoint, previousHeading, width, width / 2.0);
+
+                    if (Double.isNaN(candidateHeading)) {
+                        break;
+                    }
+
+                    // Stop before the sweep's sideways shift would put the robot into an
+                    // obstacle.
+                    if (isSweepBlocked(
+                            targets, groupStart, groupEnd, previousKeyPoint, candidateHeading, obstacles, config)) {
+                        break;
+                    }
+
+                    groupHeading = candidateHeading;
+                    groupEnd++;
                 }
 
-                double offsetX = candidatePose.getX() - firstPose.getX();
-                double offsetY = candidatePose.getY() - firstPose.getY();
-
-                // A sweep only moves forward: a target behind the previous one in the
-                // visit order needs a pass of its own.
-                double alongOffset = offsetX * directionX + offsetY * directionY;
-
-                if (alongOffset < previousAlongOffset - 1e-9) {
-                    break;
+                // A single target keeps the original direction: toward the next target
+                // when it sits on the previous key point.
+                if (groupEnd == groupStart + 1) {
+                    groupHeading = sweepDirection(previousKeyPoint, targets, groupStart, previousHeading);
                 }
-
-                // Perpendicular distance from the group's base line.
-                double lateralOffset = offsetX * -directionY + offsetY * directionX;
-
-                double candidateMin = Math.min(minLateralOffset, lateralOffset);
-                double candidateMax = Math.max(maxLateralOffset, lateralOffset);
-
-                // Stop before the row would no longer fit the intake.
-                if (candidateMax - candidateMin > width) {
-                    break;
-                }
-
-                // Stop before the sweep's sideways shift would put the robot into an
-                // obstacle.
-                if (isSweepBlocked(targets, groupStart, groupEnd, previousKeyPoint, groupHeading, obstacles, config)) {
-                    break;
-                }
-
-                minLateralOffset = candidateMin;
-                maxLateralOffset = candidateMax;
-                previousAlongOffset = alongOffset;
-                groupEnd++;
             }
 
             int[] groupIndices = new int[groupEnd - groupStart];
@@ -615,7 +658,13 @@ public final class WeaverGenerator {
                 groupIndices[k] = groupStart + k;
             }
 
-            groups.add(groupIndices);
+            // Report a merged group in the order the sweep passes it, which is the
+            // order along the sweep direction (the route sorts it that way too).
+            if (groupIndices.length > 1) {
+                groupIndices = sortedAlong(targets, groupIndices, previousKeyPoint, groupHeading);
+            }
+
+            groups.add(new TargetGroup(groupIndices, groupHeading));
 
             // The next group is measured from where the robot will be: the target
             // itself, or the end of a merged sweep as addMergedGroup places it.
@@ -637,6 +686,7 @@ public final class WeaverGenerator {
      *
      * @param targets       ordered targets being visited
      * @param groupIndices  indices of the targets in this group
+     * @param heading       direction the group is swept along, in radians
      * @param previousPoint key point the group starts from
      * @param keyPoints     key point list to append to
      * @param headings      heading list to append to
@@ -645,10 +695,10 @@ public final class WeaverGenerator {
     private static Point addMergedGroup(
             List<Point> targets,
             int[] groupIndices,
+            double heading,
             Point previousPoint,
             List<Point> keyPoints,
             List<Double> headings) {
-        double heading = sweepDirection(previousPoint, targets, groupIndices[0], headings.get(headings.size() - 1));
         List<Point> sweep = sweepKeyPoints(targets, groupIndices, previousPoint, heading);
 
         for (Point point : sweep) {
@@ -706,7 +756,7 @@ public final class WeaverGenerator {
      * @param targets       ordered targets being visited
      * @param groupIndices  indices of the targets in this group
      * @param previousPoint key point the group starts from
-     * @param sweepHeading  direction the sweep runs in, in radians (see {@link #sweepDirection})
+     * @param sweepHeading  direction the sweep runs in, in radians (see {@link #fitHeading})
      * @return the sweep key points, in visit order
      */
     private static List<Point> sweepKeyPoints(
@@ -754,8 +804,142 @@ public final class WeaverGenerator {
     }
 
     /**
-     * Returns the direction a sweep runs in: from the previous key point toward the
-     * sweep's first target, or, when that target is on top of the previous key point,
+     * Chooses the direction a candidate group runs in, or {@code NaN} when it cannot
+     * be collected in a single pass.
+     * <p>
+     * The line must not point back away from the group, and must keep every target
+     * within the intake width in a monotonic visit order. Aiming at the group's first
+     * target (keeping a row ahead dead straight) or at its centre (keeping a spread
+     * cluster on one line) handles most cases. For a row the robot reaches from the
+     * side, the direction along the pair is tried, and the bounds perpendicular to a
+     * pair keep a cluster spread across the intake running along one straight line
+     * instead of being split into several passes. If none keeps the strict visit order,
+     * a target may sit up to half an intake behind the one before it, which lets a
+     * tight cluster that fits the intake sweep as one pass.
+     *
+     * @param targets         ordered targets being visited
+     * @param firstIndex      index of the group's first target
+     * @param lastIndex       index of the group's last target
+     * @param previousPoint   key point the group starts from
+     * @param fallbackHeading heading to use when every target coincides with
+     *                        {@code previousPoint}, in radians
+     * @param width           intake width
+     * @param relaxedTolerance how far a target may sit behind the one before it when no
+     *                        direction keeps the strict visit order
+     * @return the sweep direction in radians, or {@code NaN} if the group does not fit
+     */
+    private static double fitHeading(
+            List<Point> targets,
+            int firstIndex,
+            int lastIndex,
+            Point previousPoint,
+            double fallbackHeading,
+            double width,
+            double relaxedTolerance) {
+        double sumX = 0;
+        double sumY = 0;
+
+        for (int i = firstIndex; i <= lastIndex; i++) {
+            sumX += targets.get(i).getX();
+            sumY += targets.get(i).getY();
+        }
+
+        int count = lastIndex - firstIndex + 1;
+        double towardCenterX = sumX / count - previousPoint.getX();
+        double towardCenterY = sumY / count - previousPoint.getY();
+
+        List<Double> candidates = new ArrayList<>();
+        candidates.add(firstTargetHeading(previousPoint, targets, firstIndex, lastIndex, fallbackHeading));
+
+        if (Math.hypot(towardCenterX, towardCenterY) > 1e-9) {
+            candidates.add(Math.atan2(towardCenterY, towardCenterX));
+        } else {
+            candidates.add(fallbackHeading);
+        }
+
+        // A pair whose visit order would reverse along the aim direction defines a
+        // bound perpendicular to that pair; a direction on either side keeps the order.
+        // The pair's own direction is tried too: a row of targets runs straight along
+        // it, so an approach the row does not point at still sweeps it in one pass.
+        for (int i = firstIndex; i < lastIndex; i++) {
+            Point from = targets.get(i);
+            Point to = targets.get(i + 1);
+            double pairBearing = Math.atan2(to.getY() - from.getY(), to.getX() - from.getX());
+            candidates.add(pairBearing);
+            candidates.add(pairBearing + Math.PI / 2.0);
+            candidates.add(pairBearing - Math.PI / 2.0);
+        }
+
+        for (double candidate : candidates) {
+            if (pointsForward(towardCenterX, towardCenterY, candidate)
+                    && fitsSweep(targets, firstIndex, lastIndex, previousPoint, candidate, width, 1e-9)) {
+                return candidate;
+            }
+        }
+
+        // No direction keeps the strict visit order. A tight cluster whose whole spread
+        // fits the intake is still one pass: let a target sit up to the allowed distance
+        // behind the one before it, so near-coincident targets do not force a hook. When
+        // the caller chose the order, the whole row may be swept together and passed in
+        // whatever order the sweep runs in.
+        for (double candidate : candidates) {
+            if (pointsForward(towardCenterX, towardCenterY, candidate)
+                    && fitsSweep(targets, firstIndex, lastIndex, previousPoint, candidate, width, relaxedTolerance)) {
+                return candidate;
+            }
+        }
+
+        return Double.NaN;
+    }
+
+    /**
+     * Whether {@code heading} points from the previous key point into the group, that
+     * is, not back away from the group's centre. A direction square to the centre line
+     * counts, since a sweep may run along a row the robot reaches from the side. A
+     * group whose centre sits on the previous key point gives no direction to test, so
+     * it is treated as forward.
+     *
+     * @param towardCenterX x component from the previous key point to the group centre
+     * @param towardCenterY y component from the previous key point to the group centre
+     * @param heading       direction to test, in radians
+     * @return {@code true} if the direction does not lead back away from the group
+     */
+    private static boolean pointsForward(double towardCenterX, double towardCenterY, double heading) {
+        if (Math.hypot(towardCenterX, towardCenterY) < 1e-9) {
+            return true;
+        }
+
+        return towardCenterX * Math.cos(heading) + towardCenterY * Math.sin(heading) > -1e-9;
+    }
+
+    /**
+     * Returns the direction from the previous key point to the first target of a range
+     * that is not on top of it.
+     *
+     * @param previousPoint   key point the group starts from
+     * @param targets         ordered targets being visited
+     * @param firstIndex      index of the group's first target
+     * @param lastIndex       index of the group's last target
+     * @param fallbackHeading heading to use when every target coincides with
+     *                        {@code previousPoint}, in radians
+     * @return the direction in radians
+     */
+    private static double firstTargetHeading(
+            Point previousPoint, List<Point> targets, int firstIndex, int lastIndex, double fallbackHeading) {
+        for (int i = firstIndex; i <= lastIndex; i++) {
+            Point target = targets.get(i);
+
+            if (Math.hypot(target.getX() - previousPoint.getX(), target.getY() - previousPoint.getY()) > 1e-9) {
+                return bearing(previousPoint, target);
+            }
+        }
+
+        return fallbackHeading;
+    }
+
+    /**
+     * Returns the direction a sweep of a single target runs in: from the previous key
+     * point toward the target, or, when the target is on top of the previous key point,
      * toward the next target that is not.
      *
      * @param previousPoint   key point the sweep starts from
@@ -776,6 +960,62 @@ public final class WeaverGenerator {
         }
 
         return fallbackHeading;
+    }
+
+    /**
+     * Checks whether a candidate group can be collected in one pass: every target
+     * within the intake width of the line through {@code previousPoint} along
+     * {@code heading}, and none lying further back along that line than the target
+     * before it by more than {@code alongTolerance}, so the merge keeps the visit
+     * order.
+     *
+     * @param targets         ordered targets being visited
+     * @param firstIndex      index of the group's first target
+     * @param lastIndex       index of the group's last target
+     * @param previousPoint   key point the group starts from
+     * @param heading         direction the group runs in, in radians
+     * @param width           intake width
+     * @param alongTolerance  how far a target may sit behind the one before it and
+     *                        still be swept along, in the same units as the targets
+     * @return {@code true} if the whole group fits the intake in visit order
+     */
+    private static boolean fitsSweep(
+            List<Point> targets,
+            int firstIndex,
+            int lastIndex,
+            Point previousPoint,
+            double heading,
+            double width,
+            double alongTolerance) {
+        double directionX = Math.cos(heading);
+        double directionY = Math.sin(heading);
+
+        double minLateralOffset = Double.MAX_VALUE;
+        double maxLateralOffset = -Double.MAX_VALUE;
+        double previousAlongOffset = -Double.MAX_VALUE;
+
+        for (int i = firstIndex; i <= lastIndex; i++) {
+            Point target = targets.get(i);
+
+            double offsetX = target.getX() - previousPoint.getX();
+            double offsetY = target.getY() - previousPoint.getY();
+
+            double alongOffset = offsetX * directionX + offsetY * directionY;
+
+            // A sweep only moves forward: a target behind the one before it in the
+            // visit order needs a pass of its own.
+            if (alongOffset < previousAlongOffset - alongTolerance) {
+                return false;
+            }
+
+            previousAlongOffset = alongOffset;
+
+            double lateralOffset = offsetX * -directionY + offsetY * directionX;
+            minLateralOffset = Math.min(minLateralOffset, lateralOffset);
+            maxLateralOffset = Math.max(maxLateralOffset, lateralOffset);
+        }
+
+        return maxLateralOffset - minLateralOffset <= width + 1e-9;
     }
 
     /**
@@ -809,6 +1049,239 @@ public final class WeaverGenerator {
      */
     private static Point lastOf(List<Point> points) {
         return points.get(points.size() - 1);
+    }
+
+    /**
+     * Whether any target in a range carries an explicit heading. A headed target cannot
+     * be merged with its neighbours into one sweep.
+     *
+     * @param targets    ordered targets
+     * @param firstIndex index of the first target to check
+     * @param lastIndex  index of the last target to check
+     * @return {@code true} if any target in the range has a heading
+     */
+    private static boolean hasHeading(List<Point> targets, int firstIndex, int lastIndex) {
+        for (int i = firstIndex; i <= lastIndex; i++) {
+            if (targets.get(i).hasHeading()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Orders targets so the intake can sweep them: targets within the intake width of
+     * each other are kept together as one cluster, clusters are visited nearest-first,
+     * and within a cluster the targets are listed along the line the pass runs in.
+     *
+     * @param start   point the robot starts from
+     * @param targets targets to order
+     * @param config  geometry parameters supplying the intake width
+     * @return the targets in sweep-friendly visit order
+     */
+    private static List<Point> orderForIntake(Point start, List<Point> targets, PathConfig config) {
+        double width = config.getIntakeWidth();
+        int count = targets.size();
+        int[] roots = new int[count];
+
+        for (int i = 0; i < count; i++) {
+            roots[i] = i;
+        }
+
+        for (int i = 0; i < count; i++) {
+            for (int j = i + 1; j < count; j++) {
+                if (targets.get(i).distanceTo(targets.get(j)) <= width) {
+                    unionRoots(roots, i, j);
+                }
+            }
+        }
+
+        Map<Integer, List<Integer>> clusters = new LinkedHashMap<>();
+
+        for (int i = 0; i < count; i++) {
+            clusters.computeIfAbsent(findRoot(roots, i), key -> new ArrayList<>())
+                    .add(i);
+        }
+
+        List<List<Integer>> remaining = new ArrayList<>(clusters.values());
+        List<Point> ordered = new ArrayList<>();
+        Point cursor = start;
+
+        while (!remaining.isEmpty()) {
+            int nearest = 0;
+            double nearestDistance = Double.MAX_VALUE;
+
+            for (int c = 0; c < remaining.size(); c++) {
+                double distance = cursor.distanceTo(clusterCentroid(targets, remaining.get(c)));
+
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearest = c;
+                }
+            }
+
+            appendCluster(targets, remaining.remove(nearest), cursor, ordered);
+            cursor = lastOf(ordered);
+        }
+
+        return ordered;
+    }
+
+    /**
+     * Appends one cluster to the order, along its widest direction and starting from the
+     * end nearer {@code cursor}.
+     *
+     * @param targets targets being ordered
+     * @param cluster indices of the cluster's targets
+     * @param cursor  point the robot reaches the cluster from
+     * @param ordered order list to append to
+     */
+    private static void appendCluster(List<Point> targets, List<Integer> cluster, Point cursor, List<Point> ordered) {
+        if (cluster.size() == 1) {
+            ordered.add(targets.get(cluster.get(0)));
+            return;
+        }
+
+        double heading = widestDirection(targets, cluster);
+        double directionX = Math.cos(heading);
+        double directionY = Math.sin(heading);
+
+        List<Integer> sorted = new ArrayList<>(cluster);
+        sorted.sort(Comparator.comparingDouble(index -> {
+            Point target = targets.get(index);
+            return target.getX() * directionX + target.getY() * directionY;
+        }));
+
+        Point first = targets.get(sorted.get(0));
+        Point last = targets.get(sorted.get(sorted.size() - 1));
+
+        if (cursor.distanceTo(first) > cursor.distanceTo(last)) {
+            Collections.reverse(sorted);
+        }
+
+        for (int index : sorted) {
+            ordered.add(targets.get(index));
+        }
+    }
+
+    /**
+     * Returns the direction in which a cluster is widest, so a pass along it leaves the
+     * smallest spread across the intake.
+     *
+     * @param targets targets being ordered
+     * @param cluster indices of the cluster's targets
+     * @return the direction in radians
+     */
+    private static double widestDirection(List<Point> targets, List<Integer> cluster) {
+        double bestHeading = 0.0;
+        double smallestSpread = Double.MAX_VALUE;
+
+        for (int step = 0; step < 180; step++) {
+            double heading = Math.toRadians(step);
+            double directionX = Math.cos(heading);
+            double directionY = Math.sin(heading);
+            double minLateral = Double.MAX_VALUE;
+            double maxLateral = -Double.MAX_VALUE;
+
+            for (int index : cluster) {
+                Point target = targets.get(index);
+                double lateral = target.getX() * -directionY + target.getY() * directionX;
+                minLateral = Math.min(minLateral, lateral);
+                maxLateral = Math.max(maxLateral, lateral);
+            }
+
+            if (maxLateral - minLateral < smallestSpread) {
+                smallestSpread = maxLateral - minLateral;
+                bestHeading = heading;
+            }
+        }
+
+        return bestHeading;
+    }
+
+    /**
+     * Returns the average position of the targets at the given indices.
+     *
+     * @param targets targets being ordered
+     * @param indices indices of the targets to average
+     * @return the average position
+     */
+    private static Point clusterCentroid(List<Point> targets, List<Integer> indices) {
+        double sumX = 0;
+        double sumY = 0;
+
+        for (int index : indices) {
+            sumX += targets.get(index).getX();
+            sumY += targets.get(index).getY();
+        }
+
+        return new Point(sumX / indices.size(), sumY / indices.size());
+    }
+
+    /**
+     * Finds the representative of a target's cluster.
+     *
+     * @param roots cluster parents
+     * @param index target index
+     * @return the cluster's representative index
+     */
+    private static int findRoot(int[] roots, int index) {
+        while (roots[index] != index) {
+            roots[index] = roots[roots[index]];
+            index = roots[index];
+        }
+
+        return index;
+    }
+
+    /**
+     * Joins the clusters of two targets.
+     *
+     * @param roots cluster parents
+     * @param a     one target index
+     * @param b     another target index
+     */
+    private static void unionRoots(int[] roots, int a, int b) {
+        int rootA = findRoot(roots, a);
+        int rootB = findRoot(roots, b);
+
+        if (rootA != rootB) {
+            roots[rootA] = rootB;
+        }
+    }
+
+    /**
+     * Returns the given target indices ordered by how far along {@code heading} each
+     * target lies from {@code previousPoint}, the order a sweep passes them in.
+     *
+     * @param targets       ordered targets
+     * @param indices       indices of the targets to order
+     * @param previousPoint key point the sweep starts from
+     * @param heading       direction the sweep runs in, in radians
+     * @return the indices in sweep order
+     */
+    private static int[] sortedAlong(List<Point> targets, int[] indices, Point previousPoint, double heading) {
+        double directionX = Math.cos(heading);
+        double directionY = Math.sin(heading);
+        Integer[] order = new Integer[indices.length];
+        double[] along = new double[indices.length];
+
+        for (int k = 0; k < indices.length; k++) {
+            Point target = targets.get(indices[k]);
+            along[k] = (target.getX() - previousPoint.getX()) * directionX
+                    + (target.getY() - previousPoint.getY()) * directionY;
+            order[k] = k;
+        }
+
+        Arrays.sort(order, Comparator.comparingDouble(a -> along[a]));
+        int[] sorted = new int[indices.length];
+
+        for (int k = 0; k < indices.length; k++) {
+            sorted[k] = indices[order[k]];
+        }
+
+        return sorted;
     }
 
     /**
