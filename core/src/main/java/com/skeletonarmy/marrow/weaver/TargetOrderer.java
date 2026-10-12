@@ -68,7 +68,8 @@ public class TargetOrderer {
 
     /**
      * Cost of moving from a pose at {@code fromHeading} to {@code target}: travel
-     * distance plus the weighted absolute heading change.
+     * distance plus the weighted absolute heading change. A {@code fromHeading} of
+     * {@link Double#NaN} (a start with no heading) charges no turn.
      *
      * @param fromPos          point the robot travels from
      * @param fromHeading      robot heading before the move, in radians
@@ -79,7 +80,7 @@ public class TargetOrderer {
     private static double stepCost(Point fromPos, double fromHeading, Point target, double turnCostWeight) {
         double arrivalBearing = arrivalHeading(fromPos, target);
         double travelDistance = fromPos.distanceTo(new Point(target.getX(), target.getY()));
-        double turn = Math.abs(normalizeAngle(arrivalBearing - fromHeading));
+        double turn = Double.isNaN(fromHeading) ? 0.0 : Math.abs(normalizeAngle(arrivalBearing - fromHeading));
 
         return travelDistance + turnCostWeight * turn;
     }
@@ -147,32 +148,19 @@ public class TargetOrderer {
         while (!remaining.isEmpty()) {
             Point bestPose = null;
             double bestCost = Double.MAX_VALUE;
-            double bestHeading = 0;
 
             // Pick the remaining target that adds the least cost from here.
             for (Point pose : remaining) {
-                double travelBearing;
-
-                if (!pose.hasHeading()) {
-                    travelBearing = Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
-                } else {
-                    travelBearing = pose.getHeadingRad();
-                }
-
-                Point targetPos = new Point(pose.getX(), pose.getY());
-                double travelDistance = currentPos.distanceTo(targetPos);
-                double turn = Math.abs(normalizeAngle(travelBearing - currentHeading));
-                double cost = travelDistance + turnCostWeight * turn;
+                double cost = stepCost(currentPos, currentHeading, pose, turnCostWeight);
 
                 if (cost < bestCost) {
                     bestCost = cost;
                     bestPose = pose;
-                    bestHeading = travelBearing;
                 }
             }
 
+            currentHeading = arrivalHeading(currentPos, bestPose);
             currentPos = new Point(bestPose.getX(), bestPose.getY());
-            currentHeading = bestHeading;
             result.add(bestPose);
             remaining.remove(bestPose);
         }
