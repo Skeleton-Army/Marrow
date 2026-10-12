@@ -334,7 +334,7 @@ public final class WeaverGenerator {
 
         // The robot can only sweep multiple targets at once if the intake has width.
         double intakeHalfWidth = config.getIntakeWidth() / 2.0;
-        List<int[]> targetGroups = groupTargets(startPoint, orderedTargets, config.getIntakeWidth());
+        List<int[]> targetGroups = groupTargets(startPoint, headings.get(0), orderedTargets, config.getIntakeWidth());
 
         Point previousRawTarget = startPoint;
 
@@ -491,12 +491,14 @@ public final class WeaverGenerator {
      * no further back along that line than the target before them. A target with an
      * explicit heading always ends the group.
      *
-     * @param startPoint point the first group starts from
-     * @param targets    ordered targets
-     * @param width      usable intake width; non-positive disables grouping
+     * @param startPoint      point the first group starts from
+     * @param startHeadingRad robot heading at {@code startPoint}, in radians
+     * @param targets         ordered targets
+     * @param width           usable intake width; non-positive disables grouping
      * @return each group as an array of indices into {@code targets}
      */
-    private static List<int[]> groupTargets(Point startPoint, List<Point> targets, double width) {
+    private static List<int[]> groupTargets(
+            Point startPoint, double startHeadingRad, List<Point> targets, double width) {
         List<int[]> groups = new ArrayList<>();
         int targetCount = targets.size();
 
@@ -510,18 +512,16 @@ public final class WeaverGenerator {
         }
 
         Point previousKeyPoint = startPoint;
+        double previousHeading = startHeadingRad;
         int groupStart = 0;
 
         while (groupStart < targetCount) {
             Point firstPose = targets.get(groupStart);
 
-            // Direction from the previous key point to the first target of this group.
-            double deltaX = firstPose.getX() - previousKeyPoint.getX();
-            double deltaY = firstPose.getY() - previousKeyPoint.getY();
-            double distance = Math.hypot(deltaX, deltaY);
-
-            double directionX = distance > 1e-9 ? deltaX / distance : 1.0;
-            double directionY = distance > 1e-9 ? deltaY / distance : 0.0;
+            // The line the group runs along, the same one addMergedGroup lays it out on.
+            double groupHeading = sweepDirection(previousKeyPoint, targets, groupStart, previousHeading);
+            double directionX = Math.cos(groupHeading);
+            double directionY = Math.sin(groupHeading);
 
             double minLateralOffset = 0;
             double maxLateralOffset = 0;
@@ -573,7 +573,13 @@ public final class WeaverGenerator {
             }
 
             groups.add(groupIndices);
-            previousKeyPoint = groupRepresentative(targets, groupIndices);
+
+            // The next group is measured from where the robot will be: the target
+            // itself, or the end of a merged sweep as addMergedGroup places it.
+            previousKeyPoint = groupIndices.length > 1
+                    ? lastOf(sweepKeyPoints(targets, groupIndices, previousKeyPoint, groupHeading))
+                    : new Point(firstPose.getX(), firstPose.getY());
+            previousHeading = groupHeading;
             groupStart = groupEnd;
         }
 
@@ -599,20 +605,36 @@ public final class WeaverGenerator {
             Point previousPoint,
             List<Point> keyPoints,
             List<Double> headings) {
-        Point firstPose = targets.get(groupIndices[0]);
+        double heading = sweepDirection(previousPoint, targets, groupIndices[0], headings.get(headings.size() - 1));
+        List<Point> sweep = sweepKeyPoints(targets, groupIndices, previousPoint, heading);
 
-        double deltaX = firstPose.getX() - previousPoint.getX();
-        double deltaY = firstPose.getY() - previousPoint.getY();
-        double distance = Math.hypot(deltaX, deltaY);
+        for (Point point : sweep) {
+            keyPoints.add(point);
+            headings.add(heading);
+        }
 
-        double directionX = distance > 1e-9 ? deltaX / distance : 1.0;
-        double directionY = distance > 1e-9 ? deltaY / distance : 0.0;
+        return lastOf(sweep);
+    }
+
+    /**
+     * Places the key points of a merged sweep: the group's targets projected onto a
+     * line through the previous key point, centered laterally within the group, in
+     * the order they appear along the travel direction.
+     *
+     * @param targets       ordered targets being visited
+     * @param groupIndices  indices of the targets in this group
+     * @param previousPoint key point the group starts from
+     * @param sweepHeading  direction the sweep runs in, in radians (see {@link #sweepDirection})
+     * @return the sweep key points, in visit order
+     */
+    private static List<Point> sweepKeyPoints(
+            List<Point> targets, int[] groupIndices, Point previousPoint, double sweepHeading) {
+        double directionX = Math.cos(sweepHeading);
+        double directionY = Math.sin(sweepHeading);
 
         // Perpendicular to the travel direction.
         double perpendicularX = -directionY;
         double perpendicularY = directionX;
-
-        double heading = distance > 1e-9 ? Math.atan2(deltaY, deltaX) : headings.get(headings.size() - 1);
 
         double[] longitudinalOffsets = new double[groupIndices.length];
         Integer[] visitOrder = new Integer[groupIndices.length];
@@ -638,18 +660,50 @@ public final class WeaverGenerator {
         Arrays.sort(visitOrder, Comparator.comparingDouble(a -> longitudinalOffsets[a]));
 
         double centerLateralOffset = (minLateralOffset + maxLateralOffset) / 2.0;
-        Point lastPoint = previousPoint;
+        List<Point> sweep = new ArrayList<>();
 
         for (int k : visitOrder) {
-            lastPoint = new Point(
+            sweep.add(new Point(
                     previousPoint.getX() + longitudinalOffsets[k] * directionX + centerLateralOffset * perpendicularX,
-                    previousPoint.getY() + longitudinalOffsets[k] * directionY + centerLateralOffset * perpendicularY);
-
-            keyPoints.add(lastPoint);
-            headings.add(heading);
+                    previousPoint.getY() + longitudinalOffsets[k] * directionY + centerLateralOffset * perpendicularY));
         }
 
-        return lastPoint;
+        return sweep;
+    }
+
+    /**
+     * Returns the direction a sweep runs in: from the previous key point toward the
+     * sweep's first target, or, when that target is on top of the previous key point,
+     * toward the next target that is not.
+     *
+     * @param previousPoint   key point the sweep starts from
+     * @param targets         ordered targets being visited
+     * @param firstIndex      index of the sweep's first target
+     * @param fallbackHeading heading to use when every remaining target is on top of
+     *                        {@code previousPoint}, in radians
+     * @return the sweep direction in radians
+     */
+    private static double sweepDirection(
+            Point previousPoint, List<Point> targets, int firstIndex, double fallbackHeading) {
+        for (int i = firstIndex; i < targets.size(); i++) {
+            Point target = targets.get(i);
+
+            if (Math.hypot(target.getX() - previousPoint.getX(), target.getY() - previousPoint.getY()) > 1e-9) {
+                return bearing(previousPoint, target);
+            }
+        }
+
+        return fallbackHeading;
+    }
+
+    /**
+     * Returns the last element of a non-empty list.
+     *
+     * @param points the list
+     * @return its last element
+     */
+    private static Point lastOf(List<Point> points) {
+        return points.get(points.size() - 1);
     }
 
     /**
