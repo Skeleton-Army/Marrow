@@ -237,6 +237,199 @@ public class WeaverTest {
     }
 
     @Test
+    public void generate_wideIntake_lateralPairAhead_keepsPathStraight() {
+        // Arrange: two targets side by side within the intake, off the start line. They
+        // should be swept in one straight pass rather than split into a hook.
+        Weaver.setConfig(new PathConfig().intakeWidth(18));
+        List<Point> targets = Arrays.asList(new Point(START_X + 40, START_Y - 8), new Point(START_X + 40, START_Y + 8));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered();
+
+        // Act
+        PathRoute actual = builder.generate().getPath();
+
+        // Assert
+        assertEquals(START_X + 40, actual.get(1.0).getX(), 1e-3);
+        assertEquals(START_Y, actual.get(0.25).getY(), 1e-3);
+        assertEquals(START_Y, actual.get(0.5).getY(), 1e-3);
+        assertEquals(START_Y, actual.get(1.0).getY(), 1e-3);
+    }
+
+    @Test
+    public void generate_wideIntake_sameSideCluster_keepsPathStraight() {
+        // Arrange: two targets on the same side of the start line, within the intake.
+        // They should sweep together without the path overshooting past them.
+        Weaver.setConfig(new PathConfig().intakeWidth(18));
+        List<Point> targets =
+                Arrays.asList(new Point(START_X + 40, START_Y - 15), new Point(START_X + 40, START_Y - 5));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered();
+
+        // Act
+        PathRoute actual = builder.generate().getPath();
+
+        // Assert: the pass ends between the two targets, and never runs past them.
+        assertEquals(START_X + 40, actual.get(1.0).getX(), 1e-3);
+        assertEquals(START_Y - 10, actual.get(1.0).getY(), 1e-3);
+
+        for (Point sample : actual.sample(200)) {
+            assertTrue(sample.toString(), sample.getX() <= START_X + 40 + 1e-3);
+        }
+    }
+
+    @Test
+    public void generate_wideIntake_manyClusteredTargets_keepsPathStraight() {
+        // Arrange: a loose cluster of targets, all within the intake, in jumbled order.
+        // They should still be swept in one pass rather than split into hooks.
+        Weaver.setConfig(new PathConfig().intakeWidth(18));
+        List<Point> targets = Arrays.asList(
+                new Point(START_X + 40, START_Y - 4),
+                new Point(START_X + 42, START_Y + 2),
+                new Point(START_X + 38, START_Y - 2),
+                new Point(START_X + 41, START_Y + 4),
+                new Point(START_X + 39, START_Y + 1),
+                new Point(START_X + 43, START_Y - 1),
+                new Point(START_X + 37, START_Y + 3),
+                new Point(START_X + 40, START_Y - 3),
+                new Point(START_X + 42, START_Y - 4),
+                new Point(START_X + 44, START_Y));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered();
+
+        // Act
+        PathRoute actual = builder.generate().getPath();
+
+        // Assert: one pass that reaches the far side and never runs back toward the start.
+        assertEquals(START_X + 44, actual.get(1.0).getX(), 0.5);
+
+        double previousX = -Double.MAX_VALUE;
+
+        for (Point sample : actual.sample(300)) {
+            assertTrue(sample.toString(), sample.getX() <= START_X + 44.5);
+            assertTrue(sample.toString(), sample.getX() >= previousX - 1e-3);
+            previousX = sample.getX();
+        }
+    }
+
+    @Test
+    public void generate_wideIntake_columnLongerThanIntake_sweepsInOneStraightPass() {
+        // Arrange: a column longer than the intake, reached from the side. The robot
+        // should run up the column in one pass, not sweep across it in slices.
+        Weaver.setConfig(new PathConfig().intakeWidth(18));
+        List<Point> targets = Arrays.asList(
+                new Point(START_X + 40, START_Y - 12),
+                new Point(START_X + 40, START_Y - 9),
+                new Point(START_X + 40, START_Y - 6),
+                new Point(START_X + 40, START_Y - 3),
+                new Point(START_X + 40, START_Y),
+                new Point(START_X + 40, START_Y + 3),
+                new Point(START_X + 40, START_Y + 6),
+                new Point(START_X + 40, START_Y + 9),
+                new Point(START_X + 40, START_Y + 12));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(START_X, START_Y, 0))
+                .targets(targets)
+                .ordered();
+
+        // Act
+        PathRoute actual = builder.generate().getPath();
+
+        // Assert: the pass ends up the column, at the far target.
+        assertEquals(START_X + 40, actual.get(1.0).getX(), 1e-3);
+        assertEquals(START_Y + 12, actual.get(1.0).getY(), 1e-3);
+    }
+
+    @Test
+    public void generate_wideIntake_manyJitteredTargetsWithReordering_keepsPathStraight() {
+        // Arrange: more than the brute-force order limit, along a line with jitter,
+        // within the intake, with reordering on (the default). Turn-cost ordering would
+        // otherwise visit them out and back; the whole row should sweep in one pass.
+        Weaver.setConfig(new PathConfig().intakeWidth(18));
+        List<Point> targets = Arrays.asList(
+                new Point(START_X + 40, START_Y),
+                new Point(START_X + 45, START_Y + 1),
+                new Point(START_X + 50, START_Y - 1),
+                new Point(START_X + 55, START_Y + 2),
+                new Point(START_X + 60, START_Y - 2),
+                new Point(START_X + 65, START_Y + 1),
+                new Point(START_X + 70, START_Y - 1),
+                new Point(START_X + 75, START_Y),
+                new Point(START_X + 80, START_Y + 2),
+                new Point(START_X + 85, START_Y - 1));
+        WeaverBuilder builder =
+                Weaver.builder().start(new Point(START_X, START_Y, 0)).targets(targets);
+
+        // Act
+        PathRoute actual = builder.generate().getPath();
+
+        // Assert: the pass runs out to the far target and never doubles back.
+        assertTrue(actual.get(1.0).getX() > START_X + 83);
+
+        double previousX = -Double.MAX_VALUE;
+
+        for (Point sample : actual.sample(300)) {
+            assertTrue(sample.toString(), sample.getX() >= previousX - 1e-3);
+            previousX = sample.getX();
+        }
+    }
+
+    @Test
+    public void generate_wideIntake_clumpPlusFarTargets_sweepsTheClumpTogether() {
+        // Arrange: a dense clump with two distant targets. Point-to-point ordering would
+        // thread a far target through the clump; the clump should stay one sweep.
+        Weaver.setConfig(new PathConfig().intakeWidth(22));
+        List<Point> targets = Arrays.asList(
+                new Point(72, 96),
+                new Point(120, 48),
+                new Point(46.49, 56.29),
+                new Point(50.56, 61.65),
+                new Point(49.63, 66.82),
+                new Point(53.7, 76.25),
+                new Point(49.45, 71.63),
+                new Point(39.28, 66.27),
+                new Point(54.99, 69.23),
+                new Point(45.2, 63.68),
+                new Point(45.94, 73.11),
+                new Point(54.99, 74.77),
+                new Point(48.15, 69.23),
+                new Point(51.3, 68.67),
+                new Point(51.48, 69.41),
+                new Point(51.3, 72.92),
+                new Point(47.41, 69.78),
+                new Point(43.72, 62.94),
+                new Point(46.12, 62.2),
+                new Point(53.33, 64.42),
+                new Point(54.44, 71.08),
+                new Point(56.1, 76.07),
+                new Point(54.25, 78.47));
+        WeaverBuilder builder =
+                Weaver.builder().start(new Point(START_X - 48, START_Y - 48, 0)).targets(targets);
+
+        // Act
+        List<Point> visited = builder.generate().getVisitedTargets();
+
+        // Assert: no clump target is visited after a distant one.
+        int lastClump = -1;
+        int firstFar = visited.size();
+
+        for (int i = 0; i < visited.size(); i++) {
+            if (visited.get(i).getX() > 70) {
+                firstFar = Math.min(firstFar, i);
+            } else {
+                lastClump = Math.max(lastClump, i);
+            }
+        }
+
+        assertTrue("clump split around a far target", lastClump < firstFar);
+    }
+
+    @Test
     public void generate_wideIntake_separateTargets_solvesCapturePoints() {
         // Arrange
         Weaver.setConfig(new PathConfig().intakeWidth(18));

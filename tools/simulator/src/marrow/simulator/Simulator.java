@@ -11,8 +11,12 @@ import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
 
+import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.BasicStroke;
@@ -22,6 +26,8 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -29,6 +35,7 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class Simulator extends JPanel {
 
@@ -87,12 +94,20 @@ public class Simulator extends JPanel {
     private long lastTime = System.nanoTime();
     private String statusMessage = "";
 
+    private JButton generateButton;
+
     private double scale = 1.0;
     private double ox, oy;
 
     public Simulator() {
         setPreferredSize(new Dimension(820, 820));
         setFocusable(true);
+        setLayout(null);
+
+        generateButton = new JButton("Generate code");
+        generateButton.setFocusable(false);
+        generateButton.addActionListener(e -> generateCode());
+        add(generateButton);
 
         targets.add(new Point(72, 96));
         targets.add(new Point(120, 48));
@@ -511,6 +526,15 @@ public class Simulator extends JPanel {
     private double fy(double py) { return FIELD - (py - oy) / scale; }
 
     @Override
+    public void doLayout() {
+        if (generateButton != null) {
+            Dimension d = generateButton.getPreferredSize();
+            int margin = 10;
+            generateButton.setBounds(getWidth() - d.width - margin, margin, d.width, d.height);
+        }
+    }
+
+    @Override
     protected void paintComponent(Graphics g0) {
         super.paintComponent(g0);
         Graphics2D g = (Graphics2D) g0;
@@ -730,6 +754,131 @@ public class Simulator extends JPanel {
             g.drawString(lines[i], 6 + pad, 6 + pad + lineH * i + g.getFontMetrics().getAscent());
         }
         g.setFont(old);
+    }
+
+    private void generateCode() {
+        if (targets.isEmpty()) {
+            statusMessage = "Nothing to generate: add a target first";
+            repaint();
+            return;
+        }
+
+        String code = buildCode();
+        Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(code), null);
+
+        JTextArea area = new JTextArea(code);
+        area.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        area.setEditable(false);
+        area.setCaretPosition(0);
+
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setPreferredSize(new Dimension(640, 480));
+        JOptionPane.showMessageDialog(
+                this, scroll, "Weaver code (copied to clipboard)", JOptionPane.INFORMATION_MESSAGE);
+        requestFocusInWindow();
+    }
+
+    private String buildCode() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Weaver.setConfig(new PathConfig().intakeWidth(")
+                .append(fmt(width))
+                .append("));\n\n");
+
+        sb.append("PathResult result = Weaver.builder()\n");
+        sb.append("        .start(new Point(")
+                .append(fmt(start.getX()))
+                .append(", ")
+                .append(fmt(start.getY()))
+                .append(", 0))\n");
+
+        if (!targets.isEmpty()) {
+            sb.append("        .targets(\n");
+
+            for (int i = 0; i < targets.size(); i++) {
+                Point t = targets.get(i);
+                sb.append("                new Point(")
+                        .append(fmt(t.getX()))
+                        .append(", ")
+                        .append(fmt(t.getY()))
+                        .append(")")
+                        .append(i < targets.size() - 1 ? "," : "")
+                        .append("\n");
+            }
+
+            sb.append("        )\n");
+        }
+
+        if (!obstacles.isEmpty()) {
+            sb.append("        .obstacles(\n");
+
+            for (int i = 0; i < obstacles.size(); i++) {
+                sb.append("                ").append(obstacleCode(obstacles.get(i)))
+                        .append(i < obstacles.size() - 1 ? "," : "")
+                        .append("\n");
+            }
+
+            sb.append("        )\n");
+        }
+
+        if (maxTargets > 0) {
+            sb.append("        .maxTargets(").append(maxTargets).append(")\n");
+        }
+
+        if (!reorder) {
+            sb.append("        .ordered()\n");
+        }
+
+        sb.append("        .build();\n");
+        return sb.toString();
+    }
+
+    private String obstacleCode(Zone o) {
+        if (o instanceof CircleZone) {
+            CircleZone c = (CircleZone) o;
+            return "new CircleZone(new Point("
+                    + fmt(c.getPosition().getX())
+                    + ", "
+                    + fmt(c.getPosition().getY())
+                    + "), "
+                    + fmt(c.getRadius())
+                    + ")";
+        }
+
+        if (o instanceof PolygonZone) {
+            StringBuilder sb = new StringBuilder("new PolygonZone(");
+            Point[] corners = ((PolygonZone) o).getCorners();
+
+            for (int i = 0; i < corners.length; i++) {
+                if (i > 0) sb.append(", ");
+                sb.append("new Point(")
+                        .append(fmt(corners[i].getX()))
+                        .append(", ")
+                        .append(fmt(corners[i].getY()))
+                        .append(")");
+            }
+
+            return sb.append(")").toString();
+        }
+
+        return o.toString();
+    }
+
+    private static String fmt(double value) {
+        if (value == 0.0) {
+            return "0";
+        }
+
+        String s = String.format(Locale.ROOT, "%.2f", value);
+
+        while (s.contains(".") && s.endsWith("0")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
+        if (s.endsWith(".")) {
+            s = s.substring(0, s.length() - 1);
+        }
+
+        return s;
     }
 
     public static void main(String[] args) {

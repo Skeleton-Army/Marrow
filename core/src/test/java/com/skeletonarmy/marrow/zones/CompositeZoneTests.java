@@ -257,4 +257,32 @@ public class CompositeZoneTests {
         // New square center: 20 - 5 = 15, 10 - 0 = 10. Square is centered at (15, 10)
         assertTrue(complex.contains(new Point(15, 10)));
     }
+
+    // --- Tests for distanceToBoundary(Point) ---
+
+    @Test
+    public void distanceToBoundary_pointInsidePolygonComponent_returnsNegativeDistance() {
+        // Arrange
+        CompositeZone complex = createSeparatedComplexZone();
+        Point insideSquare = new Point(1, 0);
+
+        // Act
+        double actual = complex.distanceToBoundary(insideSquare);
+
+        // Assert
+        assertEquals(-1.0, actual, DELTA);
+    }
+
+    @Test
+    public void distanceToBoundary_pointInsideCircleComponent_returnsNegativeDistance() {
+        // Arrange
+        CompositeZone complex = createSeparatedComplexZone();
+        Point insideCircle = new Point(11, 0);
+
+        // Act
+        double actual = complex.distanceToBoundary(insideCircle);
+
+        // Assert
+        assertEquals(-1.0, actual, DELTA);
+    }
 }

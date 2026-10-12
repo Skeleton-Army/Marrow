@@ -68,7 +68,8 @@ public class TargetOrderer {
 
     /**
      * Cost of moving from a pose at {@code fromHeading} to {@code target}: travel
-     * distance plus the weighted absolute heading change.
+     * distance plus the weighted absolute heading change. A {@code fromHeading} of
+     * {@link Double#NaN} (a start with no heading) charges no turn.
      *
      * @param fromPos          point the robot travels from
      * @param fromHeading      robot heading before the move, in radians
@@ -79,7 +80,7 @@ public class TargetOrderer {
     private static double stepCost(Point fromPos, double fromHeading, Point target, double turnCostWeight) {
         double arrivalBearing = arrivalHeading(fromPos, target);
         double travelDistance = fromPos.distanceTo(new Point(target.getX(), target.getY()));
-        double turn = Math.abs(normalizeAngle(arrivalBearing - fromHeading));
+        double turn = Double.isNaN(fromHeading) ? 0.0 : Math.abs(normalizeAngle(arrivalBearing - fromHeading));
 
         return travelDistance + turnCostWeight * turn;
     }
@@ -128,7 +129,13 @@ public class TargetOrderer {
     }
 
     /**
-     * Repeatedly visits the cheapest remaining target.
+     * Repeatedly visits the nearest remaining target, then improves the order with
+     * 2-opt passes.
+     * <p>
+     * Picking the nearest target first keeps a run of nearby targets together. The
+     * turn cost alone would let the greedy skip a nearby target to avoid a small
+     * turn, stranding it far from the rest of the route. The 2-opt passes then trade
+     * distance against turning on the whole order, so the result is still cheap.
      *
      * @param startPos     robot start position
      * @param startHeading robot start heading in radians
@@ -141,43 +148,80 @@ public class TargetOrderer {
         List<Point> result = new ArrayList<>();
 
         Point currentPos = startPos;
-        double currentHeading = startHeading;
-        double turnCostWeight = config.getTurnCostWeight();
 
         while (!remaining.isEmpty()) {
-            Point bestPose = null;
-            double bestCost = Double.MAX_VALUE;
-            double bestHeading = 0;
+            Point nearest = null;
+            double nearestDistance = Double.MAX_VALUE;
 
-            // Pick the remaining target that adds the least cost from here.
             for (Point pose : remaining) {
-                double travelBearing;
+                double distance = currentPos.distanceTo(new Point(pose.getX(), pose.getY()));
 
-                if (!pose.hasHeading()) {
-                    travelBearing = Math.atan2(pose.getY() - currentPos.getY(), pose.getX() - currentPos.getX());
-                } else {
-                    travelBearing = pose.getHeadingRad();
-                }
-
-                Point targetPos = new Point(pose.getX(), pose.getY());
-                double travelDistance = currentPos.distanceTo(targetPos);
-                double turn = Math.abs(normalizeAngle(travelBearing - currentHeading));
-                double cost = travelDistance + turnCostWeight * turn;
-
-                if (cost < bestCost) {
-                    bestCost = cost;
-                    bestPose = pose;
-                    bestHeading = travelBearing;
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearest = pose;
                 }
             }
 
-            currentPos = new Point(bestPose.getX(), bestPose.getY());
-            currentHeading = bestHeading;
-            result.add(bestPose);
-            remaining.remove(bestPose);
+            currentPos = new Point(nearest.getX(), nearest.getY());
+            result.add(nearest);
+            remaining.remove(nearest);
         }
 
-        return result;
+        return twoOpt(result, startPos, startHeading, config.getTurnCostWeight());
+    }
+
+    /** Number of 2-opt sweeps run over a greedy order. */
+    private static final int TWO_OPT_PASSES = 8;
+
+    /** Largest order the 2-opt sweeps are run on, to keep ordering prompt. */
+    private static final int TWO_OPT_LIMIT = 200;
+
+    /**
+     * Reverses sub-routes while that lowers the whole route's cost, trading distance
+     * against turning over the order as a whole rather than one step at a time.
+     *
+     * @param order           order to improve
+     * @param startPos        robot start position
+     * @param startHeading    robot start heading in radians
+     * @param turnCostWeight  weight applied to heading changes
+     * @return the improved order
+     */
+    private static List<Point> twoOpt(List<Point> order, Point startPos, double startHeading, double turnCostWeight) {
+        List<Point> best = new ArrayList<>(order);
+
+        if (best.size() > TWO_OPT_LIMIT) {
+            return best;
+        }
+
+        double bestCost = pathCost(startPos, startHeading, best, turnCostWeight);
+
+        for (int pass = 0; pass < TWO_OPT_PASSES; pass++) {
+            boolean improved = false;
+
+            for (int i = 0; i < best.size() - 1; i++) {
+                for (int j = i + 1; j < best.size(); j++) {
+                    List<Point> candidate = new ArrayList<>(best);
+
+                    for (int first = i, last = j; first < last; first++, last--) {
+                        Collections.swap(candidate, first, last);
+                    }
+
+                    double cost = pathCost(startPos, startHeading, candidate, turnCostWeight);
+
+                    if (cost < bestCost - 1e-9) {
+                        best = candidate;
+                        bestCost = cost;
+                        improved = true;
+                    }
+                }
+            }
+
+            if (!improved) {
+                break;
+            }
+        }
+
+        return best;
     }
 
     /**
@@ -399,21 +443,13 @@ public class TargetOrderer {
     }
 
     /**
-     * Wraps an angle into the range {@code (-pi, pi]}.
+     * Wraps an angle into the range {@code [-pi, pi]} in constant time.
      *
      * @param angle angle in radians
-     * @return the equivalent angle in {@code (-pi, pi]}
+     * @return the equivalent angle in {@code [-pi, pi]}
      */
     private static double normalizeAngle(double angle) {
-        while (angle > Math.PI) {
-            angle -= 2 * Math.PI;
-        }
-
-        while (angle < -Math.PI) {
-            angle += 2 * Math.PI;
-        }
-
-        return angle;
+        return Math.IEEEremainder(angle, 2 * Math.PI);
     }
 
     /** Callback used by {@link #permute}. */
