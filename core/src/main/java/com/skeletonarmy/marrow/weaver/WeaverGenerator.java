@@ -316,7 +316,8 @@ public final class WeaverGenerator {
             PathRoute idlePath = finish(
                     new PathRoute(Collections.singletonList(new PathCurve(Arrays.asList(startPoint, startPoint)))),
                     obstacles,
-                    config);
+                    config,
+                    true);
 
             return new PathResult(
                     idlePath,
@@ -400,7 +401,7 @@ public final class WeaverGenerator {
         double endHeading = lastTarget.hasHeading() ? lastTarget.getHeadingRad() : headings.get(headings.size() - 1);
 
         PathCurve curve = cubicHermiteChain(keyPoints, headings);
-        PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles, config);
+        PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles, config, true);
 
         return new PathResult(
                 path, Collections.singletonList(endHeading), new ArrayList<>(orderedTargets), unvisitedTargets);
@@ -472,7 +473,8 @@ public final class WeaverGenerator {
 
         PathCurve curve = new PathCurve(seedPoints);
         PathRoute seedPath = new PathRoute(Collections.singletonList(curve));
-        PathRoute finished = finish(seedPath, obstacles, config);
+        // The seed's bearing means nothing once the route bends round an obstacle.
+        PathRoute finished = finish(seedPath, obstacles, config, false);
 
         return new PathResult(
                 finished,
@@ -484,18 +486,21 @@ public final class WeaverGenerator {
     /**
      * Applies the optional smoothing and obstacle-avoidance passes to a route.
      *
-     * @param path      route to post-process
-     * @param obstacles zones to avoid; may be {@code null}
-     * @param config    geometry and tuning parameters
+     * @param path            route to post-process
+     * @param obstacles       zones to avoid; may be {@code null}
+     * @param config          geometry and tuning parameters
+     * @param keepEndTangents {@code true} to keep each segment's start and end tangent
+     *                        while avoiding obstacles; see
+     *                        {@link ObstacleAvoider#avoid(PathRoute, List, PathConfig, boolean)}
      * @return the processed route (possibly the same instance)
      */
-    private static PathRoute finish(PathRoute path, List<Zone> obstacles, PathConfig config) {
+    private static PathRoute finish(PathRoute path, List<Zone> obstacles, PathConfig config, boolean keepEndTangents) {
         if (config.isSmoothing()) {
             path = ObstacleAvoider.smooth(path);
         }
 
         if (obstacles != null && !obstacles.isEmpty()) {
-            path = ObstacleAvoider.avoid(path, obstacles, config);
+            path = ObstacleAvoider.avoid(path, obstacles, config, keepEndTangents);
         }
 
         return path;
