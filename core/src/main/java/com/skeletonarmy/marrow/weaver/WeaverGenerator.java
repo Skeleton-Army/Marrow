@@ -297,8 +297,13 @@ public final class WeaverGenerator {
             }
         }
 
+        // Remove one entry per visit, so a target passed twice and visited once
+        // still reports its second entry as unvisited.
         List<Point> unvisitedTargets = new ArrayList<>(targets);
-        unvisitedTargets.removeAll(orderedTargets);
+
+        for (Point visited : orderedTargets) {
+            unvisitedTargets.remove(visited);
+        }
 
         // No reachable target left: produce a stationary path at the start pose.
         if (orderedTargets.isEmpty()) {
