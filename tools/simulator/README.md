@@ -54,6 +54,8 @@ rest of the project.
 
 ## Notes
 
+- The **Generate code** button (top-right) shows and copies the equivalent
+  `Weaver.builder()` code for the current setup to the clipboard.
 - The path is recomputed after every edit using `PathConfig` with the current
   intake width.
 - With reordering on (default) Weaver finds its own target order; turn it off
