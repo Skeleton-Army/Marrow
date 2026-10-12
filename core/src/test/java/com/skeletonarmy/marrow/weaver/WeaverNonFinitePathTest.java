@@ -38,4 +38,23 @@ public class WeaverNonFinitePathTest {
         // Assert
         assertFalse(actual);
     }
+
+    @Test
+    public void isPathClear_nonFiniteHeading_returnsFalse() {
+        // Arrange: a curve with finite points but an undefined tangent at every sample.
+        PathCurve curve = new PathCurve(
+                Arrays.asList(new Point(0, 0), new Point(10, 0), new Point(20, 0), new Point(30, 0))) {
+            @Override
+            public double getHeading(double t) {
+                return Double.NaN;
+            }
+        };
+        List<Zone> obstacles = Collections.<Zone>singletonList(new CircleZone(new Point(10, 0), 3));
+
+        // Act
+        boolean actual = WeaverGenerator.isPathClear(curve, obstacles, obstacleConfig());
+
+        // Assert
+        assertFalse(actual);
+    }
 }

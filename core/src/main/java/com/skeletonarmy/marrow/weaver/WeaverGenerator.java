@@ -107,7 +107,8 @@ public final class WeaverGenerator {
 
     /**
      * Samples a single curve and checks that the robot footprint keeps the required
-     * clearance from every obstacle. A curve with a non-finite sample is never clear.
+     * clearance from every obstacle. A sample with a non-finite position or heading is
+     * never clear.
      *
      * @param curve       curve to sample
      * @param obstacles   zones to avoid
@@ -141,7 +142,15 @@ public final class WeaverGenerator {
                     }
                 }
             } else {
-                Zone footprint = new PolygonZone(samplePoint, robotWidth, robotHeight, curve.getHeading(progress));
+                double heading = curve.getHeading(progress);
+
+                // A sample with no finite heading yields a footprint of NaN points, and
+                // the comparisons below would let it through as clear.
+                if (!Double.isFinite(heading)) {
+                    return false;
+                }
+
+                Zone footprint = new PolygonZone(samplePoint, robotWidth, robotHeight, heading);
 
                 for (Zone zone : obstacles) {
                     if (zone.isInside(footprint) || zone.distanceTo(footprint) < clearance) {
