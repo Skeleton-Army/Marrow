@@ -107,7 +107,7 @@ public final class WeaverGenerator {
 
     /**
      * Samples a single curve and checks that the robot footprint keeps the required
-     * clearance from every obstacle.
+     * clearance from every obstacle. A curve with a non-finite sample is never clear.
      *
      * @param curve       curve to sample
      * @param obstacles   zones to avoid
@@ -127,6 +127,12 @@ public final class WeaverGenerator {
         for (int i = 0; i < samples; i++) {
             double progress = samples == 1 ? 0 : (double) i / (samples - 1);
             Point samplePoint = curve.get(progress);
+
+            // A sample with no finite position cannot be cleared, and the distance
+            // comparisons below would let it through.
+            if (!Double.isFinite(samplePoint.getX()) || !Double.isFinite(samplePoint.getY())) {
+                return false;
+            }
 
             if (robotWidth <= 0 || robotHeight <= 0) {
                 for (Zone zone : obstacles) {
