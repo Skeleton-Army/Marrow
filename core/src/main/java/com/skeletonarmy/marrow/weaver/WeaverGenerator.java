@@ -332,10 +332,7 @@ public final class WeaverGenerator {
             double idleHeading = start.hasHeading() ? start.getHeadingRad() : 0.0;
 
             return new PathResult(
-                    idlePath,
-                    Collections.singletonList(idleHeading),
-                    Collections.<Point>emptyList(),
-                    unvisitedTargets);
+                    idlePath, Collections.singletonList(idleHeading), Collections.<Point>emptyList(), unvisitedTargets);
         }
 
         List<Point> keyPoints = new ArrayList<>();

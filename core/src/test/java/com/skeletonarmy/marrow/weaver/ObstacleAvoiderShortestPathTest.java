@@ -32,11 +32,13 @@ public class ObstacleAvoiderShortestPathTest {
     @Test
     public void generate_blockedLine_takesTheNearerDetour() {
         // Arrange
-        Zone barrier =
-                new PolygonZone(new Point(40, -2), new Point(60, -2), new Point(60, 8), new Point(40, 8));
-        Weaver.setConfig(new PathConfig().robotWidth(2).robotHeight(2).clearance(1).smoothing(false));
-        WeaverBuilder builder =
-                Weaver.builder().start(new Point(0, 0, 0)).end(new Point(100, 0)).obstacles(barrier);
+        Zone barrier = new PolygonZone(new Point(40, -2), new Point(60, -2), new Point(60, 8), new Point(40, 8));
+        Weaver.setConfig(
+                new PathConfig().robotWidth(2).robotHeight(2).clearance(1).smoothing(false));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(0, 0, 0))
+                .end(new Point(100, 0))
+                .obstacles(barrier);
 
         // Act
         PathRoute actual = builder.generate().getPath();
@@ -59,7 +61,8 @@ public class ObstacleAvoiderShortestPathTest {
     @Test
     public void generate_distantObstacle_keepsTheStraightRoute() {
         // Arrange
-        Weaver.setConfig(new PathConfig().robotWidth(16).robotHeight(16).clearance(2).smoothing(false));
+        Weaver.setConfig(
+                new PathConfig().robotWidth(16).robotHeight(16).clearance(2).smoothing(false));
         WeaverBuilder builder = Weaver.builder().start(new Point(0, 0, 0)).end(new Point(60, 0));
         List<Point> expected = builder.generate().getPath().getSegments().get(0).getControlPoints();
 
