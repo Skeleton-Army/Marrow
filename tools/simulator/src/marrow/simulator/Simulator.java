@@ -65,8 +65,17 @@ public class Simulator extends JPanel {
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private int polygonSides = 4;
     private boolean reorder = true;
+    private boolean smoothing = true;
     private int maxTargets = 0;
     private Mode mode = Mode.TARGET;
+
+    private static final double HEADING_STEP_RAD = Math.toRadians(15);
+    private static final double HEADING_FINE_STEP_RAD = Math.toRadians(5);
+    private static final double HEADING_HANDLE_PX = 34;
+
+    private double defaultTargetHeading = Double.NaN;
+    private int selectedTarget = -1;
+    private boolean draggingHeading = false;
 
     private int dragIndex = -1;
     private DragMode dragMode = DragMode.MOVE;
@@ -127,6 +136,17 @@ public class Simulator extends JPanel {
                     updateTransform();
                     Point f = new Point(fx(e.getX()), fy(e.getY()));
 
+                    if (headingHandleAt(f)) {
+                        beginHeadingDrag(f);
+                        return;
+                    }
+                    int targetIndex = targetAt(f);
+                    if (targetIndex >= 0) {
+                        selectedTarget = targetIndex;
+                        repaint();
+                        return;
+                    }
+
                     int corner = obstacleCorner(f);
                     if (corner >= 0) {
                         beginRotate(corner, f);
@@ -145,7 +165,8 @@ public class Simulator extends JPanel {
 
                     switch (mode) {
                         case TARGET:
-                            targets.add(f);
+                            targets.add(new Point(f.getX(), f.getY(), defaultTargetHeading));
+                            selectedTarget = targets.size() - 1;
                             break;
                         case OBSTACLE:
                             obstacles.add(newObstacle(f));
@@ -160,6 +181,11 @@ public class Simulator extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                if (draggingHeading) {
+                    draggingHeading = false;
+                    rebuildPath();
+                    return;
+                }
                 if (dragIndex >= 0) {
                     dragIndex = -1;
                     rebuildPath();
@@ -170,9 +196,13 @@ public class Simulator extends JPanel {
         addMouseMotionListener(new MouseAdapter() {
             @Override
             public void mouseDragged(MouseEvent e) {
-                if (dragIndex < 0) return;
                 updateTransform();
                 Point f = new Point(fx(e.getX()), fy(e.getY()));
+                if (draggingHeading) {
+                    updateHeadingDrag(f);
+                    return;
+                }
+                if (dragIndex < 0) return;
                 switch (dragMode) {
                     case RESIZE: resizeDragged(f); break;
                     case ROTATE: rotateDragged(f); break;
@@ -203,6 +233,10 @@ public class Simulator extends JPanel {
                         reorder = !reorder;
                         rebuildPath();
                         break;
+                    case KeyEvent.VK_M:
+                        smoothing = !smoothing;
+                        rebuildPath();
+                        break;
                     case KeyEvent.VK_A:
                         width = Math.max(0, width - 1);
                         rebuildPath();
@@ -214,7 +248,20 @@ public class Simulator extends JPanel {
                     case KeyEvent.VK_C:
                         targets.clear();
                         obstacles.clear();
+                        selectedTarget = -1;
                         rebuildPath();
+                        break;
+                    case KeyEvent.VK_Q:
+                        rotateHeading(-1, e.isShiftDown());
+                        break;
+                    case KeyEvent.VK_E:
+                        rotateHeading(1, e.isShiftDown());
+                        break;
+                    case KeyEvent.VK_H:
+                        toggleHeading();
+                        break;
+                    case KeyEvent.VK_ESCAPE:
+                        selectedTarget = -1;
                         break;
                     case KeyEvent.VK_EQUALS:
                     case KeyEvent.VK_ADD:
@@ -269,13 +316,13 @@ public class Simulator extends JPanel {
         }
 
         try {
-            Weaver.setConfig(new PathConfig().intakeWidth(width));
+            Weaver.setConfig(new PathConfig().intakeWidth(width).smoothing(smoothing));
 
             WeaverBuilder b = Weaver.builder()
                     .start(new Point(start.getX(), start.getY(), 0))
                     .maxTargets(maxTargets);
             for (Point t : targets) {
-                b.addTarget(new Point(t.getX(), t.getY()));
+                b.addTarget(new Point(t.getX(), t.getY(), t.getHeadingRad()));
             }
             for (Zone o : obstacles) {
                 b.addObstacle(o);
@@ -499,10 +546,82 @@ public class Simulator extends JPanel {
             }
         }
 
-        if (targetIdx >= 0) targets.remove(targetIdx);
-        else if (obstacleIdx >= 0) obstacles.remove(obstacleIdx);
-        else return;
+        if (targetIdx >= 0) {
+            targets.remove(targetIdx);
+            if (selectedTarget == targetIdx) selectedTarget = -1;
+            else if (selectedTarget > targetIdx) selectedTarget--;
+        } else if (obstacleIdx >= 0) {
+            obstacles.remove(obstacleIdx);
+        } else {
+            return;
+        }
 
+        rebuildPath();
+    }
+
+    private int targetAt(Point f) {
+        double threshold = Math.max(3.0, 9.0 / scale);
+        for (int i = targets.size() - 1; i >= 0; i--) {
+            if (targets.get(i).distanceTo(f) <= threshold) return i;
+        }
+        return -1;
+    }
+
+    private double headingHandleLength() {
+        return HEADING_HANDLE_PX / scale;
+    }
+
+    private Point headingHandle(Point target, double angle) {
+        double length = headingHandleLength();
+        return new Point(
+                target.getX() + Math.cos(angle) * length,
+                target.getY() + Math.sin(angle) * length);
+    }
+
+    private boolean headingHandleAt(Point f) {
+        if (selectedTarget < 0 || selectedTarget >= targets.size()) return false;
+        Point target = targets.get(selectedTarget);
+        double angle = target.hasHeading() ? target.getHeadingRad() : 0.0;
+        return headingHandle(target, angle).distanceTo(f) <= Math.max(3.0, 10.0 / scale);
+    }
+
+    private void beginHeadingDrag(Point f) {
+        draggingHeading = true;
+        updateHeadingDrag(f);
+    }
+
+    private void updateHeadingDrag(Point f) {
+        if (selectedTarget < 0 || selectedTarget >= targets.size()) return;
+        Point target = targets.get(selectedTarget);
+        double heading = Math.atan2(f.getY() - target.getY(), f.getX() - target.getX());
+        targets.set(selectedTarget, new Point(target.getX(), target.getY(), heading));
+        repaint();
+    }
+
+    private void rotateHeading(int direction, boolean fine) {
+        double step = (fine ? HEADING_FINE_STEP_RAD : HEADING_STEP_RAD) * direction;
+        if (selectedTarget < 0 || selectedTarget >= targets.size()) {
+            double heading = Double.isNaN(defaultTargetHeading) ? 0.0 : defaultTargetHeading;
+            defaultTargetHeading = normalizeAngle(heading + step);
+            repaint();
+            return;
+        }
+
+        Point target = targets.get(selectedTarget);
+        double heading = target.hasHeading() ? target.getHeadingRad() : 0.0;
+        targets.set(selectedTarget, new Point(target.getX(), target.getY(), normalizeAngle(heading + step)));
+        rebuildPath();
+    }
+
+    private void toggleHeading() {
+        if (selectedTarget < 0 || selectedTarget >= targets.size()) {
+            defaultTargetHeading = Double.isNaN(defaultTargetHeading) ? 0.0 : Double.NaN;
+            repaint();
+            return;
+        }
+
+        Point target = targets.get(selectedTarget);
+        targets.set(selectedTarget, new Point(target.getX(), target.getY(), target.hasHeading() ? Double.NaN : 0.0));
         rebuildPath();
     }
 
@@ -636,11 +755,18 @@ public class Simulator extends JPanel {
     }
 
     private void drawTargets(Graphics2D g) {
-        for (Point t : targets) {
+        for (int i = 0; i < targets.size(); i++) {
+            Point t = targets.get(i);
             boolean visited = isVisited(t);
+            boolean selected = i == selectedTarget;
             int s = 8;
             int px = (int) sx(t.getX());
             int py = (int) sy(t.getY());
+
+            if (selected) {
+                g.setColor(new Color(0, 120, 220, 70));
+                g.fillOval(px - 9, py - 9, 18, 18);
+            }
             if (visited) {
                 g.setColor(new Color(0, 170, 60));
                 g.fillRoundRect(px - s / 2, py - s / 2, s, s, 3, 3);
@@ -649,6 +775,49 @@ public class Simulator extends JPanel {
                 g.setColor(new Color(150, 150, 150));
             }
             g.drawRoundRect(px - s / 2, py - s / 2, s, s, 3, 3);
+
+            if (t.hasHeading()) {
+                drawHeading(g, t, visited, selected, true);
+            } else if (selected) {
+                drawHeading(g, t, false, selected, false);
+            }
+        }
+    }
+
+    private void drawHeading(Graphics2D g, Point target, boolean visited, boolean selected, boolean hasHeading) {
+        double angle = hasHeading ? target.getHeadingRad() : 0.0;
+        Point handle = headingHandle(target, angle);
+        int ax = (int) sx(target.getX());
+        int ay = (int) sy(target.getY());
+        int bx = (int) sx(handle.getX());
+        int by = (int) sy(handle.getY());
+
+        Color color = selected
+                ? new Color(0, 120, 220)
+                : visited ? new Color(0, 90, 30) : new Color(110, 110, 110);
+
+        g.setColor(color);
+        g.setStroke(new BasicStroke(selected ? 2.2f : 1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.drawLine(ax, ay, bx, by);
+
+        if (hasHeading) {
+            double screenAngle = Math.atan2(by - ay, bx - ax);
+            int headLength = 7;
+            int x1 = (int) (bx - headLength * Math.cos(screenAngle - Math.PI / 7));
+            int y1 = (int) (by - headLength * Math.sin(screenAngle - Math.PI / 7));
+            int x2 = (int) (bx - headLength * Math.cos(screenAngle + Math.PI / 7));
+            int y2 = (int) (by - headLength * Math.sin(screenAngle + Math.PI / 7));
+            g.drawLine(bx, by, x1, y1);
+            g.drawLine(bx, by, x2, y2);
+        }
+
+        int r = 4;
+        if (hasHeading) {
+            g.fillOval(bx - r, by - r, r * 2, r * 2);
+            g.setColor(Color.WHITE);
+            g.drawOval(bx - r, by - r, r * 2, r * 2);
+        } else {
+            g.drawOval(bx - r, by - r, r * 2, r * 2);
         }
     }
 
@@ -717,16 +886,28 @@ public class Simulator extends JPanel {
     }
 
     private void drawHud(Graphics2D g) {
+        String selectedLabel;
+        if (selectedTarget >= 0 && selectedTarget < targets.size()) {
+            Point selected = targets.get(selectedTarget);
+            selectedLabel = "Selected target: (" + fmt(selected.getX()) + ", " + fmt(selected.getY())
+                    + ")   Heading: " + headingLabel(selected.getHeadingRad());
+        } else {
+            selectedLabel = "Selected target: none";
+        }
+
         String[] lines = {
-                "Left-click: add      Right-click: remove",
+                "Left-click: add/select      Right-click: remove",
                 "Drag body: move   Drag edge (o): resize   Drag corner ([]): rotate",
-                "T target | O obstacle | S start | R reorder | C clear | P shape | [ ] sides | +/- size",
+                "Drag heading handle / Q,E: rotate (Shift = fine)   H: toggle heading   Esc: deselect",
+                "T target | O obstacle | S start | R reorder | M smoothing | C clear | P shape | [ ] sides | +/- size",
                 "A/D width | 0-9 max targets",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
+                        + "   Smoothing: " + (smoothing ? "ON" : "OFF")
                         + "   Targets: " + targets.size() + "   Obstacles: " + obstacles.size(),
                 "Width: " + (int) width + " in",
                 "Max targets: " + (maxTargets <= 0 ? "unlimited" : maxTargets)
                         + "   Visiting: " + visitedTargets.size(),
+                selectedLabel + "   New target heading: " + headingLabel(defaultTargetHeading),
                 "Obstacle shape: " + obstacleShape
                         + (obstacleShape == ObstacleShape.POLYGON ? " (" + polygonSides + " sides)" : "")
                         + "   Size: " + (int) obstacleRadius + " in",
@@ -782,7 +963,11 @@ public class Simulator extends JPanel {
         StringBuilder sb = new StringBuilder();
         sb.append("Weaver.setConfig(new PathConfig().intakeWidth(")
                 .append(fmt(width))
-                .append("));\n\n");
+                .append(")");
+        if (!smoothing) {
+            sb.append(".smoothing(false)");
+        }
+        sb.append(");\n\n");
 
         sb.append("PathResult result = Weaver.builder()\n");
         sb.append("        .start(new Point(")
@@ -799,8 +984,11 @@ public class Simulator extends JPanel {
                 sb.append("                new Point(")
                         .append(fmt(t.getX()))
                         .append(", ")
-                        .append(fmt(t.getY()))
-                        .append(")")
+                        .append(fmt(t.getY()));
+                if (t.hasHeading()) {
+                    sb.append(", ").append(fmt(t.getHeadingRad()));
+                }
+                sb.append(")")
                         .append(i < targets.size() - 1 ? "," : "")
                         .append("\n");
             }
@@ -861,6 +1049,11 @@ public class Simulator extends JPanel {
         }
 
         return o.toString();
+    }
+
+    private static String headingLabel(double headingRad) {
+        if (Double.isNaN(headingRad)) return "none";
+        return fmt(Math.toDegrees(normalizeAngle(headingRad))) + " deg";
     }
 
     private static String fmt(double value) {

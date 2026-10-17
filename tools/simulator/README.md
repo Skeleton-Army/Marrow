@@ -32,6 +32,8 @@ rest of the project.
 | Action                 | Result                                                   |
 |------------------------|----------------------------------------------------------|
 | Left-click empty space | Add the current mode's item (target, obstacle, or start) |
+| Left-click a target    | Select it to edit its heading                            |
+| Drag a heading handle  | Point the selected target in any direction               |
 | Right-click            | Remove the nearest target or obstacle                    |
 | Drag an obstacle body  | Move it                                                  |
 | Drag an edge handle    | Resize it                                                |
@@ -45,19 +47,30 @@ rest of the project.
 | `O`       | Obstacle mode                                 |
 | `S`       | Start mode                                    |
 | `R`       | Toggle target reordering                      |
+| `M`       | Toggle path smoothing                         |
 | `C`       | Clear all targets and obstacles               |
 | `P`       | Toggle obstacle shape (circle / polygon)      |
 | `[` / `]` | Decrease / increase polygon side count (3-12) |
 | `A` / `D` | Decrease / increase intake width              |
 | `+` / `-` | Increase / decrease obstacle size             |
 | `0`-`9`   | Cap how many targets are visited (`0` = all)  |
+| `Q` / `E` | Rotate the selected target's heading          |
+| `Shift`   | Hold with `Q` / `E` for 5-degree steps        |
+| `H`       | Toggle the selected target's heading          |
+| `Esc`     | Deselect the current target                   |
 
 ## Notes
 
 - The **Generate code** button (top-right) shows and copies the equivalent
   `Weaver.builder()` code for the current setup to the clipboard.
+- Click a target to select it, then drag its heading handle or use `Q` / `E`
+  to give it a heading. `H` toggles its heading on or off. With no target
+  selected, the same keys adjust the heading that newly placed targets receive.
+- With smoothing on (the default), only the route's end tangent is pinned
+  exactly; press `M` to disable smoothing so every target's heading is held.
 - The path is recomputed after every edit using `PathConfig` with the current
-  intake width.
+  intake width. Target headings are included in the generated `Weaver.builder()`
+  code.
 - With reordering on (default) Weaver finds its own target order; turn it off
   to visit targets in the order they were added.
 - Pressing `1`-`9` caps the number of targets visited; when there are more
