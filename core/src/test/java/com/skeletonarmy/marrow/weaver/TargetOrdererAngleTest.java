@@ -19,8 +19,10 @@ public class TargetOrdererAngleTest {
     @Test(timeout = 2000)
     public void generate_hugeTargetHeading_returnsPromptly() {
         // Arrange: wrapping 1e10 rad by repeated subtraction takes over a billion steps.
-        WeaverBuilder builder =
-                Weaver.builder().start(new Point(0, 0, 0)).targets(new Point(10, 0, 1e10), new Point(20, 0));
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(0, 0, 0))
+                .addTarget(new Point(10, 0, 1e10), HeadingPolicy.LOCKED)
+                .addTarget(new Point(20, 0), HeadingPolicy.FREE);
 
         // Act
         PathResult actual = builder.generate();

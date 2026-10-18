@@ -1,5 +1,6 @@
 package marrow.simulator;
 
+import com.skeletonarmy.marrow.weaver.HeadingPolicy;
 import com.skeletonarmy.marrow.weaver.PathConfig;
 import com.skeletonarmy.marrow.weaver.PathResult;
 import com.skeletonarmy.marrow.weaver.PathRoute;
@@ -322,7 +323,9 @@ public class Simulator extends JPanel {
                     .start(new Point(start.getX(), start.getY(), 0))
                     .maxTargets(maxTargets);
             for (Point t : targets) {
-                b.addTarget(new Point(t.getX(), t.getY(), t.getHeadingRad()));
+                b.addTarget(
+                        new Point(t.getX(), t.getY(), t.getHeadingRad()),
+                        t.hasHeading() ? HeadingPolicy.LOCKED : HeadingPolicy.FREE);
             }
             for (Zone o : obstacles) {
                 b.addObstacle(o);
@@ -890,7 +893,7 @@ public class Simulator extends JPanel {
         if (selectedTarget >= 0 && selectedTarget < targets.size()) {
             Point selected = targets.get(selectedTarget);
             selectedLabel = "Selected target: (" + fmt(selected.getX()) + ", " + fmt(selected.getY())
-                    + ")   Heading: " + headingLabel(selected.getHeadingRad());
+                    + ")   Locked heading: " + headingLabel(selected.getHeadingRad());
         } else {
             selectedLabel = "Selected target: none";
         }
@@ -898,7 +901,7 @@ public class Simulator extends JPanel {
         String[] lines = {
                 "Left-click: add/select      Right-click: remove",
                 "Drag body: move   Drag edge (o): resize   Drag corner ([]): rotate",
-                "Drag heading handle / Q,E: rotate (Shift = fine)   H: toggle heading   Esc: deselect",
+                "Drag heading handle / Q,E: rotate (Shift = fine)   H: toggle locked heading   Esc: deselect",
                 "T target | O obstacle | S start | R reorder | M smoothing | C clear | P shape | [ ] sides | +/- size",
                 "A/D width | 0-9 max targets",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
@@ -907,7 +910,7 @@ public class Simulator extends JPanel {
                 "Width: " + (int) width + " in",
                 "Max targets: " + (maxTargets <= 0 ? "unlimited" : maxTargets)
                         + "   Visiting: " + visitedTargets.size(),
-                selectedLabel + "   New target heading: " + headingLabel(defaultTargetHeading),
+                selectedLabel + "   New locked heading: " + headingLabel(defaultTargetHeading),
                 "Obstacle shape: " + obstacleShape
                         + (obstacleShape == ObstacleShape.POLYGON ? " (" + polygonSides + " sides)" : "")
                         + "   Size: " + (int) obstacleRadius + " in",
@@ -976,24 +979,17 @@ public class Simulator extends JPanel {
                 .append(fmt(start.getY()))
                 .append(", 0))\n");
 
-        if (!targets.isEmpty()) {
-            sb.append("        .targets(\n");
-
-            for (int i = 0; i < targets.size(); i++) {
-                Point t = targets.get(i);
-                sb.append("                new Point(")
-                        .append(fmt(t.getX()))
-                        .append(", ")
-                        .append(fmt(t.getY()));
-                if (t.hasHeading()) {
-                    sb.append(", ").append(fmt(t.getHeadingRad()));
-                }
-                sb.append(")")
-                        .append(i < targets.size() - 1 ? "," : "")
-                        .append("\n");
+        for (Point t : targets) {
+            sb.append("        .addTarget(new Point(")
+                    .append(fmt(t.getX()))
+                    .append(", ")
+                    .append(fmt(t.getY()));
+            if (t.hasHeading()) {
+                sb.append(", ").append(fmt(t.getHeadingRad()));
             }
-
-            sb.append("        )\n");
+            sb.append("), HeadingPolicy.")
+                    .append(t.hasHeading() ? "LOCKED" : "FREE")
+                    .append(")\n");
         }
 
         if (!obstacles.isEmpty()) {

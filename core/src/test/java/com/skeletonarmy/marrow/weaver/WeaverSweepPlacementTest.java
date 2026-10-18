@@ -81,8 +81,12 @@ public class WeaverSweepPlacementTest {
         double intakeWidth = 10;
         List<Point> targets = Arrays.asList(new Point(10, 0, Math.PI / 2), new Point(10, 0), new Point(30, 0));
         Weaver.setConfig(new PathConfig().intakeWidth(intakeWidth).smoothing(false));
-        WeaverBuilder builder =
-                Weaver.builder().start(new Point(0, 0, 0)).targets(targets).ordered();
+        WeaverBuilder builder = Weaver.builder()
+                .start(new Point(0, 0, 0))
+                .addTarget(targets.get(0), HeadingPolicy.LOCKED)
+                .addTarget(targets.get(1), HeadingPolicy.FREE)
+                .addTarget(targets.get(2), HeadingPolicy.FREE)
+                .ordered();
 
         // Act
         PathRoute actual = builder.generate().getPath();
