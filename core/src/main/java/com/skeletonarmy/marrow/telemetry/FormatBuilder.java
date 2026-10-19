@@ -15,6 +15,7 @@ import com.skeletonarmy.marrow.telemetry.modifiers.NewlineModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.SizeModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.StrikethroughModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.SubscriptModifier;
+import com.skeletonarmy.marrow.telemetry.modifiers.SuperscriptModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.UnderlineModifier;
 import com.skeletonarmy.marrow.telemetry.modifiers.UnorderedListModifier;
 import java.util.ArrayList;
@@ -143,7 +144,7 @@ public class FormatBuilder {
     }
 
     public FormatBuilder superscript() {
-        modifiers.add(new SubscriptModifier());
+        modifiers.add(new SuperscriptModifier());
         return this;
     }
 
