@@ -54,23 +54,24 @@ rest of the project.
 | `A` / `D` | Decrease / increase intake width              |
 | `+` / `-` | Increase / decrease obstacle size             |
 | `0`-`9`   | Cap how many targets are visited (`0` = all)  |
-| `Q` / `E` | Rotate the selected target's heading          |
+| `Q` / `E` | Rotate the selected target's locked heading   |
 | `Shift`   | Hold with `Q` / `E` for 5-degree steps        |
-| `H`       | Toggle the selected target's heading          |
+| `H`       | Toggle the selected target's locked heading   |
 | `Esc`     | Deselect the current target                   |
 
 ## Notes
 
 - The **Generate code** button (top-right) shows and copies the equivalent
   `Weaver.builder()` code for the current setup to the clipboard.
-- Click a target to select it, then drag its heading handle or use `Q` / `E`
-  to give it a heading. `H` toggles its heading on or off. With no target
-  selected, the same keys adjust the heading that newly placed targets receive.
-- With smoothing on (the default), only the route's end tangent is pinned
-  exactly; press `M` to disable smoothing so every target's heading is held.
+- Targets are free by default: the path can reach them from any direction.
+  Click a target and press `H` to lock its heading, then drag its heading handle
+  or use `Q` / `E` to set the direction. With no target selected, `H` controls
+  whether newly placed targets start with a locked heading.
+- Locked target headings are preserved whether smoothing is on or off. Press
+  `M` to toggle smoothing, which only changes how free tangents are estimated.
 - The path is recomputed after every edit using `PathConfig` with the current
-  intake width. Target headings are included in the generated `Weaver.builder()`
-  code.
+  intake width. Each target's policy and heading are included in the generated
+  `Weaver.builder()` code.
 - With reordering on (default) Weaver finds its own target order; turn it off
   to visit targets in the order they were added.
 - Pressing `1`-`9` caps the number of targets visited; when there are more

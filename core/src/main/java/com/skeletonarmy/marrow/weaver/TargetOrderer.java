@@ -16,7 +16,8 @@ public class TargetOrderer {
     private TargetOrderer() {}
 
     /**
-     * Returns the targets in the recommended visit order.
+     * Returns the targets in the recommended visit order. Headings are ignored, as
+     * targets behave as {@link HeadingPolicy#FREE}.
      *
      * <p>Lists no longer than {@link PathConfig#getBruteForceOrderLimit()} are ordered
      * exhaustively; longer lists use the greedy strategy.
@@ -28,6 +29,20 @@ public class TargetOrderer {
      * @return a new ordered list
      */
     public static List<Point> order(Point startPos, double startHeadingRad, List<Point> targets, PathConfig config) {
+        return toPoints(orderSpecs(startPos, startHeadingRad, freeSpecs(targets), config));
+    }
+
+    /**
+     * Returns target specifications in the recommended visit order.
+     *
+     * @param startPos        robot start position
+     * @param startHeadingRad robot start heading in radians
+     * @param targets         targets to order
+     * @param config          ordering parameters
+     * @return a new ordered list
+     */
+    static List<TargetSpec> orderSpecs(
+            Point startPos, double startHeadingRad, List<TargetSpec> targets, PathConfig config) {
         if (targets.size() <= 1) {
             return new ArrayList<>(targets);
         }
@@ -40,11 +55,12 @@ public class TargetOrderer {
     }
 
     /**
-     * Computes the cost of visiting {@code order} from the given start.
+     * Computes the cost of visiting {@code order} from the given start. Target
+     * headings are ignored, as targets behave as {@link HeadingPolicy#FREE}.
      *
      * <p>The cost sums travel distance plus the weighted absolute heading change
-     * between consecutive moves. A target with an explicit heading forces the robot
-     * to face that heading; otherwise the robot faces its direction of travel.
+     * between consecutive moves. Each target behaves as {@link HeadingPolicy#FREE},
+     * so the robot faces its direction of travel.
      *
      * @param startPos        robot start position
      * @param startHeadingRad robot start heading in radians
@@ -53,14 +69,27 @@ public class TargetOrderer {
      * @return the total cost; lower is better
      */
     public static double pathCost(Point startPos, double startHeadingRad, List<Point> order, double turnCostWeight) {
+        return pathCostSpecs(startPos, startHeadingRad, freeSpecs(order), turnCostWeight);
+    }
+
+    /**
+     * Computes the cost of visiting {@code order} from the given start.
+     *
+     * @param startPos        robot start position
+     * @param startHeadingRad robot start heading in radians
+     * @param order           candidate visit order
+     * @param turnCostWeight  weight applied to heading changes
+     * @return the total cost; lower is better
+     */
+    static double pathCostSpecs(Point startPos, double startHeadingRad, List<TargetSpec> order, double turnCostWeight) {
         double cost = 0;
         Point currentPos = startPos;
         double currentHeading = startHeadingRad;
 
-        for (Point pose : order) {
-            cost += stepCost(currentPos, currentHeading, pose, turnCostWeight);
-            currentHeading = arrivalHeading(currentPos, pose);
-            currentPos = new Point(pose.getX(), pose.getY());
+        for (TargetSpec target : order) {
+            cost += stepCost(currentPos, currentHeading, target, turnCostWeight);
+            currentHeading = arrivalHeading(currentPos, target);
+            currentPos = target.position();
         }
 
         return cost;
@@ -77,9 +106,9 @@ public class TargetOrderer {
      * @param turnCostWeight   weight applied to the heading change
      * @return the move cost; lower is better
      */
-    private static double stepCost(Point fromPos, double fromHeading, Point target, double turnCostWeight) {
+    private static double stepCost(Point fromPos, double fromHeading, TargetSpec target, double turnCostWeight) {
         double arrivalBearing = arrivalHeading(fromPos, target);
-        double travelDistance = fromPos.distanceTo(new Point(target.getX(), target.getY()));
+        double travelDistance = fromPos.distanceTo(target.position());
         double turn = Double.isNaN(fromHeading) ? 0.0 : Math.abs(normalizeAngle(arrivalBearing - fromHeading));
 
         return travelDistance + turnCostWeight * turn;
@@ -87,14 +116,14 @@ public class TargetOrderer {
 
     /**
      * Heading the robot holds on arrival at {@code target}: the target's explicit
-     * heading when present, otherwise the direction of travel.
+     * heading when it is locked, otherwise the direction of travel.
      *
      * @param fromPos point the robot travels from
      * @param target  target being approached
      * @return the arrival heading in radians
      */
-    private static double arrivalHeading(Point fromPos, Point target) {
-        if (target.hasHeading()) {
+    private static double arrivalHeading(Point fromPos, TargetSpec target) {
+        if (target.hasLockedHeading()) {
             return target.getHeadingRad();
         }
 
@@ -105,18 +134,19 @@ public class TargetOrderer {
      * Exhaustively tries every permutation and returns the cheapest order.
      *
      * @param startPos     robot start position
-     * @param startHeading robot start heading in radians
+     * @param startHeading robot start heading
      * @param targets      targets to order
      * @param config       ordering parameters
      * @return the cheapest visit order
      */
-    private static List<Point> bruteForce(Point startPos, double startHeading, List<Point> targets, PathConfig config) {
-        List<Point> working = new ArrayList<>(targets);
-        final List<Point> bestOrder = new ArrayList<>(targets);
-        final double[] minCost = {pathCost(startPos, startHeading, working, config.getTurnCostWeight())};
+    private static List<TargetSpec> bruteForce(
+            Point startPos, double startHeading, List<TargetSpec> targets, PathConfig config) {
+        List<TargetSpec> working = new ArrayList<>(targets);
+        final List<TargetSpec> bestOrder = new ArrayList<>(targets);
+        final double[] minCost = {pathCostSpecs(startPos, startHeading, working, config.getTurnCostWeight())};
 
         permute(working, 0, permutation -> {
-            double cost = pathCost(startPos, startHeading, permutation, config.getTurnCostWeight());
+            double cost = pathCostSpecs(startPos, startHeading, permutation, config.getTurnCostWeight());
 
             if (cost < minCost[0]) {
                 minCost[0] = cost;
@@ -138,31 +168,32 @@ public class TargetOrderer {
      * distance against turning on the whole order, so the result is still cheap.
      *
      * @param startPos     robot start position
-     * @param startHeading robot start heading in radians
+     * @param startHeading robot start heading
      * @param targets      targets to order
      * @param config       ordering parameters
      * @return the greedy visit order
      */
-    private static List<Point> greedy(Point startPos, double startHeading, List<Point> targets, PathConfig config) {
-        List<Point> remaining = new ArrayList<>(targets);
-        List<Point> result = new ArrayList<>();
+    private static List<TargetSpec> greedy(
+            Point startPos, double startHeading, List<TargetSpec> targets, PathConfig config) {
+        List<TargetSpec> remaining = new ArrayList<>(targets);
+        List<TargetSpec> result = new ArrayList<>();
 
         Point currentPos = startPos;
 
         while (!remaining.isEmpty()) {
-            Point nearest = null;
+            TargetSpec nearest = null;
             double nearestDistance = Double.MAX_VALUE;
 
-            for (Point pose : remaining) {
-                double distance = currentPos.distanceTo(new Point(pose.getX(), pose.getY()));
+            for (TargetSpec target : remaining) {
+                double distance = currentPos.distanceTo(target.position());
 
                 if (distance < nearestDistance) {
                     nearestDistance = distance;
-                    nearest = pose;
+                    nearest = target;
                 }
             }
 
-            currentPos = new Point(nearest.getX(), nearest.getY());
+            currentPos = nearest.position();
             result.add(nearest);
             remaining.remove(nearest);
         }
@@ -186,27 +217,28 @@ public class TargetOrderer {
      * @param turnCostWeight  weight applied to heading changes
      * @return the improved order
      */
-    private static List<Point> twoOpt(List<Point> order, Point startPos, double startHeading, double turnCostWeight) {
-        List<Point> best = new ArrayList<>(order);
+    private static List<TargetSpec> twoOpt(
+            List<TargetSpec> order, Point startPos, double startHeading, double turnCostWeight) {
+        List<TargetSpec> best = new ArrayList<>(order);
 
         if (best.size() > TWO_OPT_LIMIT) {
             return best;
         }
 
-        double bestCost = pathCost(startPos, startHeading, best, turnCostWeight);
+        double bestCost = pathCostSpecs(startPos, startHeading, best, turnCostWeight);
 
         for (int pass = 0; pass < TWO_OPT_PASSES; pass++) {
             boolean improved = false;
 
             for (int i = 0; i < best.size() - 1; i++) {
                 for (int j = i + 1; j < best.size(); j++) {
-                    List<Point> candidate = new ArrayList<>(best);
+                    List<TargetSpec> candidate = new ArrayList<>(best);
 
                     for (int first = i, last = j; first < last; first++, last--) {
                         Collections.swap(candidate, first, last);
                     }
 
-                    double cost = pathCost(startPos, startHeading, candidate, turnCostWeight);
+                    double cost = pathCostSpecs(startPos, startHeading, candidate, turnCostWeight);
 
                     if (cost < bestCost - 1e-9) {
                         best = candidate;
@@ -237,8 +269,19 @@ public class TargetOrderer {
         boolean canReach(Point from, Point target);
     }
 
+    /** Policy-aware reachability check. */
+    interface TargetReachability {
+        /**
+         * @param from   point the robot travels from
+         * @param target target specification the robot travels to
+         * @return {@code true} if the move is allowed
+         */
+        boolean canReach(Point from, TargetSpec target);
+    }
+
     /**
-     * Selects and orders at most {@code maxTargets} of {@code targets}.
+     * Selects and orders at most {@code maxTargets} of {@code targets}. Headings are
+     * ignored, as targets behave as {@link HeadingPolicy#FREE}.
      * <p>
      * The largest reachable set wins first; among equal-sized sets the cheapest path
      * wins. Reachability is evaluated per move through {@code reachability}, so a
@@ -261,6 +304,35 @@ public class TargetOrderer {
             int maxTargets,
             PathConfig config,
             ReachabilityCheck reachability) {
+        List<TargetSpec> selected = selectSpecs(
+                startPos,
+                startHeadingRad,
+                freeSpecs(targets),
+                maxTargets,
+                config,
+                (from, target) -> reachability.canReach(from, target.getPoint()));
+
+        return toPoints(selected);
+    }
+
+    /**
+     * Selects and orders at most {@code maxTargets} target specifications.
+     *
+     * @param startPos        robot start position
+     * @param startHeadingRad robot start heading in radians
+     * @param targets         candidate targets
+     * @param maxTargets      maximum number of targets to select
+     * @param config          ordering parameters
+     * @param reachability    per-move reachability test
+     * @return the chosen targets in visit order
+     */
+    static List<TargetSpec> selectSpecs(
+            Point startPos,
+            double startHeadingRad,
+            List<TargetSpec> targets,
+            int maxTargets,
+            PathConfig config,
+            TargetReachability reachability) {
         int limit = Math.min(maxTargets, targets.size());
 
         if (limit <= 0) {
@@ -286,14 +358,14 @@ public class TargetOrderer {
      * @param reachability    per-move reachability test
      * @return the chosen targets in visit order
      */
-    private static List<Point> selectBruteForce(
+    private static List<TargetSpec> selectBruteForce(
             Point startPos,
             double startHeadingRad,
-            List<Point> targets,
+            List<TargetSpec> targets,
             int limit,
             PathConfig config,
-            ReachabilityCheck reachability) {
-        List<Point> best = new ArrayList<>();
+            TargetReachability reachability) {
+        List<TargetSpec> best = new ArrayList<>();
         double[] bestCost = {Double.MAX_VALUE};
 
         search(
@@ -331,14 +403,14 @@ public class TargetOrderer {
     private static void search(
             Point currentPos,
             double currentHeading,
-            List<Point> targets,
+            List<TargetSpec> targets,
             int limit,
             double turnCostWeight,
-            ReachabilityCheck reachability,
+            TargetReachability reachability,
             boolean[] used,
-            List<Point> current,
+            List<TargetSpec> current,
             double cost,
-            List<Point> best,
+            List<TargetSpec> best,
             double[] bestCost) {
         // A longer chain always wins; equal-length chains are compared by cost.
         if (current.size() > best.size() || (current.size() == best.size() && cost < bestCost[0])) {
@@ -362,7 +434,7 @@ public class TargetOrderer {
                 continue;
             }
 
-            Point candidate = targets.get(i);
+            TargetSpec candidate = targets.get(i);
 
             if (!reachability.canReach(currentPos, candidate)) {
                 continue;
@@ -371,7 +443,7 @@ public class TargetOrderer {
             used[i] = true;
             current.add(candidate);
             search(
-                    new Point(candidate.getX(), candidate.getY()),
+                    candidate.position(),
                     arrivalHeading(currentPos, candidate),
                     targets,
                     limit,
@@ -391,32 +463,32 @@ public class TargetOrderer {
      * Repeatedly picks the cheapest reachable target until {@code limit} are chosen or
      * none remain reachable.
      *
-     * @param startPos        robot start position
-     * @param startHeadingRad robot start heading in radians
-     * @param targets         candidate targets
-     * @param limit           maximum number of targets to select
-     * @param config          ordering parameters
-     * @param reachability    per-move reachability test
+     * @param startPos     robot start position
+     * @param startHeading robot start heading
+     * @param targets      targets to order
+     * @param limit        maximum number of targets to select
+     * @param config       ordering parameters
+     * @param reachability per-move reachability test
      * @return the chosen targets in visit order
      */
-    private static List<Point> selectGreedy(
+    private static List<TargetSpec> selectGreedy(
             Point startPos,
-            double startHeadingRad,
-            List<Point> targets,
+            double startHeading,
+            List<TargetSpec> targets,
             int limit,
             PathConfig config,
-            ReachabilityCheck reachability) {
-        List<Point> remaining = new ArrayList<>(targets);
-        List<Point> result = new ArrayList<>();
+            TargetReachability reachability) {
+        List<TargetSpec> remaining = new ArrayList<>(targets);
+        List<TargetSpec> result = new ArrayList<>();
 
         Point currentPos = startPos;
-        double currentHeading = startHeadingRad;
+        double currentHeading = startHeading;
 
         while (result.size() < limit && !remaining.isEmpty()) {
-            Point bestTarget = null;
+            TargetSpec bestTarget = null;
             double bestStepCost = Double.MAX_VALUE;
 
-            for (Point candidate : remaining) {
+            for (TargetSpec candidate : remaining) {
                 if (!reachability.canReach(currentPos, candidate)) {
                     continue;
                 }
@@ -434,12 +506,44 @@ public class TargetOrderer {
             }
 
             currentHeading = arrivalHeading(currentPos, bestTarget);
-            currentPos = new Point(bestTarget.getX(), bestTarget.getY());
+            currentPos = bestTarget.position();
             result.add(bestTarget);
             remaining.remove(bestTarget);
         }
 
         return result;
+    }
+
+    /**
+     * Wraps points as free targets.
+     *
+     * @param points points to wrap
+     * @return the target specifications
+     */
+    private static List<TargetSpec> freeSpecs(List<Point> points) {
+        List<TargetSpec> specs = new ArrayList<>();
+
+        for (Point point : points) {
+            specs.add(new TargetSpec(point, HeadingPolicy.FREE));
+        }
+
+        return specs;
+    }
+
+    /**
+     * Extracts the target points from specifications.
+     *
+     * @param specs target specifications
+     * @return the target points
+     */
+    private static List<Point> toPoints(List<TargetSpec> specs) {
+        List<Point> points = new ArrayList<>();
+
+        for (TargetSpec spec : specs) {
+            points.add(spec.getPoint());
+        }
+
+        return points;
     }
 
     /**
@@ -459,7 +563,7 @@ public class TargetOrderer {
          *
          * @param permutation the complete permutation
          */
-        void visit(List<Point> permutation);
+        void visit(List<TargetSpec> permutation);
     }
 
     /**
@@ -470,7 +574,7 @@ public class TargetOrderer {
      * @param k       index the permutation starts from
      * @param visitor callback invoked for each complete ordering
      */
-    private static void permute(List<Point> arr, int k, PermutationVisitor visitor) {
+    private static void permute(List<TargetSpec> arr, int k, PermutationVisitor visitor) {
         if (k == arr.size()) {
             visitor.visit(arr);
             return;

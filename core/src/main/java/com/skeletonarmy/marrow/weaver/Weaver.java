@@ -3,6 +3,9 @@ package com.skeletonarmy.marrow.weaver;
 /**
  * Generator for Bezier paths with optional obstacle avoidance.
  * <p>
+ * Targets use {@link HeadingPolicy#FREE} by default. Pass
+ * {@link HeadingPolicy#LOCKED} to a target to require its heading at arrival.
+ * <p>
  * Example usage:
  * <pre>{@code
  * PathResult result = Weaver.builder()

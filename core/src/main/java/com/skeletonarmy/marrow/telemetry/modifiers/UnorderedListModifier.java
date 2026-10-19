@@ -48,4 +48,9 @@ public class UnorderedListModifier extends TelemetryModifier {
         sb.append("</ul>");
         return sb.toString();
     }
+
+    @Override
+    public boolean isBlockElement() {
+        return true;
+    }
 }

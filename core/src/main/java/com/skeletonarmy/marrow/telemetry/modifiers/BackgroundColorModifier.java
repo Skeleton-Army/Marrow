@@ -26,6 +26,6 @@ public class BackgroundColorModifier extends TelemetryModifier {
     @NonNull
     @Override
     public String format(String s) {
-        return "<span style=\"background:" + color + ";\">" + s + "<span>";
+        return "<span style=\"background:" + color + ";\">" + s + "</span>";
     }
 }

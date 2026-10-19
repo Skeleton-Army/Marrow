@@ -114,7 +114,8 @@ public class WeaverCoincidentKeyPointTest {
         Weaver.setConfig(new PathConfig().intakeWidth(intakeWidth).smoothing(false));
         WeaverBuilder builder = Weaver.builder()
                 .start(new Point(0, 0, 0))
-                .targets(first, second)
+                .addTarget(first, HeadingPolicy.LOCKED)
+                .addTarget(second, HeadingPolicy.LOCKED)
                 .ordered();
 
         // Act

@@ -63,7 +63,9 @@ public final class PedroPathingConverter {
     }
 
     /**
-     * Converts a Pedro Pathing {@link Pose} into a Marrow {@link Point}.
+     * Converts a Pedro Pathing {@link Pose} into a Marrow {@link Point}. The heading
+     * is preserved, but Weaver targets ignore it unless
+     * {@link HeadingPolicy#LOCKED} is selected for the target.
      *
      * @param pose pose to convert
      * @return the equivalent Marrow point

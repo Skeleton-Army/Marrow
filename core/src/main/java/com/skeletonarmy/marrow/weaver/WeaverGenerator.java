@@ -60,16 +60,44 @@ public final class WeaverGenerator {
             boolean reorder,
             int maxTargets,
             PathConfig config) {
+        List<TargetSpec> targetSpecs = new ArrayList<>();
+
+        for (Point target : targets) {
+            targetSpecs.add(new TargetSpec(target, HeadingPolicy.FREE));
+        }
+
+        return generate(
+                startPose, destinationPose, targetSpecs, HeadingPolicy.FREE, obstacles, reorder, maxTargets, config);
+    }
+
+    /**
+     * Generates a path from target specifications that carry their own heading policy.
+     *
+     * @param startPose            where the robot starts
+     * @param destinationPose      goal pose in avoidance mode; may be {@code null} when targets exist
+     * @param targets              intake targets to visit; may be empty
+     * @param destinationPolicy    heading policy for the destination
+     * @param obstacles            zones the robot must not cut through; may be {@code null}
+     * @param reorder              {@code true} to let {@link TargetOrderer} pick the visit order
+     * @param maxTargets           maximum number of targets to visit; {@code 0} or less visits all
+     * @param config               geometry and tuning parameters
+     * @return the generated route plus metadata
+     */
+    static PathResult generate(
+            Point startPose,
+            Point destinationPose,
+            List<TargetSpec> targets,
+            HeadingPolicy destinationPolicy,
+            List<Zone> obstacles,
+            boolean reorder,
+            int maxTargets,
+            PathConfig config) {
         if (!targets.isEmpty()) {
             return generateIntakeResult(startPose, targets, obstacles, reorder, maxTargets, config);
         }
 
         if (destinationPose != null) {
-            return generateAvoidanceResult(
-                    new Point(startPose.getX(), startPose.getY()),
-                    new Point(destinationPose.getX(), destinationPose.getY()),
-                    obstacles,
-                    config);
+            return generateAvoidanceResult(startPose, destinationPose, destinationPolicy, obstacles, config);
         }
 
         throw new IllegalStateException("Either targets or a destination must be set");
@@ -303,21 +331,21 @@ public final class WeaverGenerator {
      */
     private static PathResult generateIntakeResult(
             Point start,
-            List<Point> targets,
+            List<TargetSpec> targets,
             List<Zone> obstacles,
             boolean reorder,
             int maxTargets,
             PathConfig config) {
         Point startPoint = new Point(start.getX(), start.getY());
 
-        List<Point> orderedTargets;
+        List<TargetSpec> orderedTargets;
 
         if (maxTargets > 0) {
             orderedTargets = selectTargets(start, startPoint, targets, obstacles, reorder, maxTargets, config);
         } else {
             // No limit: keep the original ordering-then-filter pipeline unchanged.
             orderedTargets = reorder
-                    ? TargetOrderer.order(startPoint, start.getHeadingRad(), targets, config)
+                    ? TargetOrderer.orderSpecs(startPoint, start.getHeadingRad(), targets, config)
                     : new ArrayList<>(targets);
 
             if (config.isExcludeBlockedTargets()) {
@@ -328,16 +356,22 @@ public final class WeaverGenerator {
         // With an intake to sweep with, order so targets that can be swept together stay
         // together. A point-to-point order would otherwise thread a distant target
         // through a clump and break it into several passes.
-        if (reorder && config.getIntakeWidth() > 1e-9 && !hasHeading(orderedTargets, 0, orderedTargets.size() - 1)) {
+        if (reorder
+                && config.getIntakeWidth() > 1e-9
+                && !hasLockedHeading(orderedTargets, 0, orderedTargets.size() - 1)) {
             orderedTargets = orderForIntake(startPoint, orderedTargets, config);
         }
 
         // Remove one entry per visit, so a target passed twice and visited once
         // still reports its second entry as unvisited.
-        List<Point> unvisitedTargets = new ArrayList<>(targets);
+        List<Point> unvisitedTargets = new ArrayList<>();
 
-        for (Point visited : orderedTargets) {
-            unvisitedTargets.remove(visited);
+        for (TargetSpec target : targets) {
+            unvisitedTargets.add(target.getPoint());
+        }
+
+        for (TargetSpec visited : orderedTargets) {
+            unvisitedTargets.remove(visited.getPoint());
         }
 
         // No reachable target left: produce a stationary path at the start pose.
@@ -357,10 +391,12 @@ public final class WeaverGenerator {
 
         List<Point> keyPoints = new ArrayList<>();
         List<Double> headings = new ArrayList<>();
+        List<Boolean> lockedKeyPoints = new ArrayList<>();
 
         keyPoints.add(startPoint);
         // A start with no heading faces its first target until the key points are known.
-        headings.add(start.hasHeading() ? start.getHeadingRad() : firstBearing(startPoint, orderedTargets));
+        headings.add(start.hasHeading() ? start.getHeadingRad() : firstTargetBearing(startPoint, orderedTargets));
+        lockedKeyPoints.add(false);
 
         // The robot can only sweep multiple targets at once if the intake has width.
         double intakeHalfWidth = config.getIntakeWidth() / 2.0;
@@ -378,20 +414,26 @@ public final class WeaverGenerator {
             int[] groupIndices = group.indices;
 
             for (int index : groupIndices) {
-                visitedTargets.add(orderedTargets.get(index));
+                visitedTargets.add(orderedTargets.get(index).getPoint());
             }
 
             // A merged group (several targets in one intake pass) is handled separately.
             if (groupIndices.length > 1 && intakeHalfWidth > 1e-9) {
                 previousRawTarget = addMergedGroup(
-                        orderedTargets, groupIndices, group.heading, previousRawTarget, keyPoints, headings);
+                        orderedTargets,
+                        groupIndices,
+                        group.heading,
+                        previousRawTarget,
+                        keyPoints,
+                        headings,
+                        lockedKeyPoints);
                 continue;
             }
 
-            Point firstPose = orderedTargets.get(groupIndices[0]);
-            Point target = new Point(firstPose.getX(), firstPose.getY());
+            TargetSpec firstPose = orderedTargets.get(groupIndices[0]);
+            Point target = firstPose.position();
 
-            double heading = firstPose.hasHeading()
+            double heading = firstPose.hasLockedHeading()
                     ? firstPose.getHeadingRad()
                     : Math.atan2(target.getY() - previousRawTarget.getY(), target.getX() - previousRawTarget.getX());
 
@@ -411,16 +453,12 @@ public final class WeaverGenerator {
                 // target itself is clear of; reach the target dead-on instead.
                 if (obstacles != null
                         && !obstacles.isEmpty()
-                        && isTargetBlocked(
-                                new Point(robotCenter.getX(), robotCenter.getY(), heading),
-                                lastOf(keyPoints),
-                                obstacles,
-                                config)) {
+                        && isTargetBlocked(robotCenter, heading, obstacles, config)) {
                     robotCenter = target;
                 }
             }
 
-            appendKeyPoint(keyPoints, headings, robotCenter, heading);
+            appendKeyPoint(keyPoints, headings, lockedKeyPoints, robotCenter, heading, firstPose.hasLockedHeading());
             previousRawTarget = target;
         }
 
@@ -433,15 +471,17 @@ public final class WeaverGenerator {
         if (keyPoints.size() == 1) {
             keyPoints.add(startPoint);
             headings.add(headings.get(0));
+            lockedKeyPoints.add(false);
         }
 
-        // A last target with its own heading keeps it, even when it shares a key point
-        // with the target before it.
-        Point lastTarget = orderedTargets.get(orderedTargets.size() - 1);
-        double endHeading = lastTarget.hasHeading() ? lastTarget.getHeadingRad() : headings.get(headings.size() - 1);
+        // A last target with its own locked heading keeps it, even when it shares a key
+        // point with the target before it.
+        TargetSpec lastTarget = orderedTargets.get(orderedTargets.size() - 1);
+        double endHeading =
+                lastTarget.hasLockedHeading() ? lastTarget.getHeadingRad() : headings.get(headings.size() - 1);
 
-        PathCurve curve = cubicHermiteChain(keyPoints, headings);
-        PathRoute path = finish(new PathRoute(Collections.singletonList(curve)), obstacles, config, true);
+        PathRoute path = buildRoute(keyPoints, headings, lockedKeyPoints);
+        path = finish(path, obstacles, config, true);
 
         return new PathResult(path, Collections.singletonList(endHeading), visitedTargets, unvisitedTargets);
     }
@@ -462,10 +502,10 @@ public final class WeaverGenerator {
      * @param config     geometry and tuning parameters
      * @return the selected targets in visit order
      */
-    private static List<Point> selectTargets(
+    private static List<TargetSpec> selectTargets(
             Point start,
             Point startPoint,
-            List<Point> targets,
+            List<TargetSpec> targets,
             List<Zone> obstacles,
             boolean reorder,
             int maxTargets,
@@ -473,51 +513,68 @@ public final class WeaverGenerator {
         boolean dropBlocked = config.isExcludeBlockedTargets();
 
         if (!reorder) {
-            List<Point> ordered = dropBlocked
+            List<TargetSpec> ordered = dropBlocked
                     ? excludeBlockedTargets(startPoint, new ArrayList<>(targets), obstacles, config)
                     : new ArrayList<>(targets);
 
             return ordered.size() > maxTargets ? new ArrayList<>(ordered.subList(0, maxTargets)) : ordered;
         }
 
-        TargetOrderer.ReachabilityCheck reachability = dropBlocked
+        TargetOrderer.TargetReachability reachability = dropBlocked
                 ? (from, target) -> !isTargetBlocked(target, from, obstacles, config)
                 : (from, target) -> true;
 
-        return TargetOrderer.select(startPoint, start.getHeadingRad(), targets, maxTargets, config, reachability);
+        return TargetOrderer.selectSpecs(startPoint, start.getHeadingRad(), targets, maxTargets, config, reachability);
     }
 
     /**
      * Seeds a straight line of control points between start and end, then lets
-     * {@link ObstacleAvoider} bend and smooth it.
+     * {@link ObstacleAvoider} bend and smooth it. A locked destination seeds a curve
+     * that arrives along the requested heading instead.
      *
-     * @param start     start position
-     * @param end       destination position
-     * @param obstacles zones to avoid; may be {@code null}
-     * @param config    geometry and tuning parameters
+     * @param start         start pose
+     * @param end           destination pose
+     * @param endPolicy     heading policy for the destination
+     * @param obstacles     zones to avoid; may be {@code null}
+     * @param config        geometry and tuning parameters
      * @return the generated route plus metadata
      */
-    private static PathResult generateAvoidanceResult(Point start, Point end, List<Zone> obstacles, PathConfig config) {
-        // Number of control points used to seed the curve before avoidance.
-        int seedControlPointCount = 6;
+    private static PathResult generateAvoidanceResult(
+            Point start, Point end, HeadingPolicy endPolicy, List<Zone> obstacles, PathConfig config) {
+        Point startPoint = new Point(start.getX(), start.getY());
+        Point endPoint = new Point(end.getX(), end.getY());
+        PathRoute finished;
 
-        List<Point> seedPoints = new ArrayList<>();
+        if (endPolicy == HeadingPolicy.LOCKED) {
+            double startHeading = start.hasHeading() ? start.getHeadingRad() : bearing(startPoint, endPoint);
+            PathCurve curve = twoPointCubic(startPoint, endPoint, startHeading, end.getHeadingRad());
+            PathRoute seedPath = new PathRoute(Collections.singletonList(curve));
 
-        for (int i = 0; i < seedControlPointCount; i++) {
-            double progress = (double) i / (seedControlPointCount - 1);
-            seedPoints.add(new Point(
-                    start.getX() + (end.getX() - start.getX()) * progress,
-                    start.getY() + (end.getY() - start.getY()) * progress));
+            finished = finish(seedPath, obstacles, config, true);
+        } else {
+            // Number of control points used to seed the curve before avoidance.
+            int seedControlPointCount = 6;
+
+            List<Point> seedPoints = new ArrayList<>();
+
+            for (int i = 0; i < seedControlPointCount; i++) {
+                double progress = (double) i / (seedControlPointCount - 1);
+                seedPoints.add(new Point(
+                        startPoint.getX() + (endPoint.getX() - startPoint.getX()) * progress,
+                        startPoint.getY() + (endPoint.getY() - startPoint.getY()) * progress));
+            }
+
+            PathCurve curve = new PathCurve(seedPoints);
+            PathRoute seedPath = new PathRoute(Collections.singletonList(curve));
+            // The seed's bearing means nothing once the route bends round an obstacle.
+            finished = finish(seedPath, obstacles, config, false);
         }
 
-        PathCurve curve = new PathCurve(seedPoints);
-        PathRoute seedPath = new PathRoute(Collections.singletonList(curve));
-        // The seed's bearing means nothing once the route bends round an obstacle.
-        PathRoute finished = finish(seedPath, obstacles, config, false);
+        double endHeading = endPolicy == HeadingPolicy.LOCKED ? end.getHeadingRad() : finished.getHeading(1.0);
 
         return new PathResult(
                 finished,
-                Collections.singletonList(finished.getHeading(1.0)),
+                Collections.singletonList(endHeading),
                 Collections.<Point>emptyList(),
                 Collections.<Point>emptyList());
     }
@@ -568,7 +625,7 @@ public final class WeaverGenerator {
     private static List<TargetGroup> groupTargets(
             Point startPoint,
             double startHeadingRad,
-            List<Point> targets,
+            List<TargetSpec> targets,
             List<Zone> obstacles,
             PathConfig config,
             boolean reorder) {
@@ -590,7 +647,7 @@ public final class WeaverGenerator {
         int groupStart = 0;
 
         while (groupStart < targetCount) {
-            Point firstPose = targets.get(groupStart);
+            TargetSpec firstPose = targets.get(groupStart);
             int groupEnd = groupStart + 1;
             double groupHeading = Double.NaN;
 
@@ -598,7 +655,7 @@ public final class WeaverGenerator {
             // heading that fits a few targets can hide the line the whole row runs along.
             double wholeHeading = Double.NaN;
 
-            if (!hasHeading(targets, groupStart, targetCount - 1)) {
+            if (!hasLockedHeading(targets, groupStart, targetCount - 1)) {
                 wholeHeading = fitHeading(
                         targets,
                         groupStart,
@@ -616,11 +673,11 @@ public final class WeaverGenerator {
                 groupHeading = wholeHeading;
             } else {
                 while (groupEnd < targetCount) {
-                    Point previousPose = targets.get(groupEnd - 1);
-                    Point candidatePose = targets.get(groupEnd);
+                    TargetSpec previousPose = targets.get(groupEnd - 1);
+                    TargetSpec candidatePose = targets.get(groupEnd);
 
-                    // An explicit heading on either target means they cannot be merged.
-                    if (previousPose.hasHeading() || candidatePose.hasHeading()) {
+                    // A locked heading on either target means they cannot be merged.
+                    if (previousPose.hasLockedHeading() || candidatePose.hasLockedHeading()) {
                         break;
                     }
 
@@ -645,10 +702,12 @@ public final class WeaverGenerator {
                     groupEnd++;
                 }
 
-                // A single target keeps the original direction: toward the next target
-                // when it sits on the previous key point.
+                // A single target keeps its locked heading, or the original direction:
+                // toward the next target when it sits on the previous key point.
                 if (groupEnd == groupStart + 1) {
-                    groupHeading = sweepDirection(previousKeyPoint, targets, groupStart, previousHeading);
+                    groupHeading = firstPose.hasLockedHeading()
+                            ? firstPose.getHeadingRad()
+                            : sweepDirection(previousKeyPoint, targets, groupStart, previousHeading);
                 }
             }
 
@@ -670,7 +729,7 @@ public final class WeaverGenerator {
             // itself, or the end of a merged sweep as addMergedGroup places it.
             previousKeyPoint = groupIndices.length > 1
                     ? lastOf(sweepKeyPoints(targets, groupIndices, previousKeyPoint, groupHeading))
-                    : new Point(firstPose.getX(), firstPose.getY());
+                    : firstPose.position();
             previousHeading = groupHeading;
             groupStart = groupEnd;
         }
@@ -688,21 +747,23 @@ public final class WeaverGenerator {
      * @param groupIndices  indices of the targets in this group
      * @param heading       direction the group is swept along, in radians
      * @param previousPoint key point the group starts from
-     * @param keyPoints     key point list to append to
-     * @param headings      heading list to append to
+     * @param keyPoints       key point list to append to
+     * @param headings        heading list to append to
+     * @param lockedKeyPoints lock flags to append to
      * @return the last key point added
      */
     private static Point addMergedGroup(
-            List<Point> targets,
+            List<TargetSpec> targets,
             int[] groupIndices,
             double heading,
             Point previousPoint,
             List<Point> keyPoints,
-            List<Double> headings) {
+            List<Double> headings,
+            List<Boolean> lockedKeyPoints) {
         List<Point> sweep = sweepKeyPoints(targets, groupIndices, previousPoint, heading);
 
         for (Point point : sweep) {
-            appendKeyPoint(keyPoints, headings, point, heading);
+            appendKeyPoint(keyPoints, headings, lockedKeyPoints, point, heading, false);
         }
 
         return lastOf(sweep);
@@ -722,7 +783,7 @@ public final class WeaverGenerator {
      * @return {@code true} if the sweep is blocked
      */
     private static boolean isSweepBlocked(
-            List<Point> targets,
+            List<TargetSpec> targets,
             int firstIndex,
             int lastIndex,
             Point previousPoint,
@@ -740,7 +801,7 @@ public final class WeaverGenerator {
         }
 
         for (Point point : sweepKeyPoints(targets, groupIndices, previousPoint, heading)) {
-            if (isTargetBlocked(new Point(point.getX(), point.getY(), heading), previousPoint, obstacles, config)) {
+            if (isTargetBlocked(point, heading, obstacles, config)) {
                 return true;
             }
         }
@@ -760,7 +821,7 @@ public final class WeaverGenerator {
      * @return the sweep key points, in visit order
      */
     private static List<Point> sweepKeyPoints(
-            List<Point> targets, int[] groupIndices, Point previousPoint, double sweepHeading) {
+            List<TargetSpec> targets, int[] groupIndices, Point previousPoint, double sweepHeading) {
         double directionX = Math.cos(sweepHeading);
         double directionY = Math.sin(sweepHeading);
 
@@ -775,7 +836,7 @@ public final class WeaverGenerator {
         double maxLateralOffset = -Double.MAX_VALUE;
 
         for (int k = 0; k < groupIndices.length; k++) {
-            Point pose = targets.get(groupIndices[k]);
+            TargetSpec pose = targets.get(groupIndices[k]);
 
             double offsetX = pose.getX() - previousPoint.getX();
             double offsetY = pose.getY() - previousPoint.getY();
@@ -829,7 +890,7 @@ public final class WeaverGenerator {
      * @return the sweep direction in radians, or {@code NaN} if the group does not fit
      */
     private static double fitHeading(
-            List<Point> targets,
+            List<TargetSpec> targets,
             int firstIndex,
             int lastIndex,
             Point previousPoint,
@@ -862,8 +923,8 @@ public final class WeaverGenerator {
         // The pair's own direction is tried too: a row of targets runs straight along
         // it, so an approach the row does not point at still sweeps it in one pass.
         for (int i = firstIndex; i < lastIndex; i++) {
-            Point from = targets.get(i);
-            Point to = targets.get(i + 1);
+            TargetSpec from = targets.get(i);
+            TargetSpec to = targets.get(i + 1);
             double pairBearing = Math.atan2(to.getY() - from.getY(), to.getX() - from.getX());
             candidates.add(pairBearing);
             candidates.add(pairBearing + Math.PI / 2.0);
@@ -925,12 +986,12 @@ public final class WeaverGenerator {
      * @return the direction in radians
      */
     private static double firstTargetHeading(
-            Point previousPoint, List<Point> targets, int firstIndex, int lastIndex, double fallbackHeading) {
+            Point previousPoint, List<TargetSpec> targets, int firstIndex, int lastIndex, double fallbackHeading) {
         for (int i = firstIndex; i <= lastIndex; i++) {
-            Point target = targets.get(i);
+            TargetSpec target = targets.get(i);
 
             if (Math.hypot(target.getX() - previousPoint.getX(), target.getY() - previousPoint.getY()) > 1e-9) {
-                return bearing(previousPoint, target);
+                return bearing(previousPoint, target.position());
             }
         }
 
@@ -950,12 +1011,12 @@ public final class WeaverGenerator {
      * @return the sweep direction in radians
      */
     private static double sweepDirection(
-            Point previousPoint, List<Point> targets, int firstIndex, double fallbackHeading) {
+            Point previousPoint, List<TargetSpec> targets, int firstIndex, double fallbackHeading) {
         for (int i = firstIndex; i < targets.size(); i++) {
-            Point target = targets.get(i);
+            TargetSpec target = targets.get(i);
 
             if (Math.hypot(target.getX() - previousPoint.getX(), target.getY() - previousPoint.getY()) > 1e-9) {
-                return bearing(previousPoint, target);
+                return bearing(previousPoint, target.position());
             }
         }
 
@@ -980,7 +1041,7 @@ public final class WeaverGenerator {
      * @return {@code true} if the whole group fits the intake in visit order
      */
     private static boolean fitsSweep(
-            List<Point> targets,
+            List<TargetSpec> targets,
             int firstIndex,
             int lastIndex,
             Point previousPoint,
@@ -995,7 +1056,7 @@ public final class WeaverGenerator {
         double previousAlongOffset = -Double.MAX_VALUE;
 
         for (int i = firstIndex; i <= lastIndex; i++) {
-            Point target = targets.get(i);
+            TargetSpec target = targets.get(i);
 
             double offsetX = target.getX() - previousPoint.getX();
             double offsetY = target.getY() - previousPoint.getY();
@@ -1027,18 +1088,27 @@ public final class WeaverGenerator {
      * The earlier key point keeps its heading: the robot may already need that
      * heading to capture the earlier target.
      *
-     * @param keyPoints key point list to append to
-     * @param headings  heading list to append to
-     * @param point     key point to append
-     * @param heading   heading at that key point, in radians
+     * @param keyPoints       key point list to append to
+     * @param headings        heading list to append to
+     * @param lockedKeyPoints lock flags to append to
+     * @param point           key point to append
+     * @param heading         heading at that key point, in radians
+     * @param locked          whether the key point's heading is enforced
      */
-    private static void appendKeyPoint(List<Point> keyPoints, List<Double> headings, Point point, double heading) {
+    private static void appendKeyPoint(
+            List<Point> keyPoints,
+            List<Double> headings,
+            List<Boolean> lockedKeyPoints,
+            Point point,
+            double heading,
+            boolean locked) {
         if (lastOf(keyPoints).distanceTo(point) < 1e-6) {
             return;
         }
 
         keyPoints.add(point);
         headings.add(heading);
+        lockedKeyPoints.add(locked);
     }
 
     /**
@@ -1052,17 +1122,17 @@ public final class WeaverGenerator {
     }
 
     /**
-     * Whether any target in a range carries an explicit heading. A headed target cannot
-     * be merged with its neighbours into one sweep.
+     * Whether any target in a range has a locked heading. A locked target cannot be
+     * merged with its neighbours into one sweep.
      *
      * @param targets    ordered targets
      * @param firstIndex index of the first target to check
      * @param lastIndex  index of the last target to check
-     * @return {@code true} if any target in the range has a heading
+     * @return {@code true} if any target in the range has a locked heading
      */
-    private static boolean hasHeading(List<Point> targets, int firstIndex, int lastIndex) {
+    private static boolean hasLockedHeading(List<TargetSpec> targets, int firstIndex, int lastIndex) {
         for (int i = firstIndex; i <= lastIndex; i++) {
-            if (targets.get(i).hasHeading()) {
+            if (targets.get(i).hasLockedHeading()) {
                 return true;
             }
         }
@@ -1080,7 +1150,7 @@ public final class WeaverGenerator {
      * @param config  geometry parameters supplying the intake width
      * @return the targets in sweep-friendly visit order
      */
-    private static List<Point> orderForIntake(Point start, List<Point> targets, PathConfig config) {
+    private static List<TargetSpec> orderForIntake(Point start, List<TargetSpec> targets, PathConfig config) {
         double width = config.getIntakeWidth();
         int count = targets.size();
         int[] roots = new int[count];
@@ -1091,7 +1161,7 @@ public final class WeaverGenerator {
 
         for (int i = 0; i < count; i++) {
             for (int j = i + 1; j < count; j++) {
-                if (targets.get(i).distanceTo(targets.get(j)) <= width) {
+                if (targets.get(i).distanceTo(targets.get(j).position()) <= width) {
                     unionRoots(roots, i, j);
                 }
             }
@@ -1105,7 +1175,7 @@ public final class WeaverGenerator {
         }
 
         List<List<Integer>> remaining = new ArrayList<>(clusters.values());
-        List<Point> ordered = new ArrayList<>();
+        List<TargetSpec> ordered = new ArrayList<>();
         Point cursor = start;
 
         while (!remaining.isEmpty()) {
@@ -1122,7 +1192,7 @@ public final class WeaverGenerator {
             }
 
             appendCluster(targets, remaining.remove(nearest), cursor, ordered);
-            cursor = lastOf(ordered);
+            cursor = ordered.get(ordered.size() - 1).position();
         }
 
         return ordered;
@@ -1137,7 +1207,8 @@ public final class WeaverGenerator {
      * @param cursor  point the robot reaches the cluster from
      * @param ordered order list to append to
      */
-    private static void appendCluster(List<Point> targets, List<Integer> cluster, Point cursor, List<Point> ordered) {
+    private static void appendCluster(
+            List<TargetSpec> targets, List<Integer> cluster, Point cursor, List<TargetSpec> ordered) {
         if (cluster.size() == 1) {
             ordered.add(targets.get(cluster.get(0)));
             return;
@@ -1149,14 +1220,14 @@ public final class WeaverGenerator {
 
         List<Integer> sorted = new ArrayList<>(cluster);
         sorted.sort(Comparator.comparingDouble(index -> {
-            Point target = targets.get(index);
+            TargetSpec target = targets.get(index);
             return target.getX() * directionX + target.getY() * directionY;
         }));
 
-        Point first = targets.get(sorted.get(0));
-        Point last = targets.get(sorted.get(sorted.size() - 1));
+        TargetSpec first = targets.get(sorted.get(0));
+        TargetSpec last = targets.get(sorted.get(sorted.size() - 1));
 
-        if (cursor.distanceTo(first) > cursor.distanceTo(last)) {
+        if (cursor.distanceTo(first.position()) > cursor.distanceTo(last.position())) {
             Collections.reverse(sorted);
         }
 
@@ -1173,7 +1244,7 @@ public final class WeaverGenerator {
      * @param cluster indices of the cluster's targets
      * @return the direction in radians
      */
-    private static double widestDirection(List<Point> targets, List<Integer> cluster) {
+    private static double widestDirection(List<TargetSpec> targets, List<Integer> cluster) {
         double bestHeading = 0.0;
         double smallestSpread = Double.MAX_VALUE;
 
@@ -1185,7 +1256,7 @@ public final class WeaverGenerator {
             double maxLateral = -Double.MAX_VALUE;
 
             for (int index : cluster) {
-                Point target = targets.get(index);
+                TargetSpec target = targets.get(index);
                 double lateral = target.getX() * -directionY + target.getY() * directionX;
                 minLateral = Math.min(minLateral, lateral);
                 maxLateral = Math.max(maxLateral, lateral);
@@ -1207,7 +1278,7 @@ public final class WeaverGenerator {
      * @param indices indices of the targets to average
      * @return the average position
      */
-    private static Point clusterCentroid(List<Point> targets, List<Integer> indices) {
+    private static Point clusterCentroid(List<TargetSpec> targets, List<Integer> indices) {
         double sumX = 0;
         double sumY = 0;
 
@@ -1261,14 +1332,14 @@ public final class WeaverGenerator {
      * @param heading       direction the sweep runs in, in radians
      * @return the indices in sweep order
      */
-    private static int[] sortedAlong(List<Point> targets, int[] indices, Point previousPoint, double heading) {
+    private static int[] sortedAlong(List<TargetSpec> targets, int[] indices, Point previousPoint, double heading) {
         double directionX = Math.cos(heading);
         double directionY = Math.sin(heading);
         Integer[] order = new Integer[indices.length];
         double[] along = new double[indices.length];
 
         for (int k = 0; k < indices.length; k++) {
-            Point target = targets.get(indices[k]);
+            TargetSpec target = targets.get(indices[k]);
             along[k] = (target.getX() - previousPoint.getX()) * directionX
                     + (target.getY() - previousPoint.getY()) * directionY;
             order[k] = k;
@@ -1291,7 +1362,7 @@ public final class WeaverGenerator {
      * @param indices indices of the targets to average
      * @return the average position
      */
-    private static Point groupRepresentative(List<Point> targets, int[] indices) {
+    private static Point groupRepresentative(List<TargetSpec> targets, int[] indices) {
         double sumX = 0;
         double sumY = 0;
 
@@ -1356,19 +1427,19 @@ public final class WeaverGenerator {
      * @param config     geometry and tuning parameters
      * @return a new list containing only reachable targets
      */
-    private static List<Point> excludeBlockedTargets(
-            Point startPoint, List<Point> targets, List<Zone> obstacles, PathConfig config) {
+    private static List<TargetSpec> excludeBlockedTargets(
+            Point startPoint, List<TargetSpec> targets, List<Zone> obstacles, PathConfig config) {
         if (obstacles == null || obstacles.isEmpty()) {
             return targets;
         }
 
-        List<Point> reachableTargets = new ArrayList<>();
+        List<TargetSpec> reachableTargets = new ArrayList<>();
         Point previousPoint = startPoint;
 
-        for (Point target : targets) {
+        for (TargetSpec target : targets) {
             if (!isTargetBlocked(target, previousPoint, obstacles, config)) {
                 reachableTargets.add(target);
-                previousPoint = new Point(target.getX(), target.getY());
+                previousPoint = target.position();
             }
         }
 
@@ -1379,23 +1450,33 @@ public final class WeaverGenerator {
      * Checks whether stopping at {@code target} would put the robot inside or too
      * close to an obstacle.
      *
-     * @param target    target pose to test
+     * @param target    target specification to test
      * @param from      point the robot arrives from
      * @param obstacles zones to avoid
      * @param config    geometry and tuning parameters
      * @return {@code true} if the target is blocked
      */
-    private static boolean isTargetBlocked(Point target, Point from, List<Zone> obstacles, PathConfig config) {
-        Point targetPoint = new Point(target.getX(), target.getY());
+    private static boolean isTargetBlocked(TargetSpec target, Point from, List<Zone> obstacles, PathConfig config) {
+        double heading = target.hasLockedHeading() ? target.getHeadingRad() : bearing(from, target.position());
 
-        double heading = target.hasHeading()
-                ? target.getHeadingRad()
-                : Math.atan2(targetPoint.getY() - from.getY(), targetPoint.getX() - from.getX());
+        return isTargetBlocked(target.position(), heading, obstacles, config);
+    }
 
+    /**
+     * Checks whether a robot centered at {@code target} with {@code heading} would be
+     * inside or too close to an obstacle.
+     *
+     * @param target    robot-center point to test
+     * @param heading   robot heading at the point
+     * @param obstacles zones to avoid
+     * @param config    geometry and tuning parameters
+     * @return {@code true} if the point is blocked
+     */
+    private static boolean isTargetBlocked(Point target, double heading, List<Zone> obstacles, PathConfig config) {
         // Point-clearance test when the robot has no meaningful footprint.
         if (config.getRobotWidth() <= 0 || config.getRobotHeight() <= 0) {
             for (Zone zone : obstacles) {
-                if (zone.contains(targetPoint) || zone.distanceToBoundary(targetPoint) < config.getClearance()) {
+                if (zone.contains(target) || zone.distanceToBoundary(target) < config.getClearance()) {
                     return true;
                 }
             }
@@ -1403,7 +1484,7 @@ public final class WeaverGenerator {
             return false;
         }
 
-        Zone footprint = new PolygonZone(targetPoint, config.getRobotWidth(), config.getRobotHeight(), heading);
+        Zone footprint = new PolygonZone(target, config.getRobotWidth(), config.getRobotHeight(), heading);
 
         for (Zone zone : obstacles) {
             if (zone.isInside(footprint) || zone.distanceTo(footprint) < config.getClearance()) {
@@ -1431,6 +1512,53 @@ public final class WeaverGenerator {
         }
 
         return 0.0;
+    }
+
+    /**
+     * Returns the direction from {@code from} to the first of {@code targets} that is
+     * not on top of it.
+     *
+     * @param from    point travelled from
+     * @param targets candidate targets, in order
+     * @return the bearing in radians, or {@code 0} when every target coincides with
+     *         {@code from}
+     */
+    private static double firstTargetBearing(Point from, List<TargetSpec> targets) {
+        for (TargetSpec target : targets) {
+            if (from.distanceTo(target.position()) > 1e-6) {
+                return bearing(from, target.position());
+            }
+        }
+
+        return 0.0;
+    }
+
+    /**
+     * Builds the route, splitting it at every locked target so smoothing and obstacle
+     * avoidance preserve that target's heading.
+     *
+     * @param keyPoints       key points to connect, in order
+     * @param headings        heading in radians for each key point
+     * @param lockedKeyPoints whether each key point's heading is enforced
+     * @return the route
+     */
+    private static PathRoute buildRoute(List<Point> keyPoints, List<Double> headings, List<Boolean> lockedKeyPoints) {
+        List<PathCurve> segments = new ArrayList<>();
+        int spanStart = 0;
+
+        for (int i = 1; i < keyPoints.size(); i++) {
+            if (lockedKeyPoints.get(i) || i == keyPoints.size() - 1) {
+                segments.add(
+                        cubicHermiteChain(keyPoints.subList(spanStart, i + 1), headings.subList(spanStart, i + 1)));
+                spanStart = i;
+            }
+        }
+
+        if (segments.isEmpty()) {
+            segments.add(cubicHermiteChain(keyPoints, headings));
+        }
+
+        return new PathRoute(segments);
     }
 
     /**

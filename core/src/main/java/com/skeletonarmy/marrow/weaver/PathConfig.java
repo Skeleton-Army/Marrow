@@ -50,8 +50,8 @@ public class PathConfig {
     /**
      * When {@code true}, generated curves are re-fitted with continuous tangents so
      * corners are rounded and curvature stays gradual. Disable for the raw Hermite
-     * chain, which tracks target headings more tightly but turns more abruptly.
-     * Defaults on.
+     * chain, which turns more abruptly. Locked target headings are preserved either
+     * way; smoothing only controls how free tangents are estimated. Defaults on.
      */
     private boolean smoothing = true;
 
