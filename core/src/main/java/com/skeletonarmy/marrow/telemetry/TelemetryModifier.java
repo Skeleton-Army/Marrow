@@ -1,7 +1,6 @@
 package com.skeletonarmy.marrow.telemetry;
 
 import androidx.annotation.NonNull;
-import org.jetbrains.annotations.NotNull;
 
 public abstract class TelemetryModifier {
     /**
@@ -10,7 +9,7 @@ public abstract class TelemetryModifier {
      * @param s string to be formatted
      * @return formatted string in a single line
      */
-    @NotNull
+    @NonNull
     public abstract String format(String s);
 
     /**
@@ -22,5 +21,14 @@ public abstract class TelemetryModifier {
     @Override
     public final String toString() {
         return "";
+    }
+
+    /**
+     * Determines if the modifier is a block element, which needs to be applied last for HTML correctness.
+     *
+     * @return whether the modifier is a block element
+     */
+    public boolean isBlockElement() {
+        return false;
     }
 }

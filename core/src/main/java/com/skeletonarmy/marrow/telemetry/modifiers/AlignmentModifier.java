@@ -16,9 +16,14 @@ public class AlignmentModifier extends TelemetryModifier {
         return "<div style=\"text-align:" + alignment.toString().toLowerCase() + ";\">" + s + "</div>";
     }
 
+    @Override
+    public boolean isBlockElement() {
+        return true;
+    }
+
     public enum Alignment {
         NORMAL,
         CENTER,
-        END;
+        END
     }
 }

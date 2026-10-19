@@ -44,4 +44,18 @@ public class MultiConditionalModifier extends TelemetryModifier {
 
         return modifiers.get(index).format(s);
     }
+
+    @Override
+    public boolean isBlockElement() {
+        if (modifiers.isEmpty()) {
+            return defaultModifier != null && defaultModifier.isBlockElement();
+        }
+
+        int index = supplier.get();
+        if (index < 0 || index >= modifiers.size()) {
+            return defaultModifier != null && defaultModifier.isBlockElement();
+        }
+
+        return modifiers.get(index) != null && modifiers.get(index).isBlockElement();
+    }
 }

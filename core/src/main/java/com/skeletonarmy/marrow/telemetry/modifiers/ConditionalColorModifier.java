@@ -18,4 +18,9 @@ public class ConditionalColorModifier extends TelemetryModifier {
     public String format(String s) {
         return modifier.format(s);
     }
+
+    @Override
+    public boolean isBlockElement() {
+        return modifier.isBlockElement();
+    }
 }

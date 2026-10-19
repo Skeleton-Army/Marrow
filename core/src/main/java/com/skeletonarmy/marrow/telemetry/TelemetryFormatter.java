@@ -34,6 +34,7 @@ public class TelemetryFormatter {
     }
 
     public String format() {
+        modifiers.sort((m1, m2) -> Boolean.compare(m1.isBlockElement(), m2.isBlockElement()));
         String result = base;
         for (TelemetryModifier modifier : modifiers) {
             result = modifier.format(result);
