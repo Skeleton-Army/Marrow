@@ -28,6 +28,26 @@ import java.util.Map;
 public final class WeaverGenerator {
     private WeaverGenerator() {}
 
+    /**
+     * A leg that leaves more than this off its key point's heading is a turnaround rather
+     * than a bend: fitted straight through, the control handles collapse onto one line and
+     * the curve hooks back on itself.
+     */
+    private static final double TURNAROUND_ANGLE = Math.toRadians(60.0);
+
+    /**
+     * Tightest arc a turnaround is fitted at, in inches. Below this there is no point
+     * swinging out; the robot turns on the spot instead.
+     */
+    private static final double MIN_TURN_RADIUS = 1.0;
+
+    /**
+     * Shortest gap kept between two key points of one sweep, in inches. Targets packed
+     * closer than this share a key point: the intake passes over the whole cluster either
+     * way, and a span this short only hands the fitter a segment the robot cannot turn in.
+     */
+    private static final double MIN_KEY_POINT_GAP = 0.5;
+
     /** Targets collected in a single intake pass, and the direction the pass runs in. */
     private static final class TargetGroup {
         private final int[] indices;
@@ -480,6 +500,8 @@ public final class WeaverGenerator {
         double endHeading =
                 lastTarget.hasLockedHeading() ? lastTarget.getHeadingRad() : headings.get(headings.size() - 1);
 
+        applyTurnaround(keyPoints, headings, lockedKeyPoints, obstacles, config);
+
         PathRoute path = buildRoute(keyPoints, headings, lockedKeyPoints);
         path = finish(path, obstacles, config, true);
 
@@ -600,6 +622,127 @@ public final class WeaverGenerator {
         }
 
         return path;
+    }
+
+    /**
+     * Reworks every leg that turns around into waypoints the robot can actually follow.
+     * <p>
+     * A leg whose key point arrives along one direction and leaves along another cannot be
+     * fitted straight through: the control handles collapse onto one line and the curve
+     * hooks back on itself, so the tangent heading flips inside a fraction of an inch. How
+     * the first leg is resolved follows {@link TurnaroundPolicy}, since that is the one
+     * shaped by the start pose: {@link TurnaroundPolicy#ARC} swings out along an arc of a
+     * real radius, {@link TurnaroundPolicy#IN_PLACE} leaves along the line of travel so the
+     * follower rotates the robot onto the path where it stands. Interior legs only ever turn
+     * the robot round, so they are always arced. Either way the route still runs through
+     * every key point.
+     *
+     * @param keyPoints       key point list to extend
+     * @param headings        heading list to extend
+     * @param lockedKeyPoints lock flags to extend
+     * @param obstacles       zones to avoid; may be {@code null}
+     * @param config          geometry and tuning parameters
+     */
+    private static void applyTurnaround(
+            List<Point> keyPoints,
+            List<Double> headings,
+            List<Boolean> lockedKeyPoints,
+            List<Zone> obstacles,
+            PathConfig config) {
+        int index = 0;
+
+        while (index + 1 < keyPoints.size()) {
+            Point from = keyPoints.get(index);
+            Point to = keyPoints.get(index + 1);
+            double travel = bearing(from, to);
+
+            if (Math.abs(normalizeAngle(travel - headings.get(index))) < TURNAROUND_ANGLE) {
+                index++;
+                continue;
+            }
+
+            // The pose's own heading is what the policy is about; an interior key point is
+            // only ever turned round, so it keeps its arc whichever way that is set.
+            if (index == 0 && config.getTurnaround() == TurnaroundPolicy.IN_PLACE) {
+                headings.set(0, travel);
+                index++;
+                continue;
+            }
+
+            // Swing as wide as a quarter of the footprint allows, and never wider than the
+            // leg itself has room for: circles that close together have no crossing tangent.
+            double swing = Math.max(Math.max(config.getRobotWidth(), config.getRobotHeight()), 1.0) / 4.0;
+            double radius = Math.min(swing, from.distanceTo(to) / 2.5);
+            List<Point> arc = radius < MIN_TURN_RADIUS
+                    ? null
+                    : TurnaroundPath.build(from, headings.get(index), to, travel, radius);
+
+            if (arc == null || arc.isEmpty()) {
+                // Too short to swing out in: leave along the line of travel rather than
+                // hooking.
+                headings.set(index, travel);
+                index++;
+                continue;
+            }
+
+            // An arc the robot does not fit is no better than the hook it replaces, so keep
+            // the leg as fitted and leave the swing to the obstacle pass.
+            if (!fits(keyPoints.get(index), arc, obstacles, config)) {
+                index++;
+                continue;
+            }
+
+            for (int i = 0; i < arc.size(); i++) {
+                keyPoints.add(index + 1 + i, arc.get(i));
+                headings.add(index + 1 + i, arc.get(i).getHeadingRad());
+                lockedKeyPoints.add(index + 1 + i, false);
+            }
+
+            index += arc.size() + 1;
+        }
+    }
+
+    /**
+     * Checks whether the robot fits along a run of waypoints.
+     *
+     * @param start     point the run leaves from
+     * @param waypoints waypoints of the run
+     * @param obstacles zones to avoid; when {@code null} there is nothing to fit between
+     * @param config    geometry and tuning parameters
+     * @return {@code true} when every waypoint is clear
+     */
+    private static boolean fits(Point start, List<Point> waypoints, List<Zone> obstacles, PathConfig config) {
+        if (obstacles == null || obstacles.isEmpty()) {
+            return true;
+        }
+
+        for (Point waypoint : waypoints) {
+            if (isTargetBlocked(waypoint, waypoint.getHeadingRad(), obstacles, config)) {
+                return false;
+            }
+        }
+
+        return !isTargetBlocked(start, waypoints.get(0).getHeadingRad(), obstacles, config);
+    }
+
+    /**
+     * Wraps an angle onto {@code (-pi, pi]}.
+     *
+     * @param angle angle in radians
+     * @return the equivalent angle in {@code (-pi, pi]}
+     */
+    private static double normalizeAngle(double angle) {
+        // Wrapped by remainder rather than by stepping: a heading supplied in the tens of
+        // billions of radians would otherwise take billions of turns to bring under pi.
+        double normalized = angle % (2 * Math.PI);
+
+        if (normalized > Math.PI) {
+            normalized -= 2 * Math.PI;
+        } else if (normalized <= -Math.PI) {
+            normalized += 2 * Math.PI;
+        }
+
+        return normalized;
     }
 
     /**
@@ -762,7 +905,15 @@ public final class WeaverGenerator {
             List<Boolean> lockedKeyPoints) {
         List<Point> sweep = sweepKeyPoints(targets, groupIndices, previousPoint, heading);
 
-        for (Point point : sweep) {
+        for (int i = 0; i < sweep.size(); i++) {
+            Point point = sweep.get(i);
+
+            // Everything after the group's first point has to earn its own key point:
+            // targets packed this tight are swept up in one pass regardless.
+            if (i > 0 && lastOf(keyPoints).distanceTo(point) < MIN_KEY_POINT_GAP) {
+                continue;
+            }
+
             appendKeyPoint(keyPoints, headings, lockedKeyPoints, point, heading, false);
         }
 

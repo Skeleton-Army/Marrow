@@ -56,6 +56,12 @@ public class PathConfig {
     private boolean smoothing = true;
 
     /**
+     * How a route turns around when the heading it has to leave with points away from
+     * where it has to go. See {@link TurnaroundPolicy}.
+     */
+    private TurnaroundPolicy turnaround = TurnaroundPolicy.ARC;
+
+    /**
      * Weight applied to turning cost when ordering waypoints. Raise to prefer
      * straighter routes over shorter distance.
      */
@@ -188,6 +194,27 @@ public class PathConfig {
     }
 
     /**
+     * Returns how routes turn around when the requested heading points away from the
+     * route.
+     *
+     * @return the turnaround policy
+     */
+    public TurnaroundPolicy getTurnaround() {
+        return turnaround;
+    }
+
+    /**
+     * Sets how routes turn around when the requested heading points away from the route.
+     *
+     * @param v the turnaround policy
+     * @return this config, for chaining
+     */
+    public PathConfig turnaround(TurnaroundPolicy v) {
+        this.turnaround = v;
+        return this;
+    }
+
+    /**
      * Returns the weight applied to turning cost when ordering waypoints.
      *
      * @return the turn cost weight
@@ -234,13 +261,15 @@ public class PathConfig {
         return String.format(
                 Locale.ROOT,
                 "PathConfig(intakeWidth=%.3f, robotWidth=%.3f, robotHeight=%.3f, clearance=%.3f, "
-                        + "excludeBlockedTargets=%s, smoothing=%s, turnCostWeight=%.3f, bruteForceOrderLimit=%d)",
+                        + "excludeBlockedTargets=%s, smoothing=%s, turnaround=%s, turnCostWeight=%.3f, "
+                        + "bruteForceOrderLimit=%d)",
                 intakeWidth,
                 robotWidth,
                 robotHeight,
                 clearance,
                 excludeBlockedTargets,
                 smoothing,
+                turnaround,
                 turnCostWeight,
                 bruteForceOrderLimit);
     }

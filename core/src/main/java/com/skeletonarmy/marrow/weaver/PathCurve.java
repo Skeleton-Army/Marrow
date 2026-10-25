@@ -12,6 +12,15 @@ import java.util.Locale;
  * An immutable Bézier curve defined by a list of control points.
  */
 public class PathCurve {
+    /**
+     * Smallest derivative treated as a direction: below this the control points coincide
+     * and the tangent carries no heading of its own.
+     */
+    private static final double TANGENT_EPSILON = 1e-9;
+
+    /** Parameter step used to recover a direction from a curve with no derivative. */
+    private static final double TANGENT_STEP = 1e-4;
+
     private final List<Point> controlPoints;
     private final int cubicSegmentCount;
 
@@ -192,6 +201,11 @@ public class PathCurve {
 
     /**
      * Returns the tangent heading at parameter {@code t}.
+     * <p>
+     * A curve whose control points sit on top of each other has no direction of its own at
+     * that spot: rather than report the {@code atan2(0, 0)} that would send a follower
+     * swinging to a heading of zero, the direction is taken across a small step of the
+     * curve. A curve that does not move at all reports {@code 0}.
      *
      * @param t parameter in {@code [0, 1]}
      * @return the tangent heading in radians
@@ -199,7 +213,19 @@ public class PathCurve {
     public double getHeading(double t) {
         Point tangent = derivative(t);
 
-        return Math.atan2(tangent.getY(), tangent.getX());
+        if (Math.abs(tangent.getX()) > TANGENT_EPSILON || Math.abs(tangent.getY()) > TANGENT_EPSILON) {
+            return Math.atan2(tangent.getY(), tangent.getX());
+        }
+
+        Point from = get(Math.max(0, t - TANGENT_STEP));
+        Point to = get(Math.min(1, t + TANGENT_STEP));
+
+        if (Math.abs(to.getX() - from.getX()) > TANGENT_EPSILON
+                || Math.abs(to.getY() - from.getY()) > TANGENT_EPSILON) {
+            return Math.atan2(to.getY() - from.getY(), to.getX() - from.getX());
+        }
+
+        return 0.0;
     }
 
     /**

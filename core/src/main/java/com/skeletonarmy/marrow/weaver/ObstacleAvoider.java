@@ -44,6 +44,13 @@ public class ObstacleAvoider {
     private static final double SEED_PAD = 0.75;
 
     /**
+     * Shortest chord a tangent estimate will stand on, in the units of the route. Targets
+     * packed closer than this give bearings that are mostly noise, so the stencil widens
+     * until the chord spans this far.
+     */
+    private static final double MIN_TANGENT_BASELINE = 1.0;
+
+    /**
      * Clearance that a route endpoint cannot meet itself, forgiven on the segments
      * that start or end there.
      * <p>
@@ -1011,27 +1018,101 @@ public class ObstacleAvoider {
 
     /**
      * Estimates the heading at route point {@code i} from its neighbors. End points
-     * use the single adjacent segment; interior points use a central difference.
+     * use the nearest point far enough away to measure a direction over; interior points
+     * use a central difference, widened until its chord spans that baseline.
+     * <p>
+     * Targets packed closer than the baseline give bearings that say more about how the
+     * points sit than about which way the route runs, so a stencil one hop wide would
+     * hand the fit a heading swung at random.
      *
      * @param route waypoints
      * @param i     index of the point to evaluate
      * @return the estimated heading in radians
      */
     private static double headingAt(List<Point> route, int i) {
-        if (i == 0) {
-            return Math.atan2(
-                    route.get(1).getY() - route.get(0).getY(),
-                    route.get(1).getX() - route.get(0).getX());
+        int last = route.size() - 1;
+
+        if (i <= 0) {
+            for (int k = 1; k <= last; k++) {
+                if (route.get(0).distanceTo(route.get(k)) >= MIN_TANGENT_BASELINE) {
+                    return direction(route.get(0), route.get(k));
+                }
+            }
+
+            return direction(route.get(0), route.get(last));
         }
 
-        if (i == route.size() - 1) {
-            return Math.atan2(
-                    route.get(i).getY() - route.get(i - 1).getY(),
-                    route.get(i).getX() - route.get(i - 1).getX());
+        if (i >= last) {
+            for (int k = last - 1; k >= 0; k--) {
+                if (route.get(k).distanceTo(route.get(last)) >= MIN_TANGENT_BASELINE) {
+                    return direction(route.get(k), route.get(last));
+                }
+            }
+
+            return direction(route.get(0), route.get(last));
         }
 
-        return Math.atan2(
-                route.get(i + 1).getY() - route.get(i - 1).getY(),
-                route.get(i + 1).getX() - route.get(i - 1).getX());
+        for (int step = 1; step <= i && step + i <= last; step++) {
+            Point before = route.get(i - step);
+            Point after = route.get(i + step);
+
+            if (before.distanceTo(after) >= MIN_TANGENT_BASELINE) {
+                return cornerTangent(before, route.get(i), after);
+            }
+        }
+
+        // The whole route is shorter than the baseline: take the widest stencil there is.
+        int step = Math.min(i, last - i);
+        return cornerTangent(route.get(i - step), route.get(i), route.get(i + step));
+    }
+
+    /**
+     * Returns the tangent at the middle of three route points, splitting any corner
+     * between them in proportion to the leg on each side.
+     * <p>
+     * The chord from the point before to the point after leans toward whichever leg is
+     * longer, which drags the fitted tangent onto the far side of the corner before the
+     * route has travelled the short leg to get there. Weighting each direction by the
+     * opposite leg instead spends the turn over both of them, so neither span has to turn
+     * tighter than the corner needs.
+     *
+     * @param before point arriving from
+     * @param point  point being estimated
+     * @param after  point leaving for
+     * @return the tangent heading in radians
+     */
+    private static double cornerTangent(Point before, Point point, Point after) {
+        double incomingX = point.getX() - before.getX();
+        double incomingY = point.getY() - before.getY();
+        double outgoingX = after.getX() - point.getX();
+        double outgoingY = after.getY() - point.getY();
+        double incomingLength = Math.hypot(incomingX, incomingY);
+        double outgoingLength = Math.hypot(outgoingX, outgoingY);
+
+        // A leg of no length carries no direction to lean on: fall back to the chord.
+        if (incomingLength < 1e-9 || outgoingLength < 1e-9) {
+            return direction(before, after);
+        }
+
+        double x = incomingX * outgoingLength + outgoingX * incomingLength;
+        double y = incomingY * outgoingLength + outgoingY * incomingLength;
+
+        // Opposite legs exactly: a corner that never turns back leaves nothing to split.
+        if (Math.hypot(x, y) < 1e-9) {
+            return direction(before, after);
+        }
+
+        return Math.atan2(y, x);
+    }
+
+    /**
+     * Returns the direction pointing from one point to another.
+     *
+     * @param from point travelled from
+     * @param to   point travelled to
+     * @return the bearing in radians
+     */
+    private static double direction(Point from, Point to) {
+        return Math.atan2(to.getY() - from.getY(), to.getX() - from.getX());
     }
 }
