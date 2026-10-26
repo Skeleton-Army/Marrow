@@ -629,13 +629,9 @@ public final class WeaverGenerator {
      * <p>
      * A leg whose key point arrives along one direction and leaves along another cannot be
      * fitted straight through: the control handles collapse onto one line and the curve
-     * hooks back on itself, so the tangent heading flips inside a fraction of an inch. How
-     * the first leg is resolved follows {@link TurnaroundPolicy}, since that is the one
-     * shaped by the start pose: {@link TurnaroundPolicy#ARC} swings out along an arc of a
-     * real radius, {@link TurnaroundPolicy#IN_PLACE} leaves along the line of travel so the
-     * follower rotates the robot onto the path where it stands. Interior legs only ever turn
-     * the robot round, so they are always arced. Either way the route still runs through
-     * every key point.
+     * hooks back on itself, so the tangent heading flips inside a fraction of an inch.
+     * Every such leg swings out along an arc of a real radius, so the route still runs
+     * through every key point and the start pose's own heading shapes the first leg.
      *
      * @param keyPoints       key point list to extend
      * @param headings        heading list to extend
@@ -657,14 +653,6 @@ public final class WeaverGenerator {
             double travel = bearing(from, to);
 
             if (Math.abs(normalizeAngle(travel - headings.get(index))) < TURNAROUND_ANGLE) {
-                index++;
-                continue;
-            }
-
-            // The pose's own heading is what the policy is about; an interior key point is
-            // only ever turned round, so it keeps its arc whichever way that is set.
-            if (index == 0 && config.getTurnaround() == TurnaroundPolicy.IN_PLACE) {
-                headings.set(0, travel);
                 index++;
                 continue;
             }

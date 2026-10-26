@@ -77,12 +77,8 @@ public class WeaverTurnaroundTest {
         return Arrays.asList(new Point(24, 62), new Point(24.4, 61.7), new Point(23.7, 61.9), new Point(24.1, 62.3));
     }
 
-    private static PathResult generateFacingAway(TurnaroundPolicy policy) {
-        Weaver.setConfig(new PathConfig()
-                .intakeWidth(13.0)
-                .robotWidth(17.0)
-                .robotHeight(16.0)
-                .turnaround(policy));
+    private static PathResult generateFacingAway() {
+        Weaver.setConfig(new PathConfig().intakeWidth(13.0).robotWidth(17.0).robotHeight(16.0));
 
         return Weaver.builder()
                 .start(new Point(24, 70, Math.toRadians(90.0)))
@@ -95,7 +91,7 @@ public class WeaverTurnaroundTest {
     public void generate_startFacingAway_turnsAroundOnARealArc() {
         // Arrange: the robot faces north with its targets behind it, which used to fit a
         // hook whose tangent flipped within a fraction of an inch.
-        PathResult actual = generateFacingAway(TurnaroundPolicy.ARC);
+        PathResult actual = generateFacingAway();
 
         // Act
         PathRoute route = actual.getPath();
@@ -104,23 +100,6 @@ public class WeaverTurnaroundTest {
         // wide enough for the robot to follow.
         assertEquals(Math.PI / 2, route.getHeading(0.0), 1e-9);
         assertTrue("worst turn " + worstTurnRadius(route), worstTurnRadius(route) >= 1.0);
-    }
-
-    @Test
-    public void generate_startFacingAway_inPlaceLeavesStraightForTheTargets() {
-        // Arrange
-        PathResult actual = generateFacingAway(TurnaroundPolicy.IN_PLACE);
-
-        // Act
-        PathRoute route = actual.getPath();
-        double direct = route.get(0).distanceTo(route.get(route.getSegmentCount()));
-
-        // Assert: no swing out, the path leaves along the line of travel for the follower
-        // to rotate the robot onto, and it stays close to the distance asked for. The line
-        // it leaves along is the bearing to the first key point, which sits a touch off the
-        // straight south the capture point puts it on.
-        assertEquals(-Math.PI / 2, route.getHeading(0.0), 0.05);
-        assertTrue("length " + route.approxLength(2000) + " direct " + direct, route.approxLength(2000) < direct * 1.3);
     }
 
     @Test
