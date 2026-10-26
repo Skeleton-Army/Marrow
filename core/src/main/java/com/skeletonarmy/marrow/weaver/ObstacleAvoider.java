@@ -12,16 +12,13 @@ import java.util.List;
 
 /**
  * Bends and smooths generated paths so they clear obstacles.
- * <p>
- * The avoider works on the control points of the incoming curve chain. For each
- * segment it samples the obstacle boundaries into candidate waypoints, runs a
- * visibility-graph shortest path through them, then re-fits a smooth cubic chain
- * through the result. If a first attempt is still too tight, it retries with extra
- * padding, and finally falls back to the original curve when nothing works.
+ *
+ * <p>Each segment is bypassed through candidate waypoints sampled around obstacle
+ * boundaries, using a visibility-graph shortest path. The result is re-fitted as a
+ * smooth cubic chain. If the first attempt is too tight, the clearance is inflated
+ * and the attempt repeated; if nothing fits, the original curve is kept.
  */
 public class ObstacleAvoider {
-    private ObstacleAvoider() {}
-
     /** Number of points sampled around a circular obstacle. */
     private static final int CIRCLE_SAMPLES = 24;
 
@@ -43,23 +40,14 @@ public class ObstacleAvoider {
     /** Extra seed padding added to sampled boundary points. */
     private static final double SEED_PAD = 0.75;
 
-    /**
-     * Shortest chord a tangent estimate will stand on, in the units of the route. Targets
-     * packed closer than this give bearings that are mostly noise, so the stencil widens
-     * until the chord spans this far.
-     */
+    /** Shortest chord a tangent estimate will stand on, in route units. */
     private static final double MIN_TANGENT_BASELINE = 1.0;
 
+    private ObstacleAvoider() {}
+
     /**
-     * Clearance that a route endpoint cannot meet itself, forgiven on the segments
-     * that start or end there.
-     * <p>
-     * A robot that starts or stops close to an obstacle cannot keep the full margin
-     * from it while leaving or reaching that spot. On a segment touching the
-     * endpoint, the margin required from each obstacle is capped at the endpoint's
-     * own distance to that obstacle. Obstacles the endpoint is not close to keep
-     * their full margin, and an obstacle containing the endpoint is ignored, since no
-     * segment touching the endpoint can avoid it.
+     * Clearance that an endpoint cannot meet itself, forgiven on segments touching it.
+     * An obstacle containing the endpoint is ignored.
      */
     private static final class EndpointRelief {
         private final Point endpoint;
@@ -70,13 +58,6 @@ public class ObstacleAvoider {
             this.marginCaps = marginCaps;
         }
 
-        /**
-         * Measures the relief an endpoint needs from each obstacle.
-         *
-         * @param endpoint  route endpoint
-         * @param obstacles zones the route must clear
-         * @return the endpoint's relief
-         */
         static EndpointRelief at(Point endpoint, List<Zone> obstacles) {
             double[] marginCaps = new double[obstacles.size()];
 
@@ -88,34 +69,15 @@ public class ObstacleAvoider {
             return new EndpointRelief(endpoint, marginCaps);
         }
 
-        /**
-         * @param obstacleIndex index of the obstacle in the list the relief was measured against
-         * @return the largest margin that obstacle may require on a segment touching
-         *         the endpoint; negative infinity when the endpoint is inside it
-         */
         double marginCap(int obstacleIndex) {
             return marginCaps[obstacleIndex];
         }
 
-        /**
-         * @param point point to compare
-         * @return {@code true} if {@code point} is this relief's endpoint
-         */
         boolean isAt(Point point) {
             return endpoint.distanceTo(point) < 1e-9;
         }
     }
 
-    /**
-     * Returns the reliefs of the endpoints a visibility edge touches.
-     *
-     * @param from     index of one edge node
-     * @param to       index of the other edge node
-     * @param startIdx index of the start node
-     * @param endIdx   index of the end node
-     * @param reliefs  reliefs of the start node and the end node, in that order
-     * @return the reliefs that apply to the edge
-     */
     private static EndpointRelief[] edgeReliefs(int from, int to, int startIdx, int endIdx, EndpointRelief[] reliefs) {
         List<EndpointRelief> touching = new ArrayList<>();
 
@@ -130,37 +92,14 @@ public class ObstacleAvoider {
         return touching.toArray(new EndpointRelief[0]);
     }
 
-    /**
-     * Routes every segment of {@code path} around the given obstacles, keeping each
-     * segment's start and end tangent where a route fits with them (see
-     * {@link #avoid(PathRoute, List, PathConfig, boolean)}).
-     *
-     * @param path      route to reroute
-     * @param obstacles zones to avoid; when {@code null} or empty the route is returned unchanged
-     * @param config    geometry and tuning parameters
-     * @return the rerouted path
-     */
+    /** Routes every segment around the obstacles, keeping each segment's end tangents. */
     public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config) {
         return avoid(path, obstacles, config, true);
     }
 
     /**
-     * Routes every segment of {@code path} around the given obstacles.
-     * <p>
-     * With {@code keepEndTangents} false, a segment that has to be rerouted leaves
-     * along its first leg and arrives along its last, instead of along its original
-     * tangents. Use it when those tangents carry no meaning, such as a straight seed
-     * between two points: pinning the seed's bearing makes the rerouted curve set off
-     * toward the obstacle it is going around.
-     *
-     * @param path            route to reroute
-     * @param obstacles       zones to avoid; when {@code null} or empty the route is returned unchanged
-     * @param config          geometry and tuning parameters
-     * @param keepEndTangents {@code true} to keep each segment's start and end tangent.
-     *                        If no route fits with them, an end the robot can turn on
-     *                        the spot at leaves or arrives along its routed leg
-     *                        instead, so the robot turns there rather than collides
-     * @return the rerouted path
+     * Routes every segment around the obstacles. With {@code keepEndTangents} false,
+     * a rerouted segment leaves along its first leg and arrives along its last.
      */
     public static PathRoute avoid(PathRoute path, List<Zone> obstacles, PathConfig config, boolean keepEndTangents) {
         if (obstacles == null || obstacles.isEmpty()) {
@@ -174,19 +113,10 @@ public class ObstacleAvoider {
             routedSegments.add(routeCurve(segment, parts, config, keepEndTangents));
         }
 
-        return routedSegments.size() == 1
-                ? new PathRoute(Collections.singletonList(routedSegments.get(0)))
-                : new PathRoute(routedSegments);
+        return new PathRoute(routedSegments);
     }
 
-    /**
-     * Expands composite zones into their parts, recursively. Endpoint relief is
-     * measured per obstacle, so an endpoint inside one part of a composite must not
-     * excuse the route from the other parts.
-     *
-     * @param obstacles zones to expand
-     * @return the zones with every composite replaced by its parts
-     */
+    /** Expands composite zones recursively; relief is measured per individual part. */
     private static List<Zone> flatten(List<Zone> obstacles) {
         List<Zone> parts = new ArrayList<>();
 
@@ -201,14 +131,7 @@ public class ObstacleAvoider {
         return parts;
     }
 
-    /**
-     * Re-fits every segment through its original keypoints using continuous,
-     * central-difference tangents. Obstacle routing already smooths as a side
-     * effect of fitting; this applies the same treatment to obstacle-free paths.
-     *
-     * @param path route to smooth
-     * @return the smoothed path
-     */
+    /** Re-fits every segment through its key points using central-difference tangents. */
     public static PathRoute smooth(PathRoute path) {
         List<PathCurve> smoothedSegments = new ArrayList<>();
 
@@ -216,21 +139,18 @@ public class ObstacleAvoider {
             smoothedSegments.add(smoothCurve(segment));
         }
 
-        return smoothedSegments.size() == 1
-                ? new PathRoute(Collections.singletonList(smoothedSegments.get(0)))
-                : new PathRoute(smoothedSegments);
+        return new PathRoute(smoothedSegments);
     }
 
-    /**
-     * Smooths a single curve by extracting its keypoints and re-fitting them with
-     * central-difference tangents.
-     *
-     * @param curve curve to smooth
-     * @return the smoothed curve
-     */
     private static PathCurve smoothCurve(PathCurve curve) {
-        List<PathCurve> cubicSegments = curve.toCubicSegments();
+        List<Point> keypoints = keyPoints(curve);
 
+        return fit(keypoints, curve.getHeading(0.0), curve.getHeading(1.0), true);
+    }
+
+    /** Returns the control points that begin and end each cubic in a curve chain. */
+    private static List<Point> keyPoints(PathCurve curve) {
+        List<PathCurve> cubicSegments = curve.toCubicSegments();
         List<Point> keypoints = new ArrayList<>();
         keypoints.add(cubicSegments.get(0).getControlPoints().get(0));
 
@@ -239,17 +159,10 @@ public class ObstacleAvoider {
             keypoints.add(controlPoints.get(controlPoints.size() - 1));
         }
 
-        return fitSmooth(keypoints, curve.getHeading(0.0), curve.getHeading(1.0));
+        return keypoints;
     }
 
-    /**
-     * Returns the radius of the robot footprint in the direction of
-     * {@code relativeAngle}, measured from the robot center.
-     *
-     * @param relativeAngle direction to measure, relative to the robot heading
-     * @param config        geometry parameters
-     * @return the footprint radius in that direction
-     */
+    /** Returns the footprint radius in the direction {@code relativeAngle}. */
     private static double footprintRadius(double relativeAngle, PathConfig config) {
         double halfWidth = config.getRobotWidth() / 2.0;
         double halfHeight = config.getRobotHeight() / 2.0;
@@ -257,14 +170,7 @@ public class ObstacleAvoider {
         return halfWidth * Math.abs(Math.cos(relativeAngle)) + halfHeight * Math.abs(Math.sin(relativeAngle));
     }
 
-    /**
-     * Estimates the direction pointing away from the obstacle at point {@code p}
-     * using a central-difference gradient of the signed distance.
-     *
-     * @param zone obstacle being measured
-     * @param p    point to evaluate at
-     * @return the outward angle in radians
-     */
+    /** Estimates the outward direction of {@code zone} at {@code p}. */
     private static double obstacleDirection(Zone zone, Point p) {
         double gradientX = (signedDist(zone, new Point(p.getX() + GRADIENT_EPS, p.getY()))
                         - signedDist(zone, new Point(p.getX() - GRADIENT_EPS, p.getY())))
@@ -281,65 +187,27 @@ public class ObstacleAvoider {
         return Math.atan2(gradientY, gradientX);
     }
 
-    /**
-     * Computes how far {@code p} must be from {@code zone}, given the robot heading.
-     * The footprint radius is measured toward the obstacle, so the required margin
-     * grows when the robot presents a corner rather than a flat side.
-     *
-     * @param p       robot-center point to test
-     * @param heading robot heading in radians
-     * @param zone    obstacle to clear
-     * @param config  geometry parameters
-     * @param extra   additional padding added to the margin
-     * @return the required clearance
-     */
     private static double requiredMargin(Point p, double heading, Zone zone, PathConfig config, double extra) {
         double relativeAngle = obstacleDirection(zone, p) - heading;
 
         return footprintRadius(relativeAngle, config) + config.getClearance() + extra;
     }
 
-    /**
-     * Routes a single curve around obstacles.
-     * <p>
-     * Candidate waypoints are collected around the obstacle boundaries and a
-     * smooth path is fitted through the shortest visible route. If the fitted curve
-     * still clips an obstacle, the padding is increased and the attempt repeated. If
-     * no attempt fits with the curve's own end tangents, the routes are fitted again
-     * leaving or arriving along their first or last leg, at ends where the robot can
-     * turn on the spot.
-     *
-     * @param sourceCurve     curve to reroute
-     * @param obstacles       zones to avoid
-     * @param config          geometry and tuning parameters
-     * @param keepEndTangents {@code true} to keep the curve's start and end tangent;
-     *                        {@code false} to leave and arrive along the routed legs
-     * @return the rerouted curve, or the original curve when routing fails
-     */
     private static PathCurve routeCurve(
             PathCurve sourceCurve, List<Zone> obstacles, PathConfig config, boolean keepEndTangents) {
         // NaN lets the fit take its end headings from the routed legs.
         double startHeading = keepEndTangents ? sourceCurve.getHeading(0.0) : Double.NaN;
         double endHeading = keepEndTangents ? sourceCurve.getHeading(1.0) : Double.NaN;
-        List<PathCurve> cubicSegments = sourceCurve.toCubicSegments();
+        List<Point> keypoints = keyPoints(sourceCurve);
 
-        List<Point> keypoints = new ArrayList<>();
-        keypoints.add(cubicSegments.get(0).getControlPoints().get(0));
-
-        for (PathCurve cubic : cubicSegments) {
-            List<Point> controlPoints = cubic.getControlPoints();
-            keypoints.add(controlPoints.get(controlPoints.size() - 1));
-        }
-
-        // The key points are where the robot has to go, so their own tight spots are
-        // forgiven near them; points added to route around obstacles get no relief.
+        // Key points are real destinations, so their own tight spots are forgiven near
+        // them; waypoints added to route around obstacles get no relief.
         List<EndpointRelief> reliefs = new ArrayList<>();
 
         for (Point keypoint : keypoints) {
             reliefs.add(EndpointRelief.at(keypoint, obstacles));
         }
 
-        // A curve that already clears everything is kept as it is, headings included.
         if (isCurveClear(sourceCurve, obstacles, config, reliefs)) {
             return sourceCurve;
         }
@@ -355,14 +223,12 @@ public class ObstacleAvoider {
             }
 
             routes.add(waypoints);
-
-            PathCurve curve = fitSmooth(waypoints, startHeading, endHeading);
+            PathCurve curve = fit(waypoints, startHeading, endHeading, true);
 
             if (isCurveClear(curve, obstacles, config, reliefs)) {
                 return curve;
             }
 
-            // Nothing fit, so keep the robot further away and try again.
             padding += 0.5;
         }
 
@@ -370,9 +236,8 @@ public class ObstacleAvoider {
             return sourceCurve;
         }
 
-        // The kept tangents never fit: bending round an obstacle near an end can swing
-        // the footprint into it while turning from the kept tangent onto the routed leg.
-        // Where the robot can turn on the spot instead, leave or arrive along the leg.
+        // A kept tangent can swing the footprint into an obstacle near an end. Where the
+        // robot can turn on the spot instead, leave or arrive along the routed leg.
         if (keepEndTangents) {
             for (List<Point> waypoints : routes) {
                 PathCurve curve = fitAlongLegs(waypoints, startHeading, endHeading, obstacles, config, reliefs);
@@ -383,22 +248,12 @@ public class ObstacleAvoider {
             }
         }
 
-        return buildPath(routes.get(0), startHeading, endHeading);
+        return fit(routes.get(0), startHeading, endHeading, false);
     }
 
     /**
-     * Fits {@code route} with an end tangent replaced by the direction of the routed
-     * leg at that end: the start alone, then the end alone, then both. An end is only
-     * changed where the robot can turn on the spot from one direction to the other
-     * (see {@link #isTurnClear}).
-     *
-     * @param route        waypoints to fit through
-     * @param startHeading kept start tangent in radians
-     * @param endHeading   kept end tangent in radians
-     * @param obstacles    zones to avoid
-     * @param config       geometry parameters
-     * @param reliefs      one relief per key point of the route
-     * @return the first curve that clears every obstacle, or {@code null} if none does
+     * Tries replacing an end tangent with the routed leg's direction: start, end, then
+     * both. An end is only changed where the robot can turn on the spot.
      */
     private static PathCurve fitAlongLegs(
             List<Point> route,
@@ -427,7 +282,7 @@ public class ObstacleAvoider {
         }
 
         for (double[] tangents : tangentPairs) {
-            PathCurve curve = fitSmooth(route, tangents[0], tangents[1]);
+            PathCurve curve = fit(route, tangents[0], tangents[1], true);
 
             if (isCurveClear(curve, obstacles, config, reliefs)) {
                 return curve;
@@ -438,25 +293,14 @@ public class ObstacleAvoider {
     }
 
     /**
-     * Checks that the robot can turn on the spot at {@code p}, the short way round,
-     * from one heading to another. During the turn the footprint may come no closer
-     * to an obstacle than the required margin, or than it already is at either end of
-     * the turn when that is closer.
-     *
-     * @param p           robot-center point
-     * @param fromHeading heading before the turn, in radians
-     * @param toHeading   heading after the turn, in radians
-     * @param obstacles   zones to test against
-     * @param config      geometry parameters
-     * @return {@code true} if the turn keeps clear
+     * Checks that the robot can turn on the spot at {@code p} from one heading to the
+     * other, allowing the footprint to come no closer than it already is at either end.
      */
     static boolean isTurnClear(Point p, double fromHeading, double toHeading, List<Zone> obstacles, PathConfig config) {
         double turn = Math.IEEEremainder(toHeading - fromHeading, 2 * Math.PI);
         double halfDiagonal = Math.hypot(config.getRobotWidth() / 2.0, config.getRobotHeight() / 2.0);
 
         for (Zone zone : obstacles) {
-            // The footprint reaches furthest toward the obstacle at one end of the turn,
-            // unless a corner swings past the obstacle on the way.
             if (!cornerSwingsPast(obstacleDirection(zone, p) - fromHeading, turn, config)) {
                 continue;
             }
@@ -474,23 +318,13 @@ public class ObstacleAvoider {
         return true;
     }
 
-    /**
-     * Checks whether a corner of the footprint points in a given direction at some
-     * point of a turn, where the footprint reaches its half diagonal that way.
-     *
-     * @param relativeAngle direction to check, relative to the heading at the start of
-     *                      the turn, in radians
-     * @param turn          signed turn, in radians
-     * @param config        geometry parameters
-     * @return {@code true} if a corner points in that direction during the turn
-     */
     private static boolean cornerSwingsPast(double relativeAngle, double turn, PathConfig config) {
         // Turning by turn moves the direction, relative to the robot, by -turn.
         double low = Math.min(relativeAngle, relativeAngle - turn);
         double high = Math.max(relativeAngle, relativeAngle - turn);
         double cornerAngle = Math.atan2(config.getRobotHeight(), config.getRobotWidth());
 
-        // The corners point along plus or minus cornerAngle, repeating every half turn.
+        // Corners point along +-cornerAngle, repeating every half turn.
         for (double corner : new double[] {cornerAngle, -cornerAngle}) {
             double firstAtOrAboveLow = corner + Math.ceil((low - corner) / Math.PI) * Math.PI;
 
@@ -502,32 +336,20 @@ public class ObstacleAvoider {
         return false;
     }
 
-    /**
-     * Builds a full list of waypoints by routing each original keypoint-to-keypoint
-     * segment and concatenating the pieces.
-     *
-     * @param keypoints original key points to connect, in order
-     * @param obstacles zones to avoid
-     * @param config    geometry and tuning parameters
-     * @param extra     additional padding to keep from obstacles
-     * @return the combined waypoints, or {@code null} if any segment cannot be routed
-     */
     private static List<Point> collectWaypoints(
             List<Point> keypoints, List<Zone> obstacles, PathConfig config, double extra) {
         List<Point> waypoints = new ArrayList<>();
         waypoints.add(keypoints.get(0));
 
         for (int i = 0; i < keypoints.size() - 1; i++) {
-            Point segmentStart = keypoints.get(i);
-            Point segmentEnd = keypoints.get(i + 1);
-
-            List<Point> segmentWaypoints = routeSegmentWaypoints(segmentStart, segmentEnd, obstacles, config, extra);
+            List<Point> segmentWaypoints =
+                    routeSegmentWaypoints(keypoints.get(i), keypoints.get(i + 1), obstacles, config, extra);
 
             if (segmentWaypoints == null) {
                 return null;
             }
 
-            // Skip the shared start point; it was already added.
+            // The shared start point was already added.
             for (int k = 1; k < segmentWaypoints.size(); k++) {
                 waypoints.add(segmentWaypoints.get(k));
             }
@@ -536,21 +358,6 @@ public class ObstacleAvoider {
         return waypoints;
     }
 
-    /**
-     * Routes one straight segment, returning a list of points that begins at
-     * {@code start} and ends at {@code end}.
-     * <p>
-     * If the segment is already clear, the segment endpoints are returned unchanged.
-     * Clearance that an endpoint itself cannot meet is forgiven near that endpoint,
-     * and an obstacle containing an endpoint is ignored (see {@link EndpointRelief}).
-     *
-     * @param start     segment start point
-     * @param end       segment end point
-     * @param obstacles zones to avoid
-     * @param config    geometry and tuning parameters
-     * @param extra     additional padding to keep from obstacles
-     * @return the waypoints of the routed segment, or {@code null} if no route exists
-     */
     private static List<Point> routeSegmentWaypoints(
             Point start, Point end, List<Zone> obstacles, PathConfig config, double extra) {
         EndpointRelief[] reliefs = {EndpointRelief.at(start, obstacles), EndpointRelief.at(end, obstacles)};
@@ -561,7 +368,7 @@ public class ObstacleAvoider {
 
         double approxHeading = Math.atan2(end.getY() - start.getY(), end.getX() - start.getX());
 
-        // Node 0 is the start and node 1 is the end; the rest are obstacle boundary samples.
+        // Nodes 0 and 1 are the segment ends; the rest are boundary samples.
         List<Point> nodes = new ArrayList<>();
         nodes.add(start);
         nodes.add(end);
@@ -573,17 +380,6 @@ public class ObstacleAvoider {
         return shortestPath(0, 1, nodes, obstacles, config, extra, reliefs);
     }
 
-    /**
-     * Checks that a single point keeps enough distance from every obstacle.
-     *
-     * @param p         robot-center point to test
-     * @param heading   robot heading in radians
-     * @param obstacles zones to test against
-     * @param config    geometry parameters
-     * @param extra     additional padding to keep
-     * @param reliefs   endpoint reliefs that apply to this point
-     * @return {@code true} if the point has enough clearance
-     */
     private static boolean isPointClear(
             Point p,
             double heading,
@@ -591,8 +387,7 @@ public class ObstacleAvoider {
             PathConfig config,
             double extra,
             Iterable<EndpointRelief> reliefs) {
-        // No heading needs more than the footprint's half diagonal, so an obstacle at
-        // least that far away (plus clearance) is clear without working out its direction.
+        // No heading needs more than the footprint's half diagonal.
         double widestMargin =
                 Math.hypot(config.getRobotWidth() / 2.0, config.getRobotHeight() / 2.0) + config.getClearance() + extra;
 
@@ -618,24 +413,12 @@ public class ObstacleAvoider {
         return true;
     }
 
-    /**
-     * Checks a segment by sampling it and testing each sample point.
-     *
-     * @param start     segment start point
-     * @param end       segment end point
-     * @param obstacles zones to test against
-     * @param config    geometry parameters
-     * @param extra     additional padding to keep
-     * @param reliefs   reliefs of the endpoints this segment touches
-     * @return {@code true} if every sample is clear
-     */
     private static boolean isSegmentClear(
             Point start, Point end, List<Zone> obstacles, PathConfig config, double extra, EndpointRelief[] reliefs) {
         double heading = Math.atan2(end.getY() - start.getY(), end.getX() - start.getX());
 
         for (int i = 0; i <= SEGMENT_CHECKS; i++) {
             double progress = (double) i / SEGMENT_CHECKS;
-
             Point point = new Point(
                     start.getX() + (end.getX() - start.getX()) * progress,
                     start.getY() + (end.getY() - start.getY()) * progress);
@@ -648,17 +431,6 @@ public class ObstacleAvoider {
         return true;
     }
 
-    /**
-     * Checks that a fitted curve stays clear of every obstacle. A cubic that starts
-     * or ends on a key point is forgiven the clearance that key point cannot meet
-     * itself; cubics between routing waypoints get no relief.
-     *
-     * @param curve     curve to test
-     * @param obstacles zones to test against
-     * @param config    geometry parameters
-     * @param reliefs   one relief per key point of the route
-     * @return {@code true} if the curve stays clear
-     */
     private static boolean isCurveClear(
             PathCurve curve, List<Zone> obstacles, PathConfig config, List<EndpointRelief> reliefs) {
         for (PathCurve segment : curve.toCubicSegments()) {
@@ -686,33 +458,14 @@ public class ObstacleAvoider {
         return true;
     }
 
-    /**
-     * Returns the signed distance to a zone's boundary; negative when inside.
-     *
-     * @param zone zone to measure against
-     * @param p    point to measure
-     * @return the signed distance
-     */
+    /** Returns the signed distance to a zone's boundary; negative inside. */
     private static double signedDist(Zone zone, Point p) {
         double distance = zone.distanceToBoundary(p);
 
         return zone.contains(p) ? -Math.abs(distance) : distance;
     }
 
-    /**
-     * Samples candidate waypoints around the boundary of an obstacle, offset far
-     * enough out that the robot footprint plus clearance fits.
-     * <p>
-     * Circles are sampled uniformly. Polygons get points around each corner
-     * (sweeping the exterior angle) plus one point at each edge midpoint. Composite
-     * zones are sampled recursively.
-     *
-     * @param zone    obstacle whose boundary is sampled
-     * @param heading approximate travel direction, used to size the footprint offset
-     * @param config  geometry parameters
-     * @param extra   additional padding
-     * @return the sampled boundary waypoints
-     */
+    /** Samples candidate waypoints around an obstacle, offset by footprint and clearance. */
     private static List<Point> sampleBoundary(Zone zone, double heading, PathConfig config, double extra) {
         List<Point> points = new ArrayList<>();
         double clearance = config.getClearance();
@@ -725,7 +478,8 @@ public class ObstacleAvoider {
                 double angle = 2.0 * Math.PI * i / CIRCLE_SAMPLES;
                 double offset = footprintRadius(angle - heading, config) + clearance + extra + SEED_PAD;
 
-                // Divide by cos so samples on the circumscribed polygon still enclose the circle.
+                // Divide by cos so samples on the circumscribed polygon still enclose
+                // the circle.
                 double radius = (circle.getRadius() + offset) / Math.cos(Math.PI / CIRCLE_SAMPLES);
                 points.add(
                         new Point(center.getX() + radius * Math.cos(angle), center.getY() + radius * Math.sin(angle)));
@@ -785,15 +539,7 @@ public class ObstacleAvoider {
         return points;
     }
 
-    /**
-     * Returns the unit normal of edge {@code a -> b} that points away from
-     * {@code center}.
-     *
-     * @param a      edge start point
-     * @param b      edge end point
-     * @param center polygon center used to choose the outward direction
-     * @return the outward unit normal, or {@code (0, 0)} for a degenerate edge
-     */
+    /** Returns the unit normal of edge {@code a -> b} pointing away from {@code center}. */
     private static Point outwardNormal(Point a, Point b, Point center) {
         double edgeX = b.getX() - a.getX();
         double edgeY = b.getY() - a.getY();
@@ -803,7 +549,6 @@ public class ObstacleAvoider {
             return new Point(0, 0);
         }
 
-        // The two candidate normals, one of which points outward.
         double normalX = -edgeY / edgeLength;
         double normalY = edgeX / edgeLength;
         double altNormalX = edgeY / edgeLength;
@@ -811,35 +556,17 @@ public class ObstacleAvoider {
 
         double midpointX = (a.getX() + b.getX()) / 2.0;
         double midpointY = (a.getY() + b.getY()) / 2.0;
-
         double toCenterX = center.getX() - midpointX;
         double toCenterY = center.getY() - midpointY;
 
-        // Pick the normal that points away from the polygon center.
-        if (normalX * toCenterX + normalY * toCenterY < 0) {
-            return new Point(normalX, normalY);
-        }
-
-        return new Point(altNormalX, altNormalY);
+        return normalX * toCenterX + normalY * toCenterY < 0
+                ? new Point(normalX, normalY)
+                : new Point(altNormalX, altNormalY);
     }
 
     /**
-     * Runs an A* search over a visibility graph of {@code nodes}, where two nodes are
-     * connected when the segment between them is clear. The heuristic is the
-     * straight-line distance to the end node, which is consistent, so the route found
-     * is a shortest one.
-     * <p>
-     * Clearance that the start or end node cannot meet itself is forgiven on the
-     * edges touching it (see {@link EndpointRelief}).
-     *
-     * @param startIdx  index of the start node (normally 0)
-     * @param endIdx    index of the end node (normally 1)
-     * @param nodes     visibility-graph nodes
-     * @param obstacles zones to test line of sight against
-     * @param config    geometry parameters
-     * @param extra     additional padding to keep
-     * @param reliefs   reliefs of the start node and the end node, in that order
-     * @return the shortest route of points, or {@code null} if none exists
+     * Runs A* over a visibility graph of {@code nodes}. Two nodes are connected when
+     * the segment between them is clear; the straight-line distance is the heuristic.
      */
     private static List<Point> shortestPath(
             int startIdx,
@@ -863,7 +590,6 @@ public class ObstacleAvoider {
         distances[startIdx] = 0;
 
         for (int iteration = 0; iteration < nodeCount; iteration++) {
-            // Pick the reached, unvisited node whose route to the end could be shortest.
             int currentNode = -1;
             double bestEstimate = Double.MAX_VALUE;
 
@@ -884,9 +610,9 @@ public class ObstacleAvoider {
                 break;
             }
 
-            // Relax every visible neighbour. Line of sight is the expensive test, so it
-            // is only run for an edge that would shorten the route. A pair is tested at
-            // most once: the edge back to a visited node is skipped.
+            // Line of sight is the expensive test, so it only runs for an edge that
+            // would shorten the route. Each pair is tested from its lower index, so
+            // rounding in the samples cannot change the answer.
             for (int neighbor = 0; neighbor < nodeCount; neighbor++) {
                 if (visited[neighbor]) {
                     continue;
@@ -894,8 +620,6 @@ public class ObstacleAvoider {
 
                 double edgeLength = nodes.get(currentNode).distanceTo(nodes.get(neighbor));
 
-                // Test the pair from its lower index, as every pair was tested before, so
-                // rounding in the samples cannot give a different answer.
                 int from = Math.min(currentNode, neighbor);
                 int to = Math.max(currentNode, neighbor);
 
@@ -913,12 +637,10 @@ public class ObstacleAvoider {
             }
         }
 
-        // No route reached the end.
         if (previousNode[endIdx] == -1 && startIdx != endIdx) {
             return null;
         }
 
-        // Walk the predecessor chain backwards, then reverse it.
         List<Point> route = new ArrayList<>();
         int current = endIdx;
 
@@ -932,71 +654,23 @@ public class ObstacleAvoider {
     }
 
     /**
-     * Fits a smooth cubic chain through the route. Interior headings are estimated
-     * from central differences; the supplied end headings override the outer ones
-     * when present.
-     *
-     * @param route        waypoints to fit through
-     * @param startHeading start heading in radians, or {@link Double#NaN} to estimate it
-     * @param endHeading   end heading in radians, or {@link Double#NaN} to estimate it
-     * @return the fitted smooth curve
+     * Fits a cubic chain through {@code route}. With {@code smooth} true, interior
+     * tangents come from central differences; otherwise each segment keeps its own
+     * direction. Non-NaN end headings override the outer tangents.
      */
-    private static PathCurve fitSmooth(List<Point> route, double startHeading, double endHeading) {
+    private static PathCurve fit(List<Point> route, double startHeading, double endHeading, boolean smooth) {
         int pointCount = route.size();
         List<Point> controlPoints = new ArrayList<>();
 
         for (int i = 0; i < pointCount - 1; i++) {
             Point startPoint = route.get(i);
             Point endPoint = route.get(i + 1);
-
-            double handleLength = startPoint.distanceTo(endPoint) / 3.0;
-
-            double firstHeading = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : headingAt(route, i);
-            double secondHeading =
-                    (i == pointCount - 2 && !Double.isNaN(endHeading)) ? endHeading : headingAt(route, i + 1);
-
-            if (i == 0) {
-                controlPoints.add(startPoint);
-            }
-
-            controlPoints.add(new Point(
-                    startPoint.getX() + handleLength * Math.cos(firstHeading),
-                    startPoint.getY() + handleLength * Math.sin(firstHeading)));
-
-            controlPoints.add(new Point(
-                    endPoint.getX() - handleLength * Math.cos(secondHeading),
-                    endPoint.getY() - handleLength * Math.sin(secondHeading)));
-
-            controlPoints.add(endPoint);
-        }
-
-        return new PathCurve(controlPoints);
-    }
-
-    /**
-     * Fits a cubic chain through the route using each segment's own direction as the
-     * tangent. This tracks the route more tightly than {@link #fitSmooth} but turns
-     * more abruptly.
-     *
-     * @param route        waypoints to fit through
-     * @param startHeading start heading in radians, or {@link Double#NaN} to estimate it
-     * @param endHeading   end heading in radians, or {@link Double#NaN} to estimate it
-     * @return the fitted curve
-     */
-    private static PathCurve buildPath(List<Point> route, double startHeading, double endHeading) {
-        int pointCount = route.size();
-        List<Point> controlPoints = new ArrayList<>();
-
-        for (int i = 0; i < pointCount - 1; i++) {
-            Point startPoint = route.get(i);
-            Point endPoint = route.get(i + 1);
-
             double handleLength = startPoint.distanceTo(endPoint) / 3.0;
             double segmentHeading =
                     Math.atan2(endPoint.getY() - startPoint.getY(), endPoint.getX() - startPoint.getX());
 
-            double firstHeading = (i == 0 && !Double.isNaN(startHeading)) ? startHeading : segmentHeading;
-            double secondHeading = (i == pointCount - 2 && !Double.isNaN(endHeading)) ? endHeading : segmentHeading;
+            double firstHeading = headingFor(route, i, startHeading, i == 0, smooth, segmentHeading);
+            double secondHeading = headingFor(route, i + 1, endHeading, i == pointCount - 2, smooth, segmentHeading);
 
             if (i == 0) {
                 controlPoints.add(startPoint);
@@ -1016,18 +690,19 @@ public class ObstacleAvoider {
         return new PathCurve(controlPoints);
     }
 
+    private static double headingFor(
+            List<Point> route, int index, double override, boolean isEnd, boolean smooth, double segmentHeading) {
+        if (isEnd && !Double.isNaN(override)) {
+            return override;
+        }
+
+        return smooth ? headingAt(route, index) : segmentHeading;
+    }
+
     /**
-     * Estimates the heading at route point {@code i} from its neighbors. End points
-     * use the nearest point far enough away to measure a direction over; interior points
-     * use a central difference, widened until its chord spans that baseline.
-     * <p>
-     * Targets packed closer than the baseline give bearings that say more about how the
-     * points sit than about which way the route runs, so a stencil one hop wide would
-     * hand the fit a heading swung at random.
-     *
-     * @param route waypoints
-     * @param i     index of the point to evaluate
-     * @return the estimated heading in radians
+     * Estimates the heading at route point {@code i}. End points use the nearest point
+     * far enough away; interior points use a central difference widened until its chord
+     * spans the baseline.
      */
     private static double headingAt(List<Point> route, int i) {
         int last = route.size() - 1;
@@ -1061,25 +736,13 @@ public class ObstacleAvoider {
             }
         }
 
-        // The whole route is shorter than the baseline: take the widest stencil there is.
         int step = Math.min(i, last - i);
         return cornerTangent(route.get(i - step), route.get(i), route.get(i + step));
     }
 
     /**
-     * Returns the tangent at the middle of three route points, splitting any corner
-     * between them in proportion to the leg on each side.
-     * <p>
-     * The chord from the point before to the point after leans toward whichever leg is
-     * longer, which drags the fitted tangent onto the far side of the corner before the
-     * route has travelled the short leg to get there. Weighting each direction by the
-     * opposite leg instead spends the turn over both of them, so neither span has to turn
-     * tighter than the corner needs.
-     *
-     * @param before point arriving from
-     * @param point  point being estimated
-     * @param after  point leaving for
-     * @return the tangent heading in radians
+     * Returns the tangent at the middle of three points, weighting each leg by the
+     * other's length so a corner is split in proportion to the route on either side.
      */
     private static double cornerTangent(Point before, Point point, Point after) {
         double incomingX = point.getX() - before.getX();
@@ -1089,7 +752,6 @@ public class ObstacleAvoider {
         double incomingLength = Math.hypot(incomingX, incomingY);
         double outgoingLength = Math.hypot(outgoingX, outgoingY);
 
-        // A leg of no length carries no direction to lean on: fall back to the chord.
         if (incomingLength < 1e-9 || outgoingLength < 1e-9) {
             return direction(before, after);
         }
@@ -1097,7 +759,6 @@ public class ObstacleAvoider {
         double x = incomingX * outgoingLength + outgoingX * incomingLength;
         double y = incomingY * outgoingLength + outgoingY * incomingLength;
 
-        // Opposite legs exactly: a corner that never turns back leaves nothing to split.
         if (Math.hypot(x, y) < 1e-9) {
             return direction(before, after);
         }
@@ -1105,13 +766,6 @@ public class ObstacleAvoider {
         return Math.atan2(y, x);
     }
 
-    /**
-     * Returns the direction pointing from one point to another.
-     *
-     * @param from point travelled from
-     * @param to   point travelled to
-     * @return the bearing in radians
-     */
     private static double direction(Point from, Point to) {
         return Math.atan2(to.getY() - from.getY(), to.getX() - from.getX());
     }

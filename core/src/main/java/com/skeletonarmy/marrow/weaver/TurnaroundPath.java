@@ -5,20 +5,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Builds the waypoints of a turnaround: the shortest route that leaves a point travelling
- * along one heading and arrives at another travelling along a second heading, without ever
- * turning tighter than a given radius.
- * <p>
- * Fitting a single Hermite span through a reversal collapses, because both control handles
- * end up on the line between the ends and the curve retraces itself. The four plain Dubins
- * couples (left/left, right/right, left/right, right/left) keep every turn at the radius
- * they are given, so the tangent heading turns at a rate a robot can follow. The shortest
- * couple that fits is used.
- * <p>
- * Both ends are left out of the returned list: the caller already holds them as key points.
+ * Builds the waypoints of a bounded-radius turn between two poses.
+ *
+ * <p>A single Hermite span collapses when the route reverses. The four Dubins
+ * couples (left/left, right/right, left/right, right/left) keep every turn at a
+ * real radius; the shortest one that fits is sampled. Both endpoints are omitted,
+ * since the caller already holds them.
  */
 final class TurnaroundPath {
-
     /** Largest heading step between two waypoints sampled off an arc, in radians. */
     private static final double SAMPLE_STEP = Math.toRadians(30.0);
 
@@ -27,28 +21,17 @@ final class TurnaroundPath {
 
     private static final double EPSILON = 1e-9;
 
-    /** The origin of the solved frame: where the route leaves from. */
+    /** Origin of the solved frame, where the route leaves from. */
     private static final double[] ORIGIN = {0, 0};
 
     private TurnaroundPath() {}
 
-    /**
-     * Builds the waypoints of a turnaround between two poses.
-     *
-     * @param start         point to leave from
-     * @param startHeading  heading to leave with, in radians
-     * @param end           point to arrive at
-     * @param endHeading    heading to arrive with, in radians
-     * @param radius        tightest turn the route may make, in the units of the points
-     * @return the waypoints strictly between the ends, each carrying its tangent heading, or
-     *         {@code null} when no couple fits
-     */
     static List<Point> build(Point start, double startHeading, Point end, double endHeading, double radius) {
         if (!(radius > 0) || !Double.isFinite(radius)) {
             return null;
         }
 
-        // Solve in the frame of the start pose, with the radius scaled out to one.
+        // Work in the start pose's frame, scaled so the turn radius is one.
         double cos = Math.cos(startHeading);
         double sin = Math.sin(startHeading);
         double offsetX = (end.getX() - start.getX()) / radius;
@@ -57,7 +40,6 @@ final class TurnaroundPath {
         double y = -offsetX * sin + offsetY * cos;
         double heading = normalize(endHeading - startHeading);
 
-        // The circles each end rides on: one radius to the left, one to the right.
         double[] leftStart = {0, 1};
         double[] rightStart = {0, -1};
         double[] leftEnd = {x - Math.sin(heading), y + Math.cos(heading)};
@@ -87,15 +69,7 @@ final class TurnaroundPath {
         return sample(best, start, startHeading, radius, end, arrival);
     }
 
-    /**
-     * Adds the couple whose two circles turn the same way, joined by their outer tangent.
-     *
-     * @param candidates list to add to
-     * @param centre0    circle the route leaves on
-     * @param centre1    circle the route arrives on
-     * @param arrival    point to arrive at
-     * @param clockwise  {@code true} for a right-hand couple, {@code false} for a left-hand one
-     */
+    /** Adds the couple whose circles turn the same way, joined by their outer tangent. */
     private static void addSameSide(
             List<Candidate> candidates, double[] centre0, double[] centre1, double[] arrival, boolean clockwise) {
         double toX = centre1[0] - centre0[0];
@@ -120,21 +94,12 @@ final class TurnaroundPath {
                 direction,
                 clockwise,
                 clockwise,
-                sweep(new double[] {0, 0}, tangent0, centre0, clockwise)
+                sweep(ORIGIN, tangent0, centre0, clockwise)
                         + sweep(tangent1, arrival, centre1, clockwise)
                         + Math.hypot(tangent1[0] - tangent0[0], tangent1[1] - tangent0[1])));
     }
 
-    /**
-     * Adds the couples whose circles turn opposite ways, joined by one of their crossing
-     * tangents. Each pair of circles offers two crossings, so up to two couples are added.
-     *
-     * @param candidates     list to add to
-     * @param centre0        circle the route leaves on
-     * @param centre1        circle the route arrives on
-     * @param arrival        point to arrive at
-     * @param startClockwise {@code true} when the first circle turns right
-     */
+    /** Adds the couples whose circles turn opposite ways, joined by a crossing tangent. */
     private static void addCrossing(
             List<Candidate> candidates, double[] centre0, double[] centre1, double[] arrival, boolean startClockwise) {
         double toX = centre1[0] - centre0[0];
@@ -176,22 +141,13 @@ final class TurnaroundPath {
                     direction,
                     startClockwise,
                     endClockwise,
-                    sweep(new double[] {0, 0}, tangent0, centre0, startClockwise)
+                    sweep(ORIGIN, tangent0, centre0, startClockwise)
                             + sweep(tangent1, arrival, centre1, endClockwise)
                             + Math.max(straight, 0)));
         }
     }
 
-    /**
-     * Returns how far a point travels around a circle on its way to another, measured in the
-     * direction the route turns.
-     *
-     * @param from      point travelled from
-     * @param to        point travelled to
-     * @param centre    circle centre
-     * @param clockwise whether the route turns right around the circle
-     * @return the swept angle in radians, in {@code [0, 2 * pi)}
-     */
+    /** Returns how far a point travels around a circle, measured the way the route turns. */
     private static double sweep(double[] from, double[] to, double[] centre, boolean clockwise) {
         double fromAngle = Math.atan2(from[1] - centre[1], from[0] - centre[0]);
         double toAngle = Math.atan2(to[1] - centre[1], to[0] - centre[0]);
@@ -208,17 +164,6 @@ final class TurnaroundPath {
         return swept;
     }
 
-    /**
-     * Samples a fitted couple into waypoints.
-     *
-     * @param candidate    couple to sample
-     * @param start        point the route leaves from
-     * @param startHeading heading the route leaves with, in radians
-     * @param radius       radius the couple was fitted at
-     * @param end          point the route arrives at
-     * @param arrival      point the route arrives at, in the solved frame
-     * @return the waypoints between the ends, each carrying its tangent heading
-     */
     private static List<Point> sample(
             Candidate candidate, Point start, double startHeading, double radius, Point end, double[] arrival) {
         List<Point> waypoints = new ArrayList<>();
@@ -230,20 +175,6 @@ final class TurnaroundPath {
         return waypoints;
     }
 
-    /**
-     * Samples one of the couple's arcs, skipping both the point it starts on (the caller
-     * holds it) and the point it ends on when that is the route's final key point.
-     *
-     * @param waypoints list to add to
-     * @param candidate couple the arc belongs to
-     * @param first     {@code true} for the arc the route leaves on, {@code false} for the
-     *                  one it arrives on
-     * @param arrival   point the route arrives at, in the solved frame
-     * @param start     point the route leaves from
-     * @param startHeading heading the route leaves with, in radians
-     * @param radius    radius the couple was fitted at
-     * @param end       point the route arrives at
-     */
     private static void appendArc(
             List<Point> waypoints,
             Candidate candidate,
@@ -261,9 +192,8 @@ final class TurnaroundPath {
         double fromAngle = Math.atan2(from[1] - centre[1], from[0] - centre[0]);
         int steps = Math.max(1, (int) Math.ceil(swept / SAMPLE_STEP));
 
-        // The sample at the far end lands on a key point the caller already holds, which
-        // drops it; running the loop all the way there is what keeps a gap from opening
-        // between the last waypoint and that key point.
+        // The final sample lands on a key point the caller already holds. Running the
+        // loop all the way there keeps the last waypoint from drifting away from it.
         for (int i = first ? 1 : 0; i <= steps; i++) {
             double angle = fromAngle + (clockwise ? -1 : 1) * swept * i / steps;
             double heading = angle + (clockwise ? -Math.PI / 2.0 : Math.PI / 2.0);
@@ -278,18 +208,7 @@ final class TurnaroundPath {
         }
     }
 
-    /**
-     * Converts one point of the solved frame into world coordinates and appends it, skipping
-     * anything that lands on a point the caller already holds or on its predecessor.
-     *
-     * @param waypoints    list to add to
-     * @param point        point in the solved frame
-     * @param heading      heading at that point in the solved frame, in radians
-     * @param start        point the route leaves from
-     * @param startHeading heading the route leaves with, in radians
-     * @param radius       radius the couple was fitted at
-     * @param end          point the route arrives at
-     */
+    /** Converts one point of the solved frame to world coordinates and appends it. */
     private static void append(
             List<Point> waypoints,
             double[] point,
@@ -315,15 +234,9 @@ final class TurnaroundPath {
         waypoints.add(waypoint);
     }
 
-    /**
-     * Wraps an angle onto {@code (-pi, pi]}.
-     *
-     * @param angle angle in radians
-     * @return the equivalent angle in {@code (-pi, pi]}
-     */
+    /** Wraps an angle onto {@code (-pi, pi]}. */
     private static double normalize(double angle) {
-        // Wrapped by remainder rather than by stepping: a heading supplied in the tens of
-        // billions of radians would otherwise take billions of turns to bring under pi.
+        // Use the remainder so a huge heading normalizes in constant time.
         double normalized = angle % (2 * Math.PI);
 
         if (normalized > Math.PI) {
@@ -335,7 +248,7 @@ final class TurnaroundPath {
         return normalized;
     }
 
-    /** One turn of a fitted couple: two circles, the tangent joining them, and its length. */
+    /** One fitted couple: two circles, the tangent joining them, and its length. */
     private static final class Candidate {
         final double[] centre0;
         final double[] centre1;
