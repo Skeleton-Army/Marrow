@@ -56,8 +56,70 @@ rest of the project.
 | `0`-`9`   | Cap how many targets are visited (`0` = all)  |
 | `Q` / `E` | Rotate the selected target's locked heading   |
 | `Shift`   | Hold with `Q` / `E` for 5-degree steps        |
+| `,` / `.` | Rotate the start pose heading                 |
 | `H`       | Toggle the selected target's locked heading   |
 | `Esc`     | Deselect the current target                   |
+
+### Menu
+
+| Item                                       | Shortcut | Result                                  |
+|--------------------------------------------|----------|-----------------------------------------|
+| Scenario > Copy current scenario           | `Ctrl+C` | Copy the current setup as scenario text |
+| Scenario > Paste scenario from clipboard   | `Ctrl+V` | Load a scenario from the clipboard      |
+
+## Scenarios
+
+The simulator can copy and paste its whole setup as scenario text: start pose
+(including heading), targets and their locked headings, obstacles, and the
+relevant `PathConfig` values. Copy a scenario from chat, then use
+**Scenario > Paste scenario from clipboard**. Use **Scenario > Copy current
+scenario** to put the current board on the clipboard so it can be shared.
+
+Example scenario text:
+
+```json
+{
+  "format": "marrow-scenario",
+  "version": 1,
+  "name": "Facing-away cluster",
+  "description": "Start facing north with a packed cluster behind it.",
+  "start": { "x": 24, "y": 70, "headingDeg": 90 },
+  "targets": [
+    { "x": 24, "y": 62 },
+    { "x": 24.4, "y": 61.7 },
+    { "x": 23.7, "y": 61.9 },
+    { "x": 24.1, "y": 62.3 }
+  ],
+  "obstacles": [
+    { "type": "circle", "x": 72, "y": 60, "radius": 6 },
+    {
+      "type": "polygon",
+      "points": [
+        { "x": 40, "y": 40 },
+        { "x": 50, "y": 40 },
+        { "x": 50, "y": 50 },
+        { "x": 40, "y": 50 }
+      ]
+    }
+  ],
+  "config": {
+    "intakeWidth": 13,
+    "robotWidth": 17,
+    "robotHeight": 16,
+    "clearance": 4,
+    "smoothing": true,
+    "reorder": true,
+    "maxTargets": 3
+  }
+}
+```
+
+- `headingDeg` (or `headingRad`) on a target means its heading is **locked**.
+  Add `"locked": false` to keep the target free even if a heading is present.
+- The `start` heading is used by the planner; rotate it with `,` / `.` when
+  building a scenario by hand.
+- Missing `config` values fall back to the `PathConfig` defaults.
+- Unknown keys are ignored, so newer scenarios remain readable.
 
 ## Notes
 

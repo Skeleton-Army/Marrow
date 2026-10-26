@@ -30,6 +30,11 @@ val coreClasses = configurations.create("coreClasses") {
 sourceSets {
     main {
         java.setSrcDirs(listOf("src"))
+        java.exclude("test/**")
+        compileClasspath += coreClasses
+        runtimeClasspath += coreClasses
+    }
+    test {
         compileClasspath += coreClasses
         runtimeClasspath += coreClasses
     }
@@ -38,6 +43,9 @@ sourceSets {
 dependencies {
     coreClasses(project(":core"))
     implementation("androidx.annotation:annotation:1.2.0")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.10.0")
+
+    testImplementation("junit:junit:4.13.2")
 }
 
 application {

@@ -14,10 +14,14 @@ import com.skeletonarmy.marrow.zones.Zone;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
+import javax.swing.JMenuBar;
+import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.BasicStroke;
@@ -28,6 +32,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -42,9 +47,6 @@ public class Simulator extends JPanel {
 
     private static final double FIELD = 144.0;
     private static final PathConfig DEFAULT_CONFIG = new PathConfig();
-    private static final double ROBOT_WIDTH = DEFAULT_CONFIG.getRobotWidth();
-    private static final double ROBOT_HEIGHT = DEFAULT_CONFIG.getRobotHeight();
-    private static final double CLEARANCE = DEFAULT_CONFIG.getClearance();
 
     private enum Mode { TARGET, OBSTACLE, START }
     private enum DragMode { MOVE, RESIZE, ROTATE }
@@ -61,14 +63,25 @@ public class Simulator extends JPanel {
     private final List<Zone> obstacles = new ArrayList<>();
 
     private Point start = new Point(24, 24);
+    private double startHeading = 0.0;
     private double obstacleRadius = 6.0;
     private double width = DEFAULT_CONFIG.getIntakeWidth();
+    private double robotWidth = DEFAULT_CONFIG.getRobotWidth();
+    private double robotHeight = DEFAULT_CONFIG.getRobotHeight();
+    private double clearance = DEFAULT_CONFIG.getClearance();
+    private boolean excludeBlockedTargets = DEFAULT_CONFIG.isExcludeBlockedTargets();
+    private double turnCostWeight = DEFAULT_CONFIG.getTurnCostWeight();
+    private int bruteForceOrderLimit = DEFAULT_CONFIG.getBruteForceOrderLimit();
     private ObstacleShape obstacleShape = ObstacleShape.CIRCLE;
     private int polygonSides = 4;
     private boolean reorder = true;
     private boolean smoothing = true;
     private int maxTargets = 0;
     private Mode mode = Mode.TARGET;
+
+    private String scenarioName = "";
+    private String scenarioDescription = "";
+    private String infoMessage = "";
 
     private static final double HEADING_STEP_RAD = Math.toRadians(15);
     private static final double HEADING_FINE_STEP_RAD = Math.toRadians(5);
@@ -217,6 +230,11 @@ public class Simulator extends JPanel {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
+                // Menu shortcuts (Ctrl+C / Ctrl+V) are handled by the menu bar.
+                if (e.isControlDown() || e.isMetaDown()) {
+                    return;
+                }
+
                 switch (e.getKeyCode()) {
                     case KeyEvent.VK_T: mode = Mode.TARGET; break;
                     case KeyEvent.VK_O: mode = Mode.OBSTACLE; break;
@@ -263,6 +281,16 @@ public class Simulator extends JPanel {
                         break;
                     case KeyEvent.VK_ESCAPE:
                         selectedTarget = -1;
+                        break;
+                    case KeyEvent.VK_COMMA:
+                        startHeading = normalizeAngle(
+                                startHeading - (e.isShiftDown() ? HEADING_FINE_STEP_RAD : HEADING_STEP_RAD));
+                        rebuildPath();
+                        break;
+                    case KeyEvent.VK_PERIOD:
+                        startHeading = normalizeAngle(
+                                startHeading + (e.isShiftDown() ? HEADING_FINE_STEP_RAD : HEADING_STEP_RAD));
+                        rebuildPath();
                         break;
                     case KeyEvent.VK_EQUALS:
                     case KeyEvent.VK_ADD:
@@ -317,10 +345,18 @@ public class Simulator extends JPanel {
         }
 
         try {
-            Weaver.setConfig(new PathConfig().intakeWidth(width).smoothing(smoothing));
+            Weaver.setConfig(new PathConfig()
+                    .intakeWidth(width)
+                    .robotWidth(robotWidth)
+                    .robotHeight(robotHeight)
+                    .clearance(clearance)
+                    .excludeBlockedTargets(excludeBlockedTargets)
+                    .smoothing(smoothing)
+                    .turnCostWeight(turnCostWeight)
+                    .bruteForceOrderLimit(bruteForceOrderLimit));
 
             WeaverBuilder b = Weaver.builder()
-                    .start(new Point(start.getX(), start.getY(), 0))
+                    .start(new Point(start.getX(), start.getY(), startHeading))
                     .maxTargets(maxTargets);
             for (Point t : targets) {
                 b.addTarget(
@@ -842,11 +878,27 @@ public class Simulator extends JPanel {
                 new int[]{px, px + s, px, px - s},
                 new int[]{py - s, py, py + s, py},
                 4);
+
+        double length = headingHandleLength();
+        int hx = (int) sx(start.getX() + Math.cos(startHeading) * length);
+        int hy = (int) sy(start.getY() + Math.sin(startHeading) * length);
+        g.setColor(new Color(120, 60, 200));
+        g.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+        g.drawLine(px, py, hx, hy);
+
+        double arrowAngle = Math.atan2(hy - py, hx - px);
+        int headLength = 6;
+        int x1 = (int) (hx - headLength * Math.cos(arrowAngle - Math.PI / 7));
+        int y1 = (int) (hy - headLength * Math.sin(arrowAngle - Math.PI / 7));
+        int x2 = (int) (hx - headLength * Math.cos(arrowAngle + Math.PI / 7));
+        int y2 = (int) (hy - headLength * Math.sin(arrowAngle + Math.PI / 7));
+        g.drawLine(hx, hy, x1, y1);
+        g.drawLine(hx, hy, x2, y2);
     }
 
     private void drawRobot(Graphics2D g) {
-        double halfW = ROBOT_WIDTH / 2.0;
-        double halfH = ROBOT_HEIGHT / 2.0;
+        double halfW = robotWidth / 2.0;
+        double halfH = robotHeight / 2.0;
         double cos = Math.cos(robotHeading);
         double sin = Math.sin(robotHeading);
         double[][] local = {
@@ -903,11 +955,17 @@ public class Simulator extends JPanel {
                 "Drag body: move   Drag edge (o): resize   Drag corner ([]): rotate",
                 "Drag heading handle / Q,E: rotate (Shift = fine)   H: toggle locked heading   Esc: deselect",
                 "T target | O obstacle | S start | R reorder | M smoothing | C clear | P shape | [ ] sides | +/- size",
-                "A/D width | 0-9 max targets",
+                "A/D width | 0-9 max targets | ,/. start heading (Shift = fine)",
+                "Ctrl+C copy scenario   Ctrl+V paste scenario",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
                         + "   Smoothing: " + (smoothing ? "ON" : "OFF")
-                        + "   Targets: " + targets.size() + "   Obstacles: " + obstacles.size(),
-                "Width: " + (int) width + " in",
+                        + "   Scenario: " + (scenarioName.isEmpty() ? "(unsaved)" : scenarioName),
+                "Targets: " + targets.size() + "   Obstacles: " + obstacles.size()
+                        + "   Width: " + (int) width + " in",
+                "Robot: " + fmt(robotWidth) + " x " + fmt(robotHeight) + " in"
+                        + "   Clearance: " + fmt(clearance) + " in",
+                "Start: (" + fmt(start.getX()) + ", " + fmt(start.getY()) + ")"
+                        + " heading " + headingLabel(startHeading),
                 "Max targets: " + (maxTargets <= 0 ? "unlimited" : maxTargets)
                         + "   Visiting: " + visitedTargets.size(),
                 selectedLabel + "   New locked heading: " + headingLabel(defaultTargetHeading),
@@ -918,6 +976,9 @@ public class Simulator extends JPanel {
         if (!statusMessage.isEmpty()) {
             lines = java.util.Arrays.copyOf(lines, lines.length + 1);
             lines[lines.length - 1] = "Error: " + statusMessage;
+        } else if (!infoMessage.isEmpty()) {
+            lines = java.util.Arrays.copyOf(lines, lines.length + 1);
+            lines[lines.length - 1] = "Info: " + infoMessage;
         }
 
         g.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
@@ -970,6 +1031,24 @@ public class Simulator extends JPanel {
         if (!smoothing) {
             sb.append(".smoothing(false)");
         }
+        if (Double.compare(robotWidth, DEFAULT_CONFIG.getRobotWidth()) != 0) {
+            sb.append(".robotWidth(").append(fmt(robotWidth)).append(")");
+        }
+        if (Double.compare(robotHeight, DEFAULT_CONFIG.getRobotHeight()) != 0) {
+            sb.append(".robotHeight(").append(fmt(robotHeight)).append(")");
+        }
+        if (Double.compare(clearance, DEFAULT_CONFIG.getClearance()) != 0) {
+            sb.append(".clearance(").append(fmt(clearance)).append(")");
+        }
+        if (excludeBlockedTargets != DEFAULT_CONFIG.isExcludeBlockedTargets()) {
+            sb.append(".excludeBlockedTargets(").append(excludeBlockedTargets).append(")");
+        }
+        if (Double.compare(turnCostWeight, DEFAULT_CONFIG.getTurnCostWeight()) != 0) {
+            sb.append(".turnCostWeight(").append(fmt(turnCostWeight)).append(")");
+        }
+        if (bruteForceOrderLimit != DEFAULT_CONFIG.getBruteForceOrderLimit()) {
+            sb.append(".bruteForceOrderLimit(").append(bruteForceOrderLimit).append(")");
+        }
         sb.append(");\n\n");
 
         sb.append("PathResult result = Weaver.builder()\n");
@@ -977,7 +1056,9 @@ public class Simulator extends JPanel {
                 .append(fmt(start.getX()))
                 .append(", ")
                 .append(fmt(start.getY()))
-                .append(", 0))\n");
+                .append(", ")
+                .append(fmt(startHeading))
+                .append("))\n");
 
         for (Point t : targets) {
             sb.append("        .addTarget(new Point(")
@@ -1070,11 +1151,154 @@ public class Simulator extends JPanel {
         return s;
     }
 
+    private JMenuBar createMenuBar() {
+        JMenuBar bar = new JMenuBar();
+        JMenu scenario = new JMenu("Scenario");
+        int shortcutMask = Toolkit.getDefaultToolkit().getMenuShortcutKeyMaskEx();
+
+        JMenuItem copyItem = new JMenuItem("Copy current scenario");
+        copyItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_C, shortcutMask));
+        copyItem.addActionListener(e -> copyScenario());
+        scenario.add(copyItem);
+
+        JMenuItem pasteItem = new JMenuItem("Paste scenario from clipboard");
+        pasteItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_V, shortcutMask));
+        pasteItem.addActionListener(e -> pasteScenario());
+        scenario.add(pasteItem);
+
+        JMenu file = new JMenu("File");
+        JMenuItem exitItem = new JMenuItem("Exit");
+        exitItem.addActionListener(e -> System.exit(0));
+        file.add(exitItem);
+
+        bar.add(scenario);
+        bar.add(file);
+        return bar;
+    }
+
+    private void copyScenario() {
+        try {
+            String json = ScenarioFile.toJson(currentScenario());
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(json), null);
+            statusMessage = "";
+            infoMessage = "Copied current scenario to clipboard";
+        } catch (Exception ex) {
+            showScenarioError("Could not copy scenario", ex);
+        }
+
+        repaint();
+        requestFocusInWindow();
+    }
+
+    private void pasteScenario() {
+        String text = readClipboardText();
+        String failure = null;
+
+        try {
+            ScenarioFile.Scenario scenario = ScenarioFile.parse(text);
+            applyScenario(scenario);
+            statusMessage = "";
+            infoMessage = "Pasted scenario" + (scenarioName.isEmpty() ? "" : ": " + scenarioName);
+        } catch (Exception ex) {
+            failure = ex.getMessage() == null ? ex.toString() : ex.getMessage();
+        }
+
+        if (failure != null) {
+            statusMessage = failure;
+            infoMessage = "";
+            JOptionPane.showMessageDialog(
+                    this,
+                    "Could not paste scenario:\n" + failure,
+                    "Paste failed",
+                    JOptionPane.ERROR_MESSAGE);
+        }
+
+        repaint();
+        requestFocusInWindow();
+    }
+
+    private static String readClipboardText() {
+        try {
+            Object data = Toolkit.getDefaultToolkit().getSystemClipboard().getData(DataFlavor.stringFlavor);
+            return data instanceof String ? (String) data : null;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    private void showScenarioError(String title, Exception ex) {
+        statusMessage = ex.getMessage() == null ? ex.toString() : ex.getMessage();
+        infoMessage = "";
+        JOptionPane.showMessageDialog(this, title + ":\n" + statusMessage, title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    private ScenarioFile.Scenario currentScenario() {
+        ScenarioFile.Scenario scenario = new ScenarioFile.Scenario();
+        scenario.name = scenarioName;
+        scenario.description = scenarioDescription;
+        scenario.start = new Point(start.getX(), start.getY(), startHeading);
+
+        for (Point target : targets) {
+            scenario.targets.add(new Point(target.getX(), target.getY(), target.getHeadingRad()));
+        }
+
+        scenario.obstacles.addAll(obstacles);
+        scenario.config
+                .intakeWidth(width)
+                .robotWidth(robotWidth)
+                .robotHeight(robotHeight)
+                .clearance(clearance)
+                .excludeBlockedTargets(excludeBlockedTargets)
+                .smoothing(smoothing)
+                .turnCostWeight(turnCostWeight)
+                .bruteForceOrderLimit(bruteForceOrderLimit);
+        scenario.reorder = reorder;
+        scenario.maxTargets = maxTargets;
+        return scenario;
+    }
+
+    private void applyScenario(ScenarioFile.Scenario scenario) {
+        targets.clear();
+        for (Point target : scenario.targets) {
+            targets.add(new Point(target.getX(), target.getY(), target.getHeadingRad()));
+        }
+
+        obstacles.clear();
+        obstacles.addAll(scenario.obstacles);
+
+        start = new Point(scenario.start.getX(), scenario.start.getY());
+        startHeading = scenario.start.hasHeading() ? scenario.start.getHeadingRad() : 0.0;
+
+        PathConfig config = scenario.config;
+        width = Math.max(0, config.getIntakeWidth());
+        robotWidth = Math.max(0, config.getRobotWidth());
+        robotHeight = Math.max(0, config.getRobotHeight());
+        clearance = Math.max(0, config.getClearance());
+        excludeBlockedTargets = config.isExcludeBlockedTargets();
+        smoothing = config.isSmoothing();
+        turnCostWeight = Math.max(0, config.getTurnCostWeight());
+        bruteForceOrderLimit = Math.max(1, config.getBruteForceOrderLimit());
+        reorder = scenario.reorder;
+        maxTargets = Math.max(0, scenario.maxTargets);
+
+        scenarioName = scenario.name;
+        scenarioDescription = scenario.description;
+        selectedTarget = -1;
+        defaultTargetHeading = Double.NaN;
+        draggingHeading = false;
+        dragIndex = -1;
+
+        rebuildPath();
+        robotArc = 0;
+        updateRobot();
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Marrow Weaver Simulator");
             Simulator sim = new Simulator();
             frame.setContentPane(sim);
+            frame.setJMenuBar(sim.createMenuBar());
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.pack();
             frame.setLocationRelativeTo(null);
