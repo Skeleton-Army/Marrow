@@ -234,7 +234,8 @@ public class PathConfig {
         return String.format(
                 Locale.ROOT,
                 "PathConfig(intakeWidth=%.3f, robotWidth=%.3f, robotHeight=%.3f, clearance=%.3f, "
-                        + "excludeBlockedTargets=%s, smoothing=%s, turnCostWeight=%.3f, bruteForceOrderLimit=%d)",
+                        + "excludeBlockedTargets=%s, smoothing=%s, turnCostWeight=%.3f, "
+                        + "bruteForceOrderLimit=%d)",
                 intakeWidth,
                 robotWidth,
                 robotHeight,
