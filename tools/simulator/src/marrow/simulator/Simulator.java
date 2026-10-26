@@ -12,7 +12,6 @@ import com.skeletonarmy.marrow.zones.Point;
 import com.skeletonarmy.marrow.zones.PolygonZone;
 import com.skeletonarmy.marrow.zones.Zone;
 
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -25,6 +24,7 @@ import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import java.awt.BasicStroke;
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -34,7 +34,6 @@ import java.awt.RenderingHints;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -48,7 +47,7 @@ public class Simulator extends JPanel {
     private static final double FIELD = 144.0;
     private static final PathConfig DEFAULT_CONFIG = new PathConfig();
 
-    private enum Mode { TARGET, OBSTACLE, START }
+    public enum Mode { TARGET, OBSTACLE, START }
     private enum DragMode { MOVE, RESIZE, ROTATE }
 
     private enum ObstacleShape {
@@ -83,8 +82,6 @@ public class Simulator extends JPanel {
     private String scenarioDescription = "";
     private String infoMessage = "";
 
-    private static final double HEADING_STEP_RAD = Math.toRadians(15);
-    private static final double HEADING_FINE_STEP_RAD = Math.toRadians(5);
     private static final double HEADING_HANDLE_PX = 34;
 
     private double defaultTargetHeading = Double.NaN;
@@ -117,7 +114,7 @@ public class Simulator extends JPanel {
     private long lastTime = System.nanoTime();
     private String statusMessage = "";
 
-    private JButton generateButton;
+    private SimulatorControls controls;
 
     private double scale = 1.0;
     private double ox, oy;
@@ -126,11 +123,6 @@ public class Simulator extends JPanel {
         setPreferredSize(new Dimension(820, 820));
         setFocusable(true);
         setLayout(null);
-
-        generateButton = new JButton("Generate code");
-        generateButton.setFocusable(false);
-        generateButton.addActionListener(e -> generateCode());
-        add(generateButton);
 
         targets.add(new Point(72, 96));
         targets.add(new Point(120, 48));
@@ -157,6 +149,7 @@ public class Simulator extends JPanel {
                     int targetIndex = targetAt(f);
                     if (targetIndex >= 0) {
                         selectedTarget = targetIndex;
+                        refreshControls();
                         repaint();
                         return;
                     }
@@ -227,91 +220,6 @@ public class Simulator extends JPanel {
             }
         });
 
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                // Menu shortcuts (Ctrl+C / Ctrl+V) are handled by the menu bar.
-                if (e.isControlDown() || e.isMetaDown()) {
-                    return;
-                }
-
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_T: mode = Mode.TARGET; break;
-                    case KeyEvent.VK_O: mode = Mode.OBSTACLE; break;
-                    case KeyEvent.VK_S: mode = Mode.START; break;
-                    case KeyEvent.VK_P:
-                        obstacleShape = obstacleShape.next();
-                        break;
-                    case KeyEvent.VK_OPEN_BRACKET:
-                        polygonSides = Math.max(3, polygonSides - 1);
-                        break;
-                    case KeyEvent.VK_CLOSE_BRACKET:
-                        polygonSides = Math.min(12, polygonSides + 1);
-                        break;
-                    case KeyEvent.VK_R:
-                        reorder = !reorder;
-                        rebuildPath();
-                        break;
-                    case KeyEvent.VK_M:
-                        smoothing = !smoothing;
-                        rebuildPath();
-                        break;
-                    case KeyEvent.VK_A:
-                        width = Math.max(0, width - 1);
-                        rebuildPath();
-                        break;
-                    case KeyEvent.VK_D:
-                        width = Math.min(60, width + 1);
-                        rebuildPath();
-                        break;
-                    case KeyEvent.VK_C:
-                        targets.clear();
-                        obstacles.clear();
-                        selectedTarget = -1;
-                        rebuildPath();
-                        break;
-                    case KeyEvent.VK_Q:
-                        rotateHeading(-1, e.isShiftDown());
-                        break;
-                    case KeyEvent.VK_E:
-                        rotateHeading(1, e.isShiftDown());
-                        break;
-                    case KeyEvent.VK_H:
-                        toggleHeading();
-                        break;
-                    case KeyEvent.VK_ESCAPE:
-                        selectedTarget = -1;
-                        break;
-                    case KeyEvent.VK_COMMA:
-                        startHeading = normalizeAngle(
-                                startHeading - (e.isShiftDown() ? HEADING_FINE_STEP_RAD : HEADING_STEP_RAD));
-                        rebuildPath();
-                        break;
-                    case KeyEvent.VK_PERIOD:
-                        startHeading = normalizeAngle(
-                                startHeading + (e.isShiftDown() ? HEADING_FINE_STEP_RAD : HEADING_STEP_RAD));
-                        rebuildPath();
-                        break;
-                    case KeyEvent.VK_EQUALS:
-                    case KeyEvent.VK_ADD:
-                        obstacleRadius = Math.min(obstacleRadius + 1, 30);
-                        break;
-                    case KeyEvent.VK_MINUS:
-                    case KeyEvent.VK_SUBTRACT:
-                        obstacleRadius = Math.max(obstacleRadius - 1, 1);
-                        break;
-                    default:
-                        char c = e.getKeyChar();
-                        if (c >= '0' && c <= '9') {
-                            maxTargets = c - '0';
-                            rebuildPath();
-                        }
-                        break;
-                }
-                repaint();
-            }
-        });
-
         Timer timer = new Timer(16, e -> tick());
         timer.start();
     }
@@ -340,6 +248,7 @@ public class Simulator extends JPanel {
         statusMessage = "";
 
         if (targets.isEmpty()) {
+            refreshControls();
             repaint();
             return;
         }
@@ -380,6 +289,7 @@ public class Simulator extends JPanel {
             path = null;
             statusMessage = ex.getClass().getSimpleName() + ": " + ex.getMessage();
         }
+        refreshControls();
         repaint();
     }
 
@@ -637,31 +547,9 @@ public class Simulator extends JPanel {
         repaint();
     }
 
-    private void rotateHeading(int direction, boolean fine) {
-        double step = (fine ? HEADING_FINE_STEP_RAD : HEADING_STEP_RAD) * direction;
-        if (selectedTarget < 0 || selectedTarget >= targets.size()) {
-            double heading = Double.isNaN(defaultTargetHeading) ? 0.0 : defaultTargetHeading;
-            defaultTargetHeading = normalizeAngle(heading + step);
-            repaint();
-            return;
-        }
-
-        Point target = targets.get(selectedTarget);
-        double heading = target.hasHeading() ? target.getHeadingRad() : 0.0;
-        targets.set(selectedTarget, new Point(target.getX(), target.getY(), normalizeAngle(heading + step)));
-        rebuildPath();
-    }
-
-    private void toggleHeading() {
-        if (selectedTarget < 0 || selectedTarget >= targets.size()) {
-            defaultTargetHeading = Double.isNaN(defaultTargetHeading) ? 0.0 : Double.NaN;
-            repaint();
-            return;
-        }
-
-        Point target = targets.get(selectedTarget);
-        targets.set(selectedTarget, new Point(target.getX(), target.getY(), target.hasHeading() ? Double.NaN : 0.0));
-        rebuildPath();
+    private void setTargetHeading(int index, double headingRad) {
+        Point target = targets.get(index);
+        targets.set(index, new Point(target.getX(), target.getY(), normalizeAngle(headingRad)));
     }
 
     private double distPx(MouseEvent e, Point p) {
@@ -682,15 +570,6 @@ public class Simulator extends JPanel {
     private double sy(double y) { return oy + (FIELD - y) * scale; }
     private double fx(double px) { return (px - ox) / scale; }
     private double fy(double py) { return FIELD - (py - oy) / scale; }
-
-    @Override
-    public void doLayout() {
-        if (generateButton != null) {
-            Dimension d = generateButton.getPreferredSize();
-            int margin = 10;
-            generateButton.setBounds(getWidth() - d.width - margin, margin, d.width, d.height);
-        }
-    }
 
     @Override
     protected void paintComponent(Graphics g0) {
@@ -952,11 +831,8 @@ public class Simulator extends JPanel {
 
         String[] lines = {
                 "Left-click: add/select      Right-click: remove",
-                "Drag body: move   Drag edge (o): resize   Drag corner ([]): rotate",
-                "Drag heading handle / Q,E: rotate (Shift = fine)   H: toggle locked heading   Esc: deselect",
-                "T target | O obstacle | S start | R reorder | M smoothing | C clear | P shape | [ ] sides | +/- size",
-                "A/D width | 0-9 max targets | ,/. start heading (Shift = fine)",
-                "Ctrl+C copy scenario   Ctrl+V paste scenario",
+                "Drag body: move   Drag edge: resize   Drag corner: rotate",
+                "Drag heading handle: rotate   Use the side panel for all options",
                 "Mode: " + mode + "   Reorder: " + (reorder ? "ON" : "OFF")
                         + "   Smoothing: " + (smoothing ? "ON" : "OFF")
                         + "   Scenario: " + (scenarioName.isEmpty() ? "(unsaved)" : scenarioName),
@@ -1001,7 +877,7 @@ public class Simulator extends JPanel {
         g.setFont(old);
     }
 
-    private void generateCode() {
+    public void generateCode() {
         if (targets.isEmpty()) {
             statusMessage = "Nothing to generate: add a target first";
             repaint();
@@ -1151,6 +1027,191 @@ public class Simulator extends JPanel {
         return s;
     }
 
+    void setControls(SimulatorControls controls) {
+        this.controls = controls;
+        refreshControls();
+    }
+
+    private void refreshControls() {
+        if (controls != null) {
+            controls.refresh();
+        }
+    }
+
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        if (mode != null) {
+            this.mode = mode;
+            refreshControls();
+            repaint();
+        }
+    }
+
+    public boolean isReorder() {
+        return reorder;
+    }
+
+    public void setReorder(boolean reorder) {
+        this.reorder = reorder;
+        rebuildPath();
+    }
+
+    public boolean isSmoothing() {
+        return smoothing;
+    }
+
+    public void setSmoothing(boolean smoothing) {
+        this.smoothing = smoothing;
+        rebuildPath();
+    }
+
+    public void clearAll() {
+        targets.clear();
+        obstacles.clear();
+        selectedTarget = -1;
+        defaultTargetHeading = Double.NaN;
+        rebuildPath();
+    }
+
+    public boolean isPolygonObstacles() {
+        return obstacleShape == ObstacleShape.POLYGON;
+    }
+
+    public void setPolygonObstacles(boolean polygon) {
+        obstacleShape = polygon ? ObstacleShape.POLYGON : ObstacleShape.CIRCLE;
+        refreshControls();
+        repaint();
+    }
+
+    public int getPolygonSides() {
+        return polygonSides;
+    }
+
+    public void setPolygonSides(int sides) {
+        polygonSides = Math.max(3, Math.min(12, sides));
+        refreshControls();
+        repaint();
+    }
+
+    public double getObstacleRadius() {
+        return obstacleRadius;
+    }
+
+    public void setObstacleRadius(double radius) {
+        obstacleRadius = Math.max(1, Math.min(30, radius));
+        refreshControls();
+        repaint();
+    }
+
+    public double getIntakeWidth() {
+        return width;
+    }
+
+    public void setIntakeWidth(double value) {
+        width = Math.max(0, Math.min(60, value));
+        rebuildPath();
+    }
+
+    public int getMaxTargets() {
+        return maxTargets;
+    }
+
+    public void setMaxTargets(int max) {
+        maxTargets = Math.max(0, Math.min(99, max));
+        rebuildPath();
+    }
+
+    public int getTargetCount() {
+        return targets.size();
+    }
+
+    public int getSelectedTargetIndex() {
+        return selectedTarget;
+    }
+
+    public boolean hasSelectedTarget() {
+        return selectedTarget >= 0 && selectedTarget < targets.size();
+    }
+
+    public boolean isSelectedHeadingLocked() {
+        return hasSelectedTarget() && targets.get(selectedTarget).hasHeading();
+    }
+
+    public double getSelectedHeadingDegrees() {
+        if (!hasSelectedTarget()) return 0.0;
+        Point target = targets.get(selectedTarget);
+        return toDisplayDegrees(target.hasHeading() ? target.getHeadingRad() : 0.0);
+    }
+
+    public void setSelectedHeadingLocked(boolean locked) {
+        if (!hasSelectedTarget()) return;
+        Point target = targets.get(selectedTarget);
+        if (locked == target.hasHeading()) return;
+        setTargetHeading(selectedTarget, locked
+                ? (target.hasHeading() ? target.getHeadingRad() : 0.0)
+                : Double.NaN);
+        rebuildPath();
+    }
+
+    public void setSelectedHeadingDegrees(double degrees) {
+        if (!hasSelectedTarget()) return;
+        setTargetHeading(selectedTarget, Math.toRadians(degrees));
+        rebuildPath();
+    }
+
+    public void nudgeSelectedHeading(double degrees) {
+        if (!hasSelectedTarget()) return;
+        Point target = targets.get(selectedTarget);
+        double heading = target.hasHeading() ? target.getHeadingRad() : 0.0;
+        setTargetHeading(selectedTarget, heading + Math.toRadians(degrees));
+        rebuildPath();
+    }
+
+    public boolean isNewTargetLocked() {
+        return !Double.isNaN(defaultTargetHeading);
+    }
+
+    public double getNewTargetHeadingDegrees() {
+        return toDisplayDegrees(Double.isNaN(defaultTargetHeading) ? 0.0 : defaultTargetHeading);
+    }
+
+    public void setNewTargetLocked(boolean locked) {
+        if (locked == isNewTargetLocked()) return;
+        defaultTargetHeading = locked ? 0.0 : Double.NaN;
+        refreshControls();
+        repaint();
+    }
+
+    public void setNewTargetHeadingDegrees(double degrees) {
+        defaultTargetHeading = normalizeAngle(Math.toRadians(degrees));
+        refreshControls();
+        repaint();
+    }
+
+    public double getStartHeadingDegrees() {
+        return toDisplayDegrees(startHeading);
+    }
+
+    public void setStartHeadingDegrees(double degrees) {
+        startHeading = normalizeAngle(Math.toRadians(degrees));
+        rebuildPath();
+    }
+
+    public void deselect() {
+        selectedTarget = -1;
+        refreshControls();
+        repaint();
+    }
+
+    private static double toDisplayDegrees(double headingRad) {
+        double degrees = Math.toDegrees(headingRad) % 360.0;
+        if (degrees < 0) degrees += 360.0;
+        return degrees;
+    }
+
     private JMenuBar createMenuBar() {
         JMenuBar bar = new JMenuBar();
         JMenu scenario = new JMenu("Scenario");
@@ -1176,7 +1237,7 @@ public class Simulator extends JPanel {
         return bar;
     }
 
-    private void copyScenario() {
+    public void copyScenario() {
         try {
             String json = ScenarioFile.toJson(currentScenario());
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(json), null);
@@ -1190,7 +1251,7 @@ public class Simulator extends JPanel {
         requestFocusInWindow();
     }
 
-    private void pasteScenario() {
+    public void pasteScenario() {
         String text = readClipboardText();
         String failure = null;
 
@@ -1297,7 +1358,19 @@ public class Simulator extends JPanel {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Marrow Weaver Simulator");
             Simulator sim = new Simulator();
-            frame.setContentPane(sim);
+            SimulatorControls controls = new SimulatorControls(sim);
+            sim.setControls(controls);
+
+            JPanel root = new JPanel(new BorderLayout());
+            root.add(sim, BorderLayout.CENTER);
+
+            JScrollPane controlsScroll = new JScrollPane(controls);
+            controlsScroll.setPreferredSize(new Dimension(300, 820));
+            controlsScroll.setBorder(null);
+            controlsScroll.getVerticalScrollBar().setUnitIncrement(16);
+            root.add(controlsScroll, BorderLayout.EAST);
+
+            frame.setContentPane(root);
             frame.setJMenuBar(sim.createMenuBar());
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.pack();

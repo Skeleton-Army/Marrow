@@ -39,26 +39,27 @@ rest of the project.
 | Drag an edge handle    | Resize it                                                |
 | Drag a polygon corner  | Rotate it                                                |
 
-### Keyboard
+### Side panel
 
-| Key       | Action                                        |
-|-----------|-----------------------------------------------|
-| `T`       | Target mode                                   |
-| `O`       | Obstacle mode                                 |
-| `S`       | Start mode                                    |
-| `R`       | Toggle target reordering                      |
-| `M`       | Toggle path smoothing                         |
-| `C`       | Clear all targets and obstacles               |
-| `P`       | Toggle obstacle shape (circle / polygon)      |
-| `[` / `]` | Decrease / increase polygon side count (3-12) |
-| `A` / `D` | Decrease / increase intake width              |
-| `+` / `-` | Increase / decrease obstacle size             |
-| `0`-`9`   | Cap how many targets are visited (`0` = all)  |
-| `Q` / `E` | Rotate the selected target's locked heading   |
-| `Shift`   | Hold with `Q` / `E` for 5-degree steps        |
-| `,` / `.` | Rotate the start pose heading                 |
-| `H`       | Toggle the selected target's locked heading   |
-| `Esc`     | Deselect the current target                   |
+| Control                    | Result                                             |
+|----------------------------|----------------------------------------------------|
+| Target / Obstacle / Start  | Choose what a left-click places                    |
+| Deselect                   | Clear the current target selection                 |
+| Polygon                    | Toggle the obstacle shape (circle / polygon)       |
+| Sides                      | Set the polygon side count (3-12)                  |
+| Size                       | Set the obstacle size                              |
+| Intake width               | Set the planner intake width                       |
+| Reorder targets            | Let Weaver choose the visit order                  |
+| Smooth path                | Toggle path smoothing                              |
+| Max targets                | Cap how many targets are visited (`0` = all)       |
+| Lock heading               | Lock the selected target's heading                 |
+| Heading / -15 / +15        | Set or nudge the selected target's heading         |
+| Lock new targets           | Start newly placed targets with a locked heading   |
+| New target heading         | Set the heading used for new locked targets        |
+| Start pose heading         | Rotate the start pose heading                      |
+| Clear all                  | Remove all targets and obstacles                   |
+| Generate code              | Show and copy the equivalent `Weaver.builder()` code |
+| Copy / Paste scenario      | Move the current setup through the clipboard       |
 
 ### Menu
 
@@ -116,28 +117,28 @@ Example scenario text:
 
 - `headingDeg` (or `headingRad`) on a target means its heading is **locked**.
   Add `"locked": false` to keep the target free even if a heading is present.
-- The `start` heading is used by the planner; rotate it with `,` / `.` when
-  building a scenario by hand.
+- The `start` heading is used by the planner; rotate it with the **Start pose
+  heading** control when building a scenario by hand.
 - Missing `config` values fall back to the `PathConfig` defaults.
 - Unknown keys are ignored, so newer scenarios remain readable.
 
 ## Notes
 
-- The **Generate code** button (top-right) shows and copies the equivalent
+- The **Generate code** button in the side panel shows and copies the equivalent
   `Weaver.builder()` code for the current setup to the clipboard.
 - Targets are free by default: the path can reach them from any direction.
-  Click a target and press `H` to lock its heading, then drag its heading handle
-  or use `Q` / `E` to set the direction. With no target selected, `H` controls
-  whether newly placed targets start with a locked heading.
-- Locked target headings are preserved whether smoothing is on or off. Press
-  `M` to toggle smoothing, which only changes how free tangents are estimated.
+  Click a target and tick **Lock heading** to lock its heading, then drag its
+  heading handle or use the **Heading** controls to set the direction. **Lock new
+  targets** controls whether newly placed targets start with a locked heading.
+- Locked target headings are preserved whether smoothing is on or off. Toggle
+  **Smooth path**, which only changes how free tangents are estimated.
 - The path is recomputed after every edit using `PathConfig` with the current
   intake width. Each target's policy and heading are included in the generated
   `Weaver.builder()` code.
 - With reordering on (default) Weaver finds its own target order; turn it off
   to visit targets in the order they were added.
-- Pressing `1`-`9` caps the number of targets visited; when there are more
-  targets than the cap, Weaver keeps the largest reachable set and picks the
-  cheapest order. Chosen targets are drawn filled green, left-behind ones
+- A non-zero **Max targets** caps the number of targets visited; when there are
+  more targets than the cap, Weaver keeps the largest reachable set and picks
+  the cheapest order. Chosen targets are drawn filled green, left-behind ones
   gray.
 - Any generation error is shown in the on-screen HUD.
