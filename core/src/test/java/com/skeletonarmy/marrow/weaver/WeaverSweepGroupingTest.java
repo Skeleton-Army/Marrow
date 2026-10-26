@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.weaver;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.skeletonarmy.marrow.zones.Point;
 import java.util.ArrayList;
@@ -31,6 +32,19 @@ public class WeaverSweepGroupingTest {
         return cubics;
     }
 
+    /** Index of the first route sample close enough to {@code target}. */
+    private static int firstReach(PathRoute route, Point target) {
+        List<Point> samples = route.sample(2000);
+
+        for (int i = 0; i < samples.size(); i++) {
+            if (samples.get(i).distanceTo(target) <= 0.5) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     @Test
     public void generate_targetsOnOppositeSides_reachesFirstTargetBeforeSecond() {
         // Arrange
@@ -45,9 +59,12 @@ public class WeaverSweepGroupingTest {
         // Act
         PathRoute actual = builder.generate().getPath();
 
-        // Assert
-        Point firstStop = cubics(actual).get(0).get(1.0);
-        assertEquals(50.0, firstStop.getX(), EPS);
+        // Assert: the sweep runs ahead first, then behind. The route turns around before
+        // the first stop because the merged sweep heads back west.
+        int aheadIndex = firstReach(actual, ahead);
+        int behindIndex = firstReach(actual, behind);
+        assertTrue("ahead=" + aheadIndex + " behind=" + behindIndex, aheadIndex >= 0);
+        assertTrue("ahead=" + aheadIndex + " behind=" + behindIndex, behindIndex > aheadIndex);
     }
 
     @Test

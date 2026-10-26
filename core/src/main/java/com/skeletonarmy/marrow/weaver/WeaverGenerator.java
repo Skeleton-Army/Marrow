@@ -569,7 +569,8 @@ public final class WeaverGenerator {
 
         if (endPolicy == HeadingPolicy.LOCKED) {
             double startHeading = start.hasHeading() ? start.getHeadingRad() : bearing(startPoint, endPoint);
-            PathCurve curve = twoPointCubic(startPoint, endPoint, startHeading, end.getHeadingRad());
+            PathCurve curve =
+                    lockedDestinationCurve(startPoint, startHeading, endPoint, end.getHeadingRad(), obstacles, config);
             PathRoute seedPath = new PathRoute(Collections.singletonList(curve));
 
             finished = finish(seedPath, obstacles, config, true);
@@ -599,6 +600,55 @@ public final class WeaverGenerator {
                 Collections.singletonList(endHeading),
                 Collections.<Point>emptyList(),
                 Collections.<Point>emptyList());
+    }
+
+    /**
+     * Builds the seed curve for a locked destination. When either heading points away
+     * from the direct line, the leg is seeded with a bounded-radius turnaround instead
+     * of a single Hermite span that would collapse.
+     *
+     * @param startPoint   where the route starts
+     * @param startHeading heading the route leaves with, in radians
+     * @param endPoint     where the route ends
+     * @param endHeading   heading the route arrives with, in radians
+     * @param obstacles    zones to avoid; may be {@code null}
+     * @param config       geometry and tuning parameters
+     * @return the seed curve
+     */
+    private static PathCurve lockedDestinationCurve(
+            Point startPoint,
+            double startHeading,
+            Point endPoint,
+            double endHeading,
+            List<Zone> obstacles,
+            PathConfig config) {
+        double travel = bearing(startPoint, endPoint);
+        boolean startTurns = Math.abs(normalizeAngle(travel - startHeading)) >= TURNAROUND_ANGLE;
+        boolean endTurns = Math.abs(normalizeAngle(travel - endHeading)) >= TURNAROUND_ANGLE;
+
+        if (!startTurns && !endTurns) {
+            return twoPointCubic(startPoint, endPoint, startHeading, endHeading);
+        }
+
+        List<Point> arc = turnaroundArc(startPoint, startHeading, endPoint, endHeading, config);
+
+        if (arc == null || arc.isEmpty() || !fits(startPoint, arc, obstacles, config)) {
+            return twoPointCubic(startPoint, endPoint, startHeading, endHeading);
+        }
+
+        List<Point> keyPoints = new ArrayList<>();
+        List<Double> headings = new ArrayList<>();
+        keyPoints.add(startPoint);
+        headings.add(startHeading);
+
+        for (Point waypoint : arc) {
+            keyPoints.add(waypoint);
+            headings.add(waypoint.getHeadingRad());
+        }
+
+        keyPoints.add(endPoint);
+        headings.add(endHeading);
+        return cubicHermiteChain(keyPoints, headings);
     }
 
     /**
@@ -651,31 +701,36 @@ public final class WeaverGenerator {
             Point from = keyPoints.get(index);
             Point to = keyPoints.get(index + 1);
             double travel = bearing(from, to);
+            double departure = headings.get(index);
+            double arrival = headings.get(index + 1);
 
-            if (Math.abs(normalizeAngle(travel - headings.get(index))) < TURNAROUND_ANGLE) {
+            // The arrival heading matters as much as the departure one: a locked target
+            // can ask to be reached from the opposite side even when the leg leaves
+            // cleanly. A straight Hermite span collapses in either case.
+            boolean departureTurns = Math.abs(normalizeAngle(travel - departure)) >= TURNAROUND_ANGLE;
+            boolean arrivalTurns = Math.abs(normalizeAngle(travel - arrival)) >= TURNAROUND_ANGLE;
+
+            if (!departureTurns && !arrivalTurns) {
                 index++;
                 continue;
             }
 
-            // Swing as wide as a quarter of the footprint allows, and never wider than the
-            // leg itself has room for: circles that close together have no crossing tangent.
-            double swing = Math.max(Math.max(config.getRobotWidth(), config.getRobotHeight()), 1.0) / 4.0;
-            double radius = Math.min(swing, from.distanceTo(to) / 2.5);
-            List<Point> arc = radius < MIN_TURN_RADIUS
-                    ? null
-                    : TurnaroundPath.build(from, headings.get(index), to, travel, radius);
+            List<Point> arc = turnaroundArc(from, departure, to, arrival, config);
 
             if (arc == null || arc.isEmpty()) {
-                // Too short to swing out in: leave along the line of travel rather than
-                // hooking.
-                headings.set(index, travel);
+                // Too short to swing out in. A locked heading is a hard constraint and is
+                // kept; a free one falls back to the line of travel rather than hooking.
+                if (!lockedKeyPoints.get(index)) {
+                    headings.set(index, travel);
+                }
+
                 index++;
                 continue;
             }
 
             // An arc the robot does not fit is no better than the hook it replaces, so keep
             // the leg as fitted and leave the swing to the obstacle pass.
-            if (!fits(keyPoints.get(index), arc, obstacles, config)) {
+            if (!fits(from, arc, obstacles, config)) {
                 index++;
                 continue;
             }
@@ -688,6 +743,32 @@ public final class WeaverGenerator {
 
             index += arc.size() + 1;
         }
+    }
+
+    /**
+     * Builds a bounded-radius turnaround between two poses, when the leg has room for
+     * one.
+     *
+     * @param from      point the leg leaves from
+     * @param departure heading the leg leaves with, in radians
+     * @param to        point the leg arrives at
+     * @param arrival   heading the leg arrives with, in radians
+     * @param config    geometry and tuning parameters
+     * @return the waypoints strictly between the ends, or {@code null} when no turnaround
+     *         fits
+     */
+    private static List<Point> turnaroundArc(
+            Point from, double departure, Point to, double arrival, PathConfig config) {
+        // Swing as wide as a quarter of the footprint allows, and never wider than the
+        // leg itself has room for: circles that close together have no crossing tangent.
+        double swing = Math.max(Math.max(config.getRobotWidth(), config.getRobotHeight()), 1.0) / 4.0;
+        double radius = Math.min(swing, from.distanceTo(to) / 2.5);
+
+        if (!(radius >= MIN_TURN_RADIUS)) {
+            return null;
+        }
+
+        return TurnaroundPath.build(from, departure, to, arrival, radius);
     }
 
     /**

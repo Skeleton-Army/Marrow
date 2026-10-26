@@ -142,6 +142,80 @@ public class WeaverTurnaroundTest {
     }
 
     @Test
+    public void generate_lockedFinalTargetReversed_turnsAroundOnARealArc() {
+        // Arrange: the final target is only reachable from the far side of the robot.
+        Weaver.setConfig(new PathConfig().intakeWidth(0).robotWidth(17).robotHeight(16));
+        PathResult actual = Weaver.builder()
+                .start(new Point(0, 0, 0))
+                .addTarget(new Point(30, 0, Math.toRadians(135)), HeadingPolicy.LOCKED)
+                .ordered()
+                .build();
+
+        // Act
+        PathRoute route = actual.getPath();
+
+        // Assert: the arrival heading is honoured without collapsing the leg.
+        assertEquals(Math.toRadians(135), route.getHeading(route.getSegmentCount()), 1e-6);
+        assertTrue("worst turn " + worstTurnRadius(route), worstTurnRadius(route) >= 1.0);
+    }
+
+    @Test
+    public void generate_lockedInteriorTargetReversed_turnsAroundOnARealArc() {
+        // Arrange: the first target is locked to an arrival the incoming leg opposes.
+        Weaver.setConfig(new PathConfig().intakeWidth(0).robotWidth(17).robotHeight(16));
+        PathResult actual = Weaver.builder()
+                .start(new Point(0, 0, 0))
+                .addTarget(new Point(30, 0, Math.toRadians(135)), HeadingPolicy.LOCKED)
+                .addTarget(new Point(30, 28))
+                .ordered()
+                .build();
+
+        // Act
+        PathRoute route = actual.getPath();
+
+        // Assert: the locked target keeps its heading and the leg into it is drivable.
+        assertEquals(Math.toRadians(135), route.getHeading(1.0), 1e-6);
+        assertTrue("worst turn " + worstTurnRadius(route), worstTurnRadius(route) >= 1.0);
+    }
+
+    @Test
+    public void generate_shortLegLockedTarget_keepsTheLockedHeading() {
+        // Arrange: the leg after the locked target is too short for a turnaround, so the
+        // old fallback overwrote the locked heading with the travel bearing.
+        Weaver.setConfig(new PathConfig().intakeWidth(0).robotWidth(17).robotHeight(16));
+        PathResult actual = Weaver.builder()
+                .start(new Point(0, 0, 0))
+                .addTarget(new Point(-8, 0, Math.toRadians(90)), HeadingPolicy.LOCKED)
+                .addTarget(new Point(-10, 0))
+                .ordered()
+                .build();
+
+        // Act
+        PathRoute route = actual.getPath();
+
+        // Assert: the locked heading survives even though no arc fits after it.
+        assertEquals(Math.toRadians(90), route.getHeading(1.0), 1e-6);
+    }
+
+    @Test
+    public void generate_lockedAvoidanceDestinationReversed_turnsAroundOnARealArc() {
+        // Arrange: a locked destination asks to arrive facing back the way the route came.
+        Weaver.setConfig(new PathConfig().robotWidth(17).robotHeight(16));
+        PathResult actual = Weaver.builder()
+                .start(new Point(0, 0, 0))
+                .end(new Point(-30, 0, Math.PI), HeadingPolicy.LOCKED)
+                .build();
+
+        // Act
+        PathRoute route = actual.getPath();
+
+        // Assert: the route leaves and arrives on the requested headings without a hook.
+        assertEquals(0.0, route.getHeading(0.0), 1e-9);
+        assertEquals(Math.PI, route.getHeading(route.getSegmentCount()), 1e-6);
+        assertTrue("worst turn " + worstTurnRadius(route), worstTurnRadius(route) >= 1.0);
+    }
+
+    @Test
     public void getHeading_derivativeCollapsing_reportsTheDirectionOfTravel() {
         // Arrange: a curve whose derivative vanishes exactly at t = 0.5, where atan2(0, 0)
         // would hand a follower a heading of zero to swing to.
