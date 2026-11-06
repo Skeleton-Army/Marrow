@@ -11,9 +11,10 @@ import java.util.Locale;
 public class PathRoute {
     private final List<PathCurve> segments;
 
+    /** Creates a route from at least one segment. */
     public PathRoute(List<PathCurve> segments) {
         if (segments == null || segments.isEmpty()) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("A route needs at least one segment");
         }
 
         this.segments = new ArrayList<>(segments);

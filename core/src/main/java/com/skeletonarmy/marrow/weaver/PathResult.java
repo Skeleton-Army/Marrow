@@ -47,7 +47,10 @@ public final class PathResult {
         return path.getSegments().get(segmentIndex).getControlPoints();
     }
 
-    /** Returns the heading to hold at the end of each segment, in radians. */
+    /**
+     * Returns the heading to hold when the route finishes, in radians. The list holds a single
+     * value, not one entry per segment.
+     */
     public List<Double> getSegmentEndHeadingsRad() {
         return Collections.unmodifiableList(segmentEndHeadingsRad);
     }

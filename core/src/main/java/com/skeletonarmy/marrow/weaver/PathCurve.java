@@ -16,9 +16,10 @@ public class PathCurve {
     private final List<Point> controlPoints;
     private final int cubicSegmentCount;
 
+    /** Creates a curve from at least two control points. */
     public PathCurve(List<Point> controlPoints) {
         if (controlPoints == null || controlPoints.size() < 2) {
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException("A curve needs at least two control points");
         }
 
         this.controlPoints = new ArrayList<>(controlPoints);
@@ -131,12 +132,15 @@ public class PathCurve {
 
         double oneMinusT = 1 - localProgress;
 
+        // The local parameter runs cubicSegmentCount times faster than t, hence the scale factor.
         double derivativeX = 3
+                * cubicSegmentCount
                 * ((first.getX() - start.getX()) * oneMinusT * oneMinusT
                         + 2 * (second.getX() - first.getX()) * oneMinusT * localProgress
                         + (end.getX() - second.getX()) * localProgress * localProgress);
 
         double derivativeY = 3
+                * cubicSegmentCount
                 * ((first.getY() - start.getY()) * oneMinusT * oneMinusT
                         + 2 * (second.getY() - first.getY()) * oneMinusT * localProgress
                         + (end.getY() - second.getY()) * localProgress * localProgress);

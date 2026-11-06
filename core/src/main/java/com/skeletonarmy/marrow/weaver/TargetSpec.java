@@ -24,8 +24,21 @@ final class TargetSpec {
             throw new IllegalArgumentException("Heading policy is required");
         }
 
+        requireFinitePose(point);
+
         if (policy == HeadingPolicy.LOCKED && !point.hasHeading()) {
             throw new IllegalArgumentException("A locked target requires a heading");
+        }
+    }
+
+    /** Rejects non-finite positions. A NaN heading means no heading and is allowed. */
+    static void requireFinitePose(Point point) {
+        if (!Double.isFinite(point.getX()) || !Double.isFinite(point.getY())) {
+            throw new IllegalArgumentException("Point position must be finite: " + point);
+        }
+
+        if (Double.isInfinite(point.getHeadingRad())) {
+            throw new IllegalArgumentException("Point heading must not be infinite: " + point);
         }
     }
 

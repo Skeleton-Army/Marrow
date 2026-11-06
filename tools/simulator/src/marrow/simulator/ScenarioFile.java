@@ -34,6 +34,7 @@ final class ScenarioFile {
         String name = "";
         String description = "";
         Point start = new Point(24, 24, 0);
+        Point destination = null;
         final List<Point> targets = new ArrayList<>();
         final List<Zone> obstacles = new ArrayList<>();
         final PathConfig config = new PathConfig();
@@ -79,6 +80,11 @@ final class ScenarioFile {
             double x = requiredNumber(start, "x", "start");
             double y = requiredNumber(start, "y", "start");
             scenario.start = new Point(x, y, heading(start, 0.0, "start"));
+        }
+
+        JsonNode destination = root.get("destination");
+        if (destination != null && !destination.isNull()) {
+            scenario.destination = readDestination(destination);
         }
 
         JsonNode targets = root.get("targets");
@@ -136,6 +142,16 @@ final class ScenarioFile {
         start.put("y", scenario.start.getY());
         start.put("headingDeg", Math.toDegrees(scenario.start.hasHeading() ? scenario.start.getHeadingRad() : 0.0));
 
+        if (scenario.destination != null) {
+            ObjectNode destination = root.putObject("destination");
+            destination.put("x", scenario.destination.getX());
+            destination.put("y", scenario.destination.getY());
+
+            if (scenario.destination.hasHeading()) {
+                destination.put("headingDeg", Math.toDegrees(scenario.destination.getHeadingRad()));
+            }
+        }
+
         ArrayNode targets = root.putArray("targets");
         for (Point target : scenario.targets) {
             ObjectNode node = targets.addObject();
@@ -167,20 +183,40 @@ final class ScenarioFile {
         return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(root);
     }
 
+    /** Reads one target; a heading is locked unless {@code locked} is false. */
     private static Point readTarget(JsonNode node, int index) throws IOException {
         String context = "targets[" + index + "]";
+        Point point = readPoint(node, context);
+        boolean locked = bool(node, "locked", point.hasHeading(), context);
+
+        if (locked && !point.hasHeading()) {
+            throw new IOException(context + " is locked but has no headingDeg or headingRad");
+        }
+
+        return locked ? point : new Point(point.getX(), point.getY());
+    }
+
+    /** Reads the optional destination; a present heading means a locked heading. */
+    private static Point readDestination(JsonNode node) throws IOException {
+        Point point = readPoint(node, "destination");
+        boolean locked = bool(node, "locked", point.hasHeading(), "destination");
+
+        if (locked && !point.hasHeading()) {
+            throw new IOException("destination is locked but has no headingDeg or headingRad");
+        }
+
+        return locked ? point : new Point(point.getX(), point.getY());
+    }
+
+    /** Reads a point with an optional heading. */
+    private static Point readPoint(JsonNode node, String context) throws IOException {
         requireObject(node, context);
 
         double x = requiredNumber(node, "x", context);
         double y = requiredNumber(node, "y", context);
         boolean hasHeading = node.hasNonNull("headingDeg") || node.hasNonNull("headingRad");
-        boolean locked = bool(node, "locked", hasHeading, context);
 
-        if (locked && !hasHeading) {
-            throw new IOException(context + " is locked but has no headingDeg or headingRad");
-        }
-
-        return new Point(x, y, locked ? heading(node, 0.0, context) : Double.NaN);
+        return new Point(x, y, hasHeading ? heading(node, 0.0, context) : Double.NaN);
     }
 
     private static Zone readObstacle(JsonNode node, int index) throws IOException {

@@ -25,6 +25,7 @@ final class SimulatorControls extends JPanel {
     private final JToggleButton targetButton = new JToggleButton("Target");
     private final JToggleButton obstacleButton = new JToggleButton("Obstacle");
     private final JToggleButton startButton = new JToggleButton("Start");
+    private final JToggleButton destinationButton = new JToggleButton("Destination");
     private final JButton deselectButton = new JButton("Deselect");
 
     private final JCheckBox polygonCheck = new JCheckBox("Polygon");
@@ -47,11 +48,16 @@ final class SimulatorControls extends JPanel {
 
     private final JSpinner startHeadingSpinner = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 360.0, 5.0));
 
+    private final JCheckBox destinationLockCheck = new JCheckBox("Lock heading");
+    private final JSpinner destinationHeadingSpinner = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 360.0, 5.0));
+    private final JButton destinationClearButton = new JButton("Remove destination");
+
     private final JButton clearButton = new JButton("Clear all");
     private final JButton generateButton = new JButton("Generate code");
     private final JButton copyButton = new JButton("Copy scenario");
     private final JButton pasteButton = new JButton("Paste scenario");
 
+    /** Creates the controls for {@code sim}. */
     SimulatorControls(Simulator sim) {
         this.sim = sim;
         setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
@@ -64,22 +70,27 @@ final class SimulatorControls extends JPanel {
         addSection(selectedTargetSection());
         addSection(newTargetSection());
         addSection(startSection());
+        addSection(destinationSection());
         addSection(actionsSection());
 
         wire();
         refresh();
     }
 
+    /** Builds the tool selection controls. */
     private JPanel toolSection() {
         JPanel section = section("Tool");
         targetButton.setFocusable(false);
         obstacleButton.setFocusable(false);
         startButton.setFocusable(false);
+        destinationButton.setFocusable(false);
         ButtonGroup group = new ButtonGroup();
         group.add(targetButton);
         group.add(obstacleButton);
         group.add(startButton);
+        group.add(destinationButton);
         row(section, targetButton, obstacleButton, startButton);
+        row(section, destinationButton);
 
         deselectButton.setFocusable(false);
         row(section, deselectButton);
@@ -138,6 +149,18 @@ final class SimulatorControls extends JPanel {
         return section;
     }
 
+    /** Builds the destination heading and removal controls. */
+    private JPanel destinationSection() {
+        JPanel section = section("Destination");
+        destinationLockCheck.setFocusable(false);
+        row(section, destinationLockCheck);
+        fieldRow(section, "Heading (deg)", destinationHeadingSpinner);
+        destinationClearButton.setFocusable(false);
+        row(section, destinationClearButton);
+        lockHeight(section);
+        return section;
+    }
+
     private JPanel actionsSection() {
         JPanel section = section("Actions");
         clearButton.setFocusable(false);
@@ -151,10 +174,12 @@ final class SimulatorControls extends JPanel {
         return section;
     }
 
+    /** Connects the controls to their simulator actions. */
     private void wire() {
         targetButton.addActionListener(e -> modeSelected(Simulator.Mode.TARGET));
         obstacleButton.addActionListener(e -> modeSelected(Simulator.Mode.OBSTACLE));
         startButton.addActionListener(e -> modeSelected(Simulator.Mode.START));
+        destinationButton.addActionListener(e -> modeSelected(Simulator.Mode.DESTINATION));
         deselectButton.addActionListener(e -> sim.deselect());
 
         polygonCheck.addActionListener(e -> {
@@ -204,6 +229,16 @@ final class SimulatorControls extends JPanel {
             if (!refreshing) sim.setStartHeadingDegrees(doubleValue(startHeadingSpinner));
         });
 
+        destinationLockCheck.addActionListener(e -> {
+            if (!refreshing) sim.setDestinationHeadingLocked(destinationLockCheck.isSelected());
+        });
+        destinationHeadingSpinner.addChangeListener(e -> {
+            if (!refreshing && sim.isDestinationHeadingLocked()) {
+                sim.setDestinationHeadingDegrees(doubleValue(destinationHeadingSpinner));
+            }
+        });
+        destinationClearButton.addActionListener(e -> sim.clearDestination());
+
         clearButton.addActionListener(e -> sim.clearAll());
         generateButton.addActionListener(e -> sim.generateCode());
         copyButton.addActionListener(e -> sim.copyScenario());
@@ -214,12 +249,14 @@ final class SimulatorControls extends JPanel {
         if (!refreshing) sim.setMode(mode);
     }
 
+    /** Updates the controls from the simulator state. */
     void refresh() {
         refreshing = true;
         try {
             targetButton.setSelected(sim.getMode() == Simulator.Mode.TARGET);
             obstacleButton.setSelected(sim.getMode() == Simulator.Mode.OBSTACLE);
             startButton.setSelected(sim.getMode() == Simulator.Mode.START);
+            destinationButton.setSelected(sim.getMode() == Simulator.Mode.DESTINATION);
 
             polygonCheck.setSelected(sim.isPolygonObstacles());
             sidesSpinner.setValue(Integer.valueOf(sim.getPolygonSides()));
@@ -249,6 +286,15 @@ final class SimulatorControls extends JPanel {
             newHeadingSpinner.setValue(Double.valueOf(sim.getNewTargetHeadingDegrees()));
 
             startHeadingSpinner.setValue(Double.valueOf(sim.getStartHeadingDegrees()));
+
+            boolean hasDestination = sim.hasDestination();
+            boolean destinationLocked = hasDestination && sim.isDestinationHeadingLocked();
+            destinationLockCheck.setEnabled(hasDestination);
+            destinationLockCheck.setSelected(destinationLocked);
+            destinationHeadingSpinner.setEnabled(destinationLocked);
+            destinationHeadingSpinner.setValue(
+                    Double.valueOf(hasDestination ? sim.getDestinationHeadingDegrees() : 0.0));
+            destinationClearButton.setEnabled(hasDestination);
         } finally {
             refreshing = false;
         }

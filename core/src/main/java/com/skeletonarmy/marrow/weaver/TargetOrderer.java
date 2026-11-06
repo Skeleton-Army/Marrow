@@ -92,6 +92,7 @@ public class TargetOrderer {
         return bestOrder;
     }
 
+    /** Orders targets by repeatedly taking the nearest one, then runs 2-opt. */
     private static List<TargetSpec> greedy(
             Point startPos, double startHeading, List<TargetSpec> targets, PathConfig config) {
         List<TargetSpec> remaining = new ArrayList<>(targets);
@@ -99,7 +100,8 @@ public class TargetOrderer {
         Point currentPos = startPos;
 
         while (!remaining.isEmpty()) {
-            TargetSpec nearest = null;
+            // Start from the first entry so a NaN distance cannot leave nothing to pick.
+            TargetSpec nearest = remaining.get(0);
             double nearestDistance = Double.MAX_VALUE;
 
             for (TargetSpec target : remaining) {
@@ -203,6 +205,7 @@ public class TargetOrderer {
         return selectGreedy(startPos, startHeadingRad, targets, limit, config, reachability);
     }
 
+    /** Searches every reachable order up to the limit and returns the cheapest. */
     private static List<TargetSpec> selectBruteForce(
             Point startPos,
             double startHeadingRad,
@@ -215,11 +218,12 @@ public class TargetOrderer {
 
         search(
                 startPos,
+                -1,
                 startHeadingRad,
                 targets,
                 limit,
                 config.getTurnCostWeight(),
-                reachability,
+                new CachedReachability(reachability, targets.size()),
                 new boolean[targets.size()],
                 new ArrayList<>(),
                 0.0,
@@ -229,13 +233,43 @@ public class TargetOrderer {
         return best;
     }
 
+    /** Caches reachability answers for the exhaustive search, which asks about a pair repeatedly. */
+    private static final class CachedReachability {
+        private static final byte UNKNOWN = 0;
+        private static final byte REACHABLE = 1;
+        private static final byte BLOCKED = 2;
+
+        private final TargetReachability delegate;
+        private final byte[][] answers;
+
+        CachedReachability(TargetReachability delegate, int targetCount) {
+            this.delegate = delegate;
+            // Row 0 is the start; row i + 1 is the position of target i.
+            this.answers = new byte[targetCount + 1][targetCount];
+        }
+
+        /** Returns the cached answer for a source and target, querying the delegate once. */
+        boolean canReach(int fromIndex, Point from, int targetIndex, TargetSpec target) {
+            byte known = answers[fromIndex + 1][targetIndex];
+
+            if (known == UNKNOWN) {
+                known = delegate.canReach(from, target) ? REACHABLE : BLOCKED;
+                answers[fromIndex + 1][targetIndex] = known;
+            }
+
+            return known == REACHABLE;
+        }
+    }
+
+    /** Recursively explores orders, keeping the longest and cheapest route found. */
     private static void search(
             Point currentPos,
+            int currentIndex,
             double currentHeading,
             List<TargetSpec> targets,
             int limit,
             double turnCostWeight,
-            TargetReachability reachability,
+            CachedReachability reachability,
             boolean[] used,
             List<TargetSpec> current,
             double cost,
@@ -264,7 +298,7 @@ public class TargetOrderer {
 
             TargetSpec candidate = targets.get(i);
 
-            if (!reachability.canReach(currentPos, candidate)) {
+            if (!reachability.canReach(currentIndex, currentPos, i, candidate)) {
                 continue;
             }
 
@@ -272,6 +306,7 @@ public class TargetOrderer {
             current.add(candidate);
             search(
                     candidate.position(),
+                    i,
                     arrivalHeading(currentPos, candidate),
                     targets,
                     limit,

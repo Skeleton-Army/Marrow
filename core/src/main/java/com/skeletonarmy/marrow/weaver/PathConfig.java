@@ -5,6 +5,12 @@ import java.util.Locale;
 
 /** Geometry and tuning parameters for path generation and obstacle avoidance. */
 public class PathConfig {
+    /**
+     * Largest target count that is ordered exhaustively; longer lists use the greedy strategy.
+     * Seven targets is the most that reliably stays under a 100 ms budget on a Control Hub.
+     */
+    public static final int MAX_BRUTE_FORCE_ORDER_LIMIT = 7;
+
     /** Total intake width. Zero makes the robot stop with its center on each target. */
     private double intakeWidth = 0.0;
 
@@ -27,14 +33,14 @@ public class PathConfig {
     private double turnCostWeight = 10.0;
 
     /** Largest target list ordered exhaustively before switching to the greedy strategy. */
-    private int bruteForceOrderLimit = 8;
+    private int bruteForceOrderLimit = MAX_BRUTE_FORCE_ORDER_LIMIT;
 
     public double getIntakeWidth() {
         return intakeWidth;
     }
 
     public PathConfig intakeWidth(double v) {
-        this.intakeWidth = v;
+        this.intakeWidth = requireFinite("intakeWidth", v);
         return this;
     }
 
@@ -43,7 +49,7 @@ public class PathConfig {
     }
 
     public PathConfig robotWidth(double v) {
-        this.robotWidth = v;
+        this.robotWidth = requireFinite("robotWidth", v);
         return this;
     }
 
@@ -52,7 +58,7 @@ public class PathConfig {
     }
 
     public PathConfig robotHeight(double v) {
-        this.robotHeight = v;
+        this.robotHeight = requireFinite("robotHeight", v);
         return this;
     }
 
@@ -61,7 +67,7 @@ public class PathConfig {
     }
 
     public PathConfig clearance(double v) {
-        this.clearance = v;
+        this.clearance = requireFinite("clearance", v);
         return this;
     }
 
@@ -88,7 +94,7 @@ public class PathConfig {
     }
 
     public PathConfig turnCostWeight(double v) {
-        this.turnCostWeight = v;
+        this.turnCostWeight = requireFinite("turnCostWeight", v);
         return this;
     }
 
@@ -96,9 +102,19 @@ public class PathConfig {
         return bruteForceOrderLimit;
     }
 
+    /** Sets the exhaustive ordering limit, clamped to {@code [0, MAX_BRUTE_FORCE_ORDER_LIMIT]}. */
     public PathConfig bruteForceOrderLimit(int v) {
-        this.bruteForceOrderLimit = v;
+        this.bruteForceOrderLimit = Math.max(0, Math.min(MAX_BRUTE_FORCE_ORDER_LIMIT, v));
         return this;
+    }
+
+    /** Rejects non-finite configuration values. */
+    private static double requireFinite(String name, double value) {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException(name + " must be a finite number, got " + value);
+        }
+
+        return value;
     }
 
     @NonNull
