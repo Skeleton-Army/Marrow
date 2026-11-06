@@ -11,7 +11,7 @@ subprojects {
     apply(plugin = "com.diffplug.spotless")
 
     group = "com.skeletonarmyftc.marrow"
-    version = "1.2.3"
+    version = "1.2.4"
 
     repositories {
         mavenCentral()
