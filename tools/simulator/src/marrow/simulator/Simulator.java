@@ -47,7 +47,7 @@ public class Simulator extends JPanel {
     private static final double FIELD = 144.0;
     private static final PathConfig DEFAULT_CONFIG = new PathConfig();
 
-    public enum Mode { TARGET, OBSTACLE, START }
+    public enum Mode { TARGET, OBSTACLE, START, DESTINATION }
     private enum DragMode { MOVE, RESIZE, ROTATE }
 
     private enum ObstacleShape {
@@ -62,6 +62,7 @@ public class Simulator extends JPanel {
     private final List<Zone> obstacles = new ArrayList<>();
 
     private Point start = new Point(24, 24);
+    private Point destination = null;
     private double startHeading = 0.0;
     private double obstacleRadius = 6.0;
     private double width = DEFAULT_CONFIG.getIntakeWidth();
@@ -89,6 +90,9 @@ public class Simulator extends JPanel {
     private boolean draggingHeading = false;
 
     private int dragIndex = -1;
+    private boolean draggingDestination = false;
+    private Point destinationMoveStart;
+    private Point destinationGrab;
     private DragMode dragMode = DragMode.MOVE;
     private Point moveStart;
     private Point grabField;
@@ -119,6 +123,7 @@ public class Simulator extends JPanel {
     private double scale = 1.0;
     private double ox, oy;
 
+    /** Creates the simulator with a small example scenario. */
     public Simulator() {
         setPreferredSize(new Dimension(820, 820));
         setFocusable(true);
@@ -131,6 +136,7 @@ public class Simulator extends JPanel {
         rebuildPath();
 
         addMouseListener(new MouseAdapter() {
+            /** Handles clicks: select, drag, remove, or place depending on the mode. */
             @Override
             public void mousePressed(MouseEvent e) {
                 requestFocusInWindow();
@@ -181,15 +187,31 @@ public class Simulator extends JPanel {
                         case START:
                             start = f;
                             break;
+                        case DESTINATION:
+                            if (destinationAt(f)) {
+                                draggingDestination = true;
+                                destinationGrab = f;
+                                destinationMoveStart = destination;
+                            } else {
+                                double heading = destination == null ? Double.NaN : destination.getHeadingRad();
+                                destination = new Point(f.getX(), f.getY(), heading);
+                            }
+                            break;
                     }
                     rebuildPath();
                 }
             }
 
+            /** Finishes a drag and rebuilds the route. */
             @Override
             public void mouseReleased(MouseEvent e) {
                 if (draggingHeading) {
                     draggingHeading = false;
+                    rebuildPath();
+                    return;
+                }
+                if (draggingDestination) {
+                    draggingDestination = false;
                     rebuildPath();
                     return;
                 }
@@ -201,12 +223,21 @@ public class Simulator extends JPanel {
         });
 
         addMouseMotionListener(new MouseAdapter() {
+            /** Updates the active drag. */
             @Override
             public void mouseDragged(MouseEvent e) {
                 updateTransform();
                 Point f = new Point(fx(e.getX()), fy(e.getY()));
                 if (draggingHeading) {
                     updateHeadingDrag(f);
+                    return;
+                }
+                if (draggingDestination) {
+                    destination = new Point(
+                            destinationMoveStart.getX() + (f.getX() - destinationGrab.getX()),
+                            destinationMoveStart.getY() + (f.getY() - destinationGrab.getY()),
+                            destinationMoveStart.getHeadingRad());
+                    repaint();
                     return;
                 }
                 if (dragIndex < 0) return;
@@ -238,6 +269,7 @@ public class Simulator extends JPanel {
         repaint();
     }
 
+    /** Regenerates the route from the current scenario. */
     private void rebuildPath() {
         path = null;
         totalLength = 0;
@@ -247,7 +279,7 @@ public class Simulator extends JPanel {
         visitedTargets = new ArrayList<>();
         statusMessage = "";
 
-        if (targets.isEmpty()) {
+        if (targets.isEmpty() && destination == null) {
             refreshControls();
             repaint();
             return;
@@ -271,6 +303,11 @@ public class Simulator extends JPanel {
                 b.addTarget(
                         new Point(t.getX(), t.getY(), t.getHeadingRad()),
                         t.hasHeading() ? HeadingPolicy.LOCKED : HeadingPolicy.FREE);
+            }
+            if (destination != null) {
+                b.end(
+                        new Point(destination.getX(), destination.getY(), destination.getHeadingRad()),
+                        destination.hasHeading() ? HeadingPolicy.LOCKED : HeadingPolicy.FREE);
             }
             for (Zone o : obstacles) {
                 b.addObstacle(o);
@@ -472,11 +509,13 @@ public class Simulator extends JPanel {
                 moveStart.getY() + (f.getY() - grabField.getY()));
     }
 
+    /** Removes the nearest target, obstacle, or destination to the click. */
     private void removeNearest(MouseEvent e) {
         updateTransform();
         double best = 18 * 18;
         int targetIdx = -1;
         int obstacleIdx = -1;
+        boolean destinationHit = false;
 
         for (int i = 0; i < targets.size(); i++) {
             double d = distPx(e, targets.get(i));
@@ -484,6 +523,7 @@ public class Simulator extends JPanel {
                 best = d;
                 targetIdx = i;
                 obstacleIdx = -1;
+                destinationHit = false;
             }
         }
         for (int i = 0; i < obstacles.size(); i++) {
@@ -492,10 +532,21 @@ public class Simulator extends JPanel {
                 best = d;
                 targetIdx = -1;
                 obstacleIdx = i;
+                destinationHit = false;
+            }
+        }
+        if (destination != null) {
+            double d = distPx(e, destination);
+            if (d < best) {
+                targetIdx = -1;
+                obstacleIdx = -1;
+                destinationHit = true;
             }
         }
 
-        if (targetIdx >= 0) {
+        if (destinationHit) {
+            destination = null;
+        } else if (targetIdx >= 0) {
             targets.remove(targetIdx);
             if (selectedTarget == targetIdx) selectedTarget = -1;
             else if (selectedTarget > targetIdx) selectedTarget--;
@@ -514,6 +565,11 @@ public class Simulator extends JPanel {
             if (targets.get(i).distanceTo(f) <= threshold) return i;
         }
         return -1;
+    }
+
+    /** Returns whether a field point is close enough to grab the destination. */
+    private boolean destinationAt(Point f) {
+        return destination != null && destination.distanceTo(f) <= Math.max(3.0, 9.0 / scale);
     }
 
     private double headingHandleLength() {
@@ -572,6 +628,7 @@ public class Simulator extends JPanel {
     private double fy(double py) { return FIELD - (py - oy) / scale; }
 
     @Override
+    /** Paints the field, route, markers, robot, and HUD. */
     protected void paintComponent(Graphics g0) {
         super.paintComponent(g0);
         Graphics2D g = (Graphics2D) g0;
@@ -582,6 +639,7 @@ public class Simulator extends JPanel {
         drawPath(g);
         drawObstacles(g);
         drawTargets(g);
+        drawDestination(g);
         drawStart(g);
         drawRobot(g);
         drawHud(g);
@@ -748,6 +806,44 @@ public class Simulator extends JPanel {
         return false;
     }
 
+    /** Draws the destination marker and its heading when locked. */
+    private void drawDestination(Graphics2D g) {
+        if (destination == null) return;
+
+        int px = (int) sx(destination.getX());
+        int py = (int) sy(destination.getY());
+        int r = 7;
+        boolean selected = mode == Mode.DESTINATION;
+
+        if (selected) {
+            g.setColor(new Color(0, 150, 140, 70));
+            g.fillOval(px - 12, py - 12, 24, 24);
+        }
+
+        g.setColor(new Color(0, 150, 140));
+        g.fillOval(px - r, py - r, r * 2, r * 2);
+        g.setColor(new Color(0, 85, 80));
+        g.drawOval(px - r, py - r, r * 2, r * 2);
+
+        if (destination.hasHeading()) {
+            double length = headingHandleLength();
+            int hx = (int) sx(destination.getX() + Math.cos(destination.getHeadingRad()) * length);
+            int hy = (int) sy(destination.getY() + Math.sin(destination.getHeadingRad()) * length);
+            g.setColor(new Color(0, 150, 140));
+            g.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g.drawLine(px, py, hx, hy);
+
+            double arrowAngle = Math.atan2(hy - py, hx - px);
+            int headLength = 6;
+            int x1 = (int) (hx - headLength * Math.cos(arrowAngle - Math.PI / 7));
+            int y1 = (int) (hy - headLength * Math.sin(arrowAngle - Math.PI / 7));
+            int x2 = (int) (hx - headLength * Math.cos(arrowAngle + Math.PI / 7));
+            int y2 = (int) (hy - headLength * Math.sin(arrowAngle + Math.PI / 7));
+            g.drawLine(hx, hy, x1, y1);
+            g.drawLine(hx, hy, x2, y2);
+        }
+    }
+
     private void drawStart(Graphics2D g) {
         int px = (int) sx(start.getX());
         int py = (int) sy(start.getY());
@@ -819,6 +915,7 @@ public class Simulator extends JPanel {
         }
     }
 
+    /** Draws the status overlay. */
     private void drawHud(Graphics2D g) {
         String selectedLabel;
         if (selectedTarget >= 0 && selectedTarget < targets.size()) {
@@ -842,6 +939,12 @@ public class Simulator extends JPanel {
                         + "   Clearance: " + fmt(clearance) + " in",
                 "Start: (" + fmt(start.getX()) + ", " + fmt(start.getY()) + ")"
                         + " heading " + headingLabel(startHeading),
+                "Destination: " + (destination == null
+                        ? "none"
+                        : "(" + fmt(destination.getX()) + ", " + fmt(destination.getY()) + ")"
+                                + " heading " + (destination.hasHeading()
+                                        ? headingLabel(destination.getHeadingRad())
+                                        : "free")),
                 "Max targets: " + (maxTargets <= 0 ? "unlimited" : maxTargets)
                         + "   Visiting: " + visitedTargets.size(),
                 selectedLabel + "   New locked heading: " + headingLabel(defaultTargetHeading),
@@ -877,9 +980,10 @@ public class Simulator extends JPanel {
         g.setFont(old);
     }
 
+    /** Copies the generated Weaver code and shows it in a dialog. */
     public void generateCode() {
-        if (targets.isEmpty()) {
-            statusMessage = "Nothing to generate: add a target first";
+        if (targets.isEmpty() && destination == null) {
+            statusMessage = "Nothing to generate: add a target or destination first";
             repaint();
             return;
         }
@@ -899,6 +1003,7 @@ public class Simulator extends JPanel {
         requestFocusInWindow();
     }
 
+    /** Builds the Weaver snippet for the current scenario. */
     private String buildCode() {
         StringBuilder sb = new StringBuilder();
         sb.append("Weaver.setConfig(new PathConfig().intakeWidth(")
@@ -946,6 +1051,19 @@ public class Simulator extends JPanel {
             }
             sb.append("), HeadingPolicy.")
                     .append(t.hasHeading() ? "LOCKED" : "FREE")
+                    .append(")\n");
+        }
+
+        if (destination != null) {
+            sb.append("        .end(new Point(")
+                    .append(fmt(destination.getX()))
+                    .append(", ")
+                    .append(fmt(destination.getY()));
+            if (destination.hasHeading()) {
+                sb.append(", ").append(fmt(destination.getHeadingRad()));
+            }
+            sb.append("), HeadingPolicy.")
+                    .append(destination.hasHeading() ? "LOCKED" : "FREE")
                     .append(")\n");
         }
 
@@ -1068,9 +1186,11 @@ public class Simulator extends JPanel {
         rebuildPath();
     }
 
+    /** Removes all targets, obstacles, and the destination. */
     public void clearAll() {
         targets.clear();
         obstacles.clear();
+        destination = null;
         selectedTarget = -1;
         defaultTargetHeading = Double.NaN;
         rebuildPath();
@@ -1200,6 +1320,44 @@ public class Simulator extends JPanel {
         rebuildPath();
     }
 
+    /** @return whether a destination has been placed */
+    public boolean hasDestination() {
+        return destination != null;
+    }
+
+    /** @return whether the destination has a locked heading */
+    public boolean isDestinationHeadingLocked() {
+        return destination != null && destination.hasHeading();
+    }
+
+    /** @return the destination heading in display degrees, or 0 when unset */
+    public double getDestinationHeadingDegrees() {
+        if (destination == null) return 0.0;
+        return toDisplayDegrees(destination.hasHeading() ? destination.getHeadingRad() : 0.0);
+    }
+
+    /** Locks or frees the destination heading, keeping its current position. */
+    public void setDestinationHeadingLocked(boolean locked) {
+        if (destination == null) return;
+        double heading = locked ? (destination.hasHeading() ? destination.getHeadingRad() : 0.0) : Double.NaN;
+        destination = new Point(destination.getX(), destination.getY(), heading);
+        rebuildPath();
+    }
+
+    /** Sets the destination heading and locks it. */
+    public void setDestinationHeadingDegrees(double degrees) {
+        if (destination == null) return;
+        destination = new Point(
+                destination.getX(), destination.getY(), normalizeAngle(Math.toRadians(degrees)));
+        rebuildPath();
+    }
+
+    /** Removes the destination. */
+    public void clearDestination() {
+        destination = null;
+        rebuildPath();
+    }
+
     public void deselect() {
         selectedTarget = -1;
         refreshControls();
@@ -1293,11 +1451,15 @@ public class Simulator extends JPanel {
         JOptionPane.showMessageDialog(this, title + ":\n" + statusMessage, title, JOptionPane.ERROR_MESSAGE);
     }
 
+    /** Returns the current simulator state as a scenario. */
     private ScenarioFile.Scenario currentScenario() {
         ScenarioFile.Scenario scenario = new ScenarioFile.Scenario();
         scenario.name = scenarioName;
         scenario.description = scenarioDescription;
         scenario.start = new Point(start.getX(), start.getY(), startHeading);
+        scenario.destination = destination == null
+                ? null
+                : new Point(destination.getX(), destination.getY(), destination.getHeadingRad());
 
         for (Point target : targets) {
             scenario.targets.add(new Point(target.getX(), target.getY(), target.getHeadingRad()));
@@ -1318,6 +1480,7 @@ public class Simulator extends JPanel {
         return scenario;
     }
 
+    /** Replaces the simulator state with a parsed scenario. */
     private void applyScenario(ScenarioFile.Scenario scenario) {
         targets.clear();
         for (Point target : scenario.targets) {
@@ -1329,6 +1492,12 @@ public class Simulator extends JPanel {
 
         start = new Point(scenario.start.getX(), scenario.start.getY());
         startHeading = scenario.start.hasHeading() ? scenario.start.getHeadingRad() : 0.0;
+        destination = scenario.destination == null
+                ? null
+                : new Point(
+                        scenario.destination.getX(),
+                        scenario.destination.getY(),
+                        scenario.destination.getHeadingRad());
 
         PathConfig config = scenario.config;
         width = Math.max(0, config.getIntakeWidth());

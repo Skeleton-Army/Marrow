@@ -25,6 +25,10 @@ public class Weaver {
      * @param newConfig configuration to use
      */
     public static void setConfig(PathConfig newConfig) {
+        if (newConfig == null) {
+            throw new IllegalArgumentException("Config is required; use resetToDefaults() to restore the defaults");
+        }
+
         config = newConfig;
     }
 

@@ -12,7 +12,8 @@ import java.util.function.Function;
 /**
  * Fluent builder for path generation requests.
  *
- * <p>A start pose and either targets or a destination are required. Targets are
+ * <p>A start pose and at least one target or destination are required. When both are supplied,
+ * the targets are visited first and the route ends at the destination. Targets are
  * {@link HeadingPolicy#FREE} unless a different policy is supplied.
  */
 public class WeaverBuilder {
@@ -25,7 +26,12 @@ public class WeaverBuilder {
     private int maxTargets = 0;
     private HeadingPolicy defaultHeadingPolicy = HeadingPolicy.FREE;
 
+    /** Sets the robot's start pose. */
     public WeaverBuilder start(Point start) {
+        if (start != null) {
+            TargetSpec.requireFinitePose(start);
+        }
+
         this.startPose = start;
         return this;
     }
@@ -88,7 +94,12 @@ public class WeaverBuilder {
         return addTargets(source, toPoint, defaultHeadingPolicy);
     }
 
+    /** Adds a target for each element produced by {@code source}. */
     public <T> WeaverBuilder addTargets(Iterable<T> source, Function<T, Point> toPoint, HeadingPolicy policy) {
+        if (toPoint == null) {
+            throw new IllegalArgumentException("A point converter is required");
+        }
+
         if (source != null) {
             for (T element : source) {
                 addTarget(toPoint.apply(element), policy);
@@ -122,7 +133,16 @@ public class WeaverBuilder {
         return this;
     }
 
+    /** Replaces the obstacle list; null clears it. */
     public WeaverBuilder obstacles(List<Zone> newObstacles) {
+        if (newObstacles != null) {
+            for (Zone obstacle : newObstacles) {
+                if (obstacle == null) {
+                    throw new IllegalArgumentException("Obstacle must not be null");
+                }
+            }
+        }
+
         this.obstacles.clear();
 
         if (newObstacles != null) {
@@ -132,15 +152,22 @@ public class WeaverBuilder {
         return this;
     }
 
+    /** Replaces the obstacle list; null clears it. */
     public WeaverBuilder obstacles(Zone... newObstacles) {
-        return obstacles(Arrays.asList(newObstacles));
+        return obstacles(newObstacles == null ? null : Arrays.asList(newObstacles));
     }
 
+    /** Adds one obstacle. */
     public WeaverBuilder addObstacle(Zone obstacle) {
+        if (obstacle == null) {
+            throw new IllegalArgumentException("Obstacle must not be null");
+        }
+
         this.obstacles.add(obstacle);
         return this;
     }
 
+    /** Builds the path for the current settings. */
     public PathResult generate() {
         if (startPose == null) {
             throw new IllegalStateException("Start Point is required");

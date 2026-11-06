@@ -64,6 +64,7 @@ public class ScenarioFileTest {
         original.name = "Round trip";
         original.description = "Everything";
         original.start = new Point(7, 8, Math.toRadians(45));
+        original.destination = new Point(120, 100, Math.toRadians(90));
         original.targets.add(new Point(10, 20, Math.toRadians(90)));
         original.targets.add(new Point(30, 40));
         original.obstacles.add(new CircleZone(new Point(50, 60), 5));
@@ -82,6 +83,10 @@ public class ScenarioFileTest {
         assertEquals(original.start.getX(), actual.start.getX(), EPS);
         assertEquals(original.start.getY(), actual.start.getY(), EPS);
         assertEquals(original.start.getHeadingRad(), actual.start.getHeadingRad(), EPS);
+        assertTrue(actual.destination != null);
+        assertEquals(120.0, actual.destination.getX(), EPS);
+        assertEquals(100.0, actual.destination.getY(), EPS);
+        assertEquals(Math.toRadians(90), actual.destination.getHeadingRad(), EPS);
         assertEquals(2, actual.targets.size());
         assertEquals(Math.toRadians(90), actual.targets.get(0).getHeadingRad(), EPS);
         assertTrue(!actual.targets.get(1).hasHeading());
@@ -99,6 +104,26 @@ public class ScenarioFileTest {
         assertEquals(4, actual.config.getBruteForceOrderLimit());
         assertTrue(!actual.reorder);
         assertEquals(2, actual.maxTargets);
+    }
+
+    @Test
+    public void parse_freeDestination_hasNoHeading() throws Exception {
+        ScenarioFile.Scenario scenario = ScenarioFile.parse("{" + "\"format\":\"marrow-scenario\",\"version\":1,"
+                + "\"destination\":{\"x\":120,\"y\":100}" + "}");
+
+        assertTrue(scenario.destination != null);
+        assertEquals(120.0, scenario.destination.getX(), EPS);
+        assertTrue(!scenario.destination.hasHeading());
+    }
+
+    @Test
+    public void parse_lockedDestination_readsHeading() throws Exception {
+        ScenarioFile.Scenario scenario = ScenarioFile.parse("{" + "\"format\":\"marrow-scenario\",\"version\":1,"
+                + "\"destination\":{\"x\":120,\"y\":100,\"headingDeg\":180}" + "}");
+
+        assertTrue(scenario.destination != null);
+        assertTrue(scenario.destination.hasHeading());
+        assertEquals(Math.PI, Math.abs(scenario.destination.getHeadingRad()), EPS);
     }
 
     @Test

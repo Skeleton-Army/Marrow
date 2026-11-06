@@ -15,8 +15,9 @@ import java.util.Map;
  * Builds the cubic Bezier route that visits targets or reaches a destination.
  *
  * <p>With targets, they are ordered (optionally), clustered into rows that fit the
- * intake, and connected by a Hermite chain following the intake heading. With only a
- * destination, a straight seed is bent around obstacles by {@link ObstacleAvoider}.
+ * intake, and connected by a Hermite chain following the intake heading. A destination
+ * is appended as the final leg after the last target. With only a destination, a
+ * straight seed is bent around obstacles by {@link ObstacleAvoider}.
  */
 public final class WeaverGenerator {
     /** A leg this far off its key point's heading is a turnaround, not a bend. */
@@ -27,6 +28,9 @@ public final class WeaverGenerator {
 
     /** Shortest gap kept between two key points of one sweep, in inches. */
     private static final double MIN_KEY_POINT_GAP = 0.5;
+
+    /** Largest heading difference treated as the same request at a shared key point. */
+    private static final double HEADING_MATCH_EPSILON = 1e-6;
 
     /** Number of control points used to seed a straight avoidance path. */
     private static final int SEED_CONTROL_POINTS = 6;
@@ -53,6 +57,10 @@ public final class WeaverGenerator {
             boolean reorder,
             int maxTargets,
             PathConfig config) {
+        if (targets == null) {
+            throw new IllegalArgumentException("Targets are required");
+        }
+
         List<TargetSpec> targetSpecs = new ArrayList<>();
 
         for (Point target : targets) {
@@ -73,8 +81,37 @@ public final class WeaverGenerator {
             boolean reorder,
             int maxTargets,
             PathConfig config) {
+        if (startPose == null) {
+            throw new IllegalArgumentException("Start Point is required");
+        }
+
+        if (targets == null) {
+            throw new IllegalArgumentException("Targets are required");
+        }
+
+        if (config == null) {
+            throw new IllegalArgumentException("Config is required");
+        }
+
+        TargetSpec.requireFinitePose(startPose);
+
+        if (destinationPose != null) {
+            TargetSpec.validate(destinationPose, destinationPolicy);
+        }
+
+        if (obstacles == null) {
+            obstacles = Collections.emptyList();
+        } else {
+            for (Zone obstacle : obstacles) {
+                if (obstacle == null) {
+                    throw new IllegalArgumentException("Obstacle must not be null");
+                }
+            }
+        }
+
         if (!targets.isEmpty()) {
-            return generateIntakeResult(startPose, targets, obstacles, reorder, maxTargets, config);
+            return generateIntakeResult(
+                    startPose, destinationPose, destinationPolicy, targets, obstacles, reorder, maxTargets, config);
         }
 
         if (destinationPose != null) {
@@ -113,6 +150,10 @@ public final class WeaverGenerator {
             double robotWidth,
             double robotHeight,
             int samples) {
+        if (obstacles == null) {
+            obstacles = Collections.emptyList();
+        }
+
         for (int i = 0; i < samples; i++) {
             double progress = samples == 1 ? 0 : (double) i / (samples - 1);
             Point samplePoint = curve.get(progress);
@@ -201,8 +242,11 @@ public final class WeaverGenerator {
         return isPathClear(curve, obstacles, clearance, 0.0, 0.0, samples);
     }
 
+    /** Builds a route that visits targets and finishes at an optional destination. */
     private static PathResult generateIntakeResult(
             Point start,
+            Point destination,
+            HeadingPolicy destinationPolicy,
             List<TargetSpec> targets,
             List<Zone> obstacles,
             boolean reorder,
@@ -244,6 +288,17 @@ public final class WeaverGenerator {
         }
 
         if (orderedTargets.isEmpty()) {
+            // Nothing to pick up, but a destination still has to be reached.
+            if (destination != null) {
+                PathResult direct = generateAvoidanceResult(start, destination, destinationPolicy, obstacles, config);
+
+                return new PathResult(
+                        direct.getPath(),
+                        direct.getSegmentEndHeadingsRad(),
+                        Collections.<Point>emptyList(),
+                        unvisitedTargets);
+            }
+
             PathRoute idlePath = finish(
                     new PathRoute(Collections.singletonList(new PathCurve(Arrays.asList(startPoint, startPoint)))),
                     obstacles,
@@ -323,6 +378,21 @@ public final class WeaverGenerator {
             previousRawTarget = target;
         }
 
+        // The destination is always the last leg, after every target is visited.
+        if (destination != null) {
+            double destinationHeading = destinationPolicy == HeadingPolicy.LOCKED
+                    ? destination.getHeadingRad()
+                    : bearing(previousRawTarget, destination);
+
+            appendKeyPoint(
+                    keyPoints,
+                    headings,
+                    lockedKeyPoints,
+                    destination,
+                    destinationHeading,
+                    destinationPolicy == HeadingPolicy.LOCKED);
+        }
+
         if (!start.hasHeading()) {
             headings.set(0, firstBearing(startPoint, keyPoints));
         }
@@ -333,16 +403,23 @@ public final class WeaverGenerator {
             lockedKeyPoints.add(false);
         }
 
-        // A last target with a locked heading keeps it, even when it shares a key point
-        // with the target before it.
-        TargetSpec lastTarget = orderedTargets.get(orderedTargets.size() - 1);
-        double endHeading =
-                lastTarget.hasLockedHeading() ? lastTarget.getHeadingRad() : headings.get(headings.size() - 1);
-
         applyTurnaround(keyPoints, headings, lockedKeyPoints, obstacles, config);
 
         PathRoute path = buildRoute(keyPoints, headings, lockedKeyPoints);
         path = finish(path, obstacles, config, true);
+
+        double endHeading;
+
+        if (destination != null) {
+            endHeading = destinationPolicy == HeadingPolicy.LOCKED
+                    ? destination.getHeadingRad()
+                    : path.getHeading(path.getSegmentCount());
+        } else {
+            // A last target with a locked heading keeps it, even when it shares a key
+            // point with the target before it.
+            TargetSpec lastTarget = orderedTargets.get(orderedTargets.size() - 1);
+            endHeading = lastTarget.hasLockedHeading() ? lastTarget.getHeadingRad() : headings.get(headings.size() - 1);
+        }
 
         return new PathResult(path, Collections.singletonList(endHeading), visitedTargets, unvisitedTargets);
     }
@@ -897,7 +974,8 @@ public final class WeaverGenerator {
 
     /**
      * Appends a key point unless it coincides with the previous one, which would leave
-     * a zero-length cubic with an undefined tangent. The earlier point keeps its heading.
+     * a zero-length cubic with an undefined tangent. A later locked point at the same
+     * position takes over the heading, except at the start, which cannot change.
      */
     private static void appendKeyPoint(
             List<Point> keyPoints,
@@ -907,12 +985,35 @@ public final class WeaverGenerator {
             double heading,
             boolean locked) {
         if (lastOf(keyPoints).distanceTo(point) < 1e-6) {
+            if (!locked) {
+                return;
+            }
+
+            int lastIndex = keyPoints.size() - 1;
+
+            // The start pose is fixed; a locked point cannot ask for a different heading.
+            if (lastIndex == 0) {
+                if (!headingsMatch(headings.get(0), heading)) {
+                    throw new IllegalArgumentException("A locked point at the start requests a different heading: "
+                            + headings.get(0) + " vs " + heading);
+                }
+
+                return;
+            }
+
+            headings.set(lastIndex, heading);
+            lockedKeyPoints.set(lastIndex, true);
             return;
         }
 
         keyPoints.add(point);
         headings.add(heading);
         lockedKeyPoints.add(locked);
+    }
+
+    /** Returns whether two headings ask for the same direction, ignoring full turns. */
+    private static boolean headingsMatch(double a, double b) {
+        return Double.isFinite(a) && Double.isFinite(b) && Math.abs(normalizeAngle(a - b)) <= HEADING_MATCH_EPSILON;
     }
 
     private static Point lastOf(List<Point> points) {
