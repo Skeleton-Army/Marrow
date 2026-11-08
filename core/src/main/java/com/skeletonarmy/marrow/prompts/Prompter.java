@@ -1,6 +1,7 @@
 package com.skeletonarmy.marrow.prompts;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.skeletonarmy.marrow.internal.Button;
 import com.skeletonarmy.marrow.internal.GamepadInput;
 import java.util.ArrayList;
@@ -17,7 +18,9 @@ import java.util.stream.Collectors;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 public class Prompter {
-    private final OpMode opMode;
+    private final Telemetry telemetry;
+    private final Gamepad gamepad1;
+    private final Gamepad gamepad2;
     private final List<PromptEntry<?>> entries = new ArrayList<>();
     private final Map<String, Object> results = new HashMap<>();
     private final Map<String, Integer> resultEntryIndex = new HashMap<>();
@@ -29,8 +32,14 @@ public class Prompter {
     private boolean inSummary = false;
     private int keylessPromptCounter = 0;
 
+    public Prompter(Telemetry telemetry, Gamepad gamepad1, Gamepad gamepad2) {
+        this.telemetry = telemetry;
+        this.gamepad1 = gamepad1;
+        this.gamepad2 = gamepad2;
+    }
+
     public Prompter(OpMode opMode) {
-        this.opMode = opMode;
+        this(opMode.telemetry, opMode.gamepad1, opMode.gamepad2);
     }
 
     // ---- API ----
@@ -120,6 +129,18 @@ public class Prompter {
         return isCompleted;
     }
 
+    public Telemetry getTelemetry() {
+        return telemetry;
+    }
+
+    public Gamepad getGamepad1() {
+        return gamepad1;
+    }
+
+    public Gamepad getGamepad2() {
+        return gamepad2;
+    }
+
     // ---- LIFECYCLE ----
 
     /**
@@ -128,11 +149,11 @@ public class Prompter {
     public void run() {
         // Must be called every loop, even after completion, so the display clears properly once the transmission
         // interval elapses
-        opMode.telemetry.update();
+        telemetry.update();
 
         if (isCompleted) return;
 
-        GamepadInput.update(opMode.gamepad1, opMode.gamepad2);
+        GamepadInput.update(gamepad1, gamepad2);
 
         if (inSummary) {
             runSummary();
@@ -150,8 +171,8 @@ public class Prompter {
         // Telemetry won't transmit an empty screen - at least one item must be
         // present for the Driver Station display to update and show the cleared state.
         // The telemetry is updated in run().
-        opMode.telemetry.clear();
-        opMode.telemetry.addLine("Ready.");
+        telemetry.clear();
+        telemetry.addLine("Ready.");
 
         if (completeFunc != null) completeFunc.run();
     }
@@ -164,8 +185,8 @@ public class Prompter {
     }
 
     private void runSummary() {
-        opMode.telemetry.addLine("=== SUMMARY ===");
-        opMode.telemetry.addLine("");
+        telemetry.addLine("=== SUMMARY ===");
+        telemetry.addLine("");
 
         Set<String> displayedKeys = new HashSet<>();
 
@@ -191,13 +212,13 @@ public class Prompter {
                                     .collect(Collectors.joining(", "))
                     : value != null ? value.toString() : "null";
 
-            opMode.telemetry.addData(finalLabel, display);
+            telemetry.addData(finalLabel, display);
             displayedKeys.add(entry.key);
         }
 
-        opMode.telemetry.addLine("");
-        opMode.telemetry.addLine("Press CROSS/A to confirm");
-        opMode.telemetry.addLine("Press CIRCLE/B to go back");
+        telemetry.addLine("");
+        telemetry.addLine("Press CROSS/A to confirm");
+        telemetry.addLine("Press CIRCLE/B to go back");
 
         if (GamepadInput.justPressed(Button.A)) {
             inSummary = false;
@@ -237,7 +258,7 @@ public class Prompter {
             return false;
         }
 
-        Prompt<?> prompt = entry.getPrompt(opMode.telemetry);
+        Prompt<?> prompt = entry.getPrompt(telemetry);
         if (prompt == null) {
             currentIndex++;
             return false;
@@ -263,7 +284,7 @@ public class Prompter {
             currentIndex--;
         }
 
-        while (currentIndex > 0 && entries.get(currentIndex).getPrompt(opMode.telemetry) == null) {
+        while (currentIndex > 0 && entries.get(currentIndex).getPrompt(telemetry) == null) {
             entries.get(currentIndex).reset();
             resultEntryIndex.values().remove(currentIndex);
             results.remove(entries.get(currentIndex).key);
