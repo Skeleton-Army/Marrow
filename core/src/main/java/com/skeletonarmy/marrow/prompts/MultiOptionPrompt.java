@@ -22,6 +22,9 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
         if (header == null || header.isEmpty()) throw new IllegalArgumentException("Header cannot be empty.");
         if (options == null || options.length == 0)
             throw new IllegalArgumentException("Options cannot be null or empty.");
+        for (T option : options) {
+            if (option == null) throw new IllegalArgumentException("Option cannot be null.");
+        }
 
         if (maxSelections <= 0) maxSelections = options.length;
 
@@ -40,7 +43,12 @@ public class MultiOptionPrompt<T> extends Prompt<List<T>> {
             boolean ordered,
             int maxSelections,
             Class<? extends Enum<?>> options) {
-        this(header, requireSelection, ordered, maxSelections, (T[]) options.getEnumConstants());
+        this(header, requireSelection, ordered, maxSelections, (T[]) requireEnumValues(options));
+    }
+
+    private static Object[] requireEnumValues(Class<? extends Enum<?>> options) {
+        if (options == null) throw new IllegalArgumentException("Option cannot be null.");
+        return options.getEnumConstants();
     }
 
     @Override
